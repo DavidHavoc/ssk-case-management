@@ -1,0 +1,68 @@
+{% load i18n static %}
+<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>{% block title %}{% translate "SSK Case Management" %}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">{% translate "Skip to main content" %}</a>
+  <header class="app-header">
+    <nav class="container nav-bar" aria-label="{% translate 'Main navigation' %}">
+      <a class="brand" href="{% url 'dashboard' %}" aria-label="{% translate 'SSK Case Management home' %}">
+        <span class="brand-mark" aria-hidden="true">SSK</span>
+        <span>{% translate "SSK Center" %}</span>
+      </a>
+      {% if user.is_authenticated %}
+        <div class="nav-links">
+          <a href="{% url 'dashboard' %}">{% translate "Dashboard" %}</a>
+          <a href="{% url 'beneficiary_list' %}">{% translate "Beneficiaries" %}</a>
+          <a href="{% url 'visit_list' %}">{% translate "Visits" %}</a>
+          <a href="{% url 'assessment_list' %}">{% translate "Assessments" %}</a>
+          <a href="{% url 'plan_list' %}">{% translate "Plans" %}</a>
+          <a href="{% url 'summary_list' %}">{% translate "Summaries" %}</a>
+          <a href="{% url 'reports' %}">{% translate "Reports" %}</a>
+        </div>
+        <div class="nav-actions">
+          {% if active_center %}
+            <a class="center-chip" href="{% url 'center_select' %}" title="{% translate 'Change center' %}">
+              {{ active_center.name }}
+            </a>
+          {% endif %}
+          <form action="{% url 'set_language' %}" method="post" class="language-form">
+            {% csrf_token %}
+            <input name="next" type="hidden" value="{{ request.get_full_path }}">
+            <label class="visually-hidden" for="language-select">{% translate "Language" %}</label>
+            <select id="language-select" name="language">
+              <option value="en" {% if LANGUAGE_CODE == 'en' %}selected{% endif %}>English</option>
+              <option value="ka" {% if LANGUAGE_CODE == 'ka' %}selected{% endif %}>ქართული</option>
+            </select>
+            <button class="button button-quiet" type="submit">{% translate "Apply" %}</button>
+          </form>
+          <form action="{% url 'logout' %}" method="post">
+            {% csrf_token %}
+            <button class="button button-quiet" type="submit">{% translate "Sign out" %}</button>
+          </form>
+        </div>
+      {% endif %}
+    </nav>
+  </header>
+  {% if messages %}
+    <div class="container messages" aria-live="polite">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  <main id="main-content" class="container page-shell" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="container app-footer">
+    <span>{% translate "SSK Case Management" %}</span>
+    <span>{% translate "Sensitive information must be handled according to approved policy." %}</span>
+  </footer>
+</body>
+</html>

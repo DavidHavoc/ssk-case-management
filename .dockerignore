@@ -1,0 +1,13 @@
+.git
+.env*
+.venv
+__pycache__
+*.pyc
+*.sqlite3
+*.log
+*.dump
+*.sql
+backups
+deploy/tls
+media/private
+staticfiles

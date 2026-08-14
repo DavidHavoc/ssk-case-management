@@ -1,0 +1,28 @@
+{% load i18n %}
+<section class="section-block" aria-labelledby="attachments-heading">
+  <div class="section-heading">
+    <div>
+      <h2 id="attachments-heading">{% translate "Private attachments" %}</h2>
+      <p>{% translate "Files are stored privately and every download is authorized." %}</p>
+    </div>
+    <a class="button button-secondary" href="{% url 'attachment_upload' attachment_parent_type object_id %}">{% translate "Upload file" %}</a>
+  </div>
+  {% if attachments %}
+    <ul class="file-list">
+      {% for attachment in attachments %}
+        <li>
+          <div><strong>{{ attachment.original_filename }}</strong><br><small>{{ attachment.size|filesizeformat }} · {{ attachment.created_at|date:"SHORT_DATETIME_FORMAT" }}</small></div>
+          <div class="actions">
+            <a class="button button-quiet" href="{% url 'attachment_download' attachment.pk %}">{% translate "Download" %}</a>
+            <form action="{% url 'attachment_delete' attachment.pk %}" method="post">
+              {% csrf_token %}
+              <button class="button button-danger" type="submit">{% translate "Delete" %}</button>
+            </form>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="empty-state compact">{% translate "No attachments have been uploaded." %}</div>
+  {% endif %}
+</section>

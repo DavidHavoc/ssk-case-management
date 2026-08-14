@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{% translate "Select center" %}{% endblock %}
+{% block content %}
+<div class="auth-shell"><section class="auth-panel" aria-labelledby="center-title">
+  <div class="eyebrow">{% translate "Working context" %}</div>
+  <h1 id="center-title">{% translate "Select a center" %}</h1>
+  <p>{% translate "Lists, forms, reports, and downloads will use the selected center." %}</p>
+  <form method="post">
+    {% csrf_token %}<input type="hidden" name="next" value="{{ next }}">
+    <div class="form-group"><label for="center">{% translate "Center" %}</label><select class="form-select" name="center" id="center" required>
+      {% for center in centers %}<option value="{{ center.pk }}" {% if active_center.pk == center.pk %}selected{% endif %}>{{ center.name }}</option>{% endfor %}
+    </select></div>
+    <button class="button button-primary button-block" type="submit">{% translate "Continue" %}</button>
+  </form>
+</section></div>
+{% endblock %}

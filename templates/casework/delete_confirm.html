@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Delete record" %}{% endblock %}
+{% block content %}
+<section class="form-card" aria-labelledby="delete-title">
+  <h1 id="delete-title">{% translate "Delete record" %}</h1>
+  <p>{% blocktranslate with object=object %}Permanently delete {{ object }}?{% endblocktranslate %}</p>
+  <p>{% translate "This action cannot be undone." %}</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-actions">
+      <button class="button button-danger" type="submit">{% translate "Delete" %}</button>
+      <a class="button button-quiet" href="{{ cancel_url }}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

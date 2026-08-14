@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Sign in" %} | {% translate "SSK Case Management" %}{% endblock %}
+{% block content %}
+<div class="auth-shell">
+  <section class="auth-panel" aria-labelledby="login-title">
+    <div class="eyebrow">{% translate "Secure access" %}</div>
+    <h1 id="login-title">{% translate "Sign in to SSK Center" %}</h1>
+    <p>{% translate "Use your staff account. Access is limited by role, center, and beneficiary assignment." %}</p>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include "includes/form_fields.html" %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="button button-primary button-block" type="submit">{% translate "Sign in" %}</button>
+    </form>
+    <a class="auth-link" href="{% url 'password_reset' %}">{% translate "Forgot your password?" %}</a>
+  </section>
+</div>
+{% endblock %}
