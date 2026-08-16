@@ -16,7 +16,7 @@
             <a class="button button-quiet" href="{% url 'attachment_download' attachment.pk %}">{% translate "Download" %}</a>
             <form action="{% url 'attachment_delete' attachment.pk %}" method="post">
               {% csrf_token %}
-              <button class="button button-danger" type="submit">{% translate "Delete" %}</button>
+              <button class="button button-danger" type="submit" data-confirm="{% translate 'Delete this private attachment? This action cannot be undone.' %}">{% translate "Delete" %}</button>
             </form>
           </div>
         </li>

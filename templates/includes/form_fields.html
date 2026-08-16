@@ -1,7 +1,4 @@
 {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
-{% if form.non_field_errors %}
-  <div class="alert alert-error" role="alert">{{ form.non_field_errors }}</div>
-{% endif %}
 {% for field in form.visible_fields %}
   <div class="form-group{% if field.errors %} has-error{% endif %}">
     {% if field.field.widget.input_type == 'checkbox' %}
@@ -10,7 +7,7 @@
       <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span aria-hidden="true">*</span>{% endif %}</label>
       {{ field }}
     {% endif %}
-    {% if field.help_text %}<div class="help-text">{{ field.help_text|safe }}</div>{% endif %}
-    {% for error in field.errors %}<div class="field-error" role="alert">{{ error }}</div>{% endfor %}
+    {% if field.help_text %}<div class="help-text" id="{{ field.id_for_label }}-help">{{ field.help_text|safe }}</div>{% endif %}
+    {% if field.errors %}<div class="field-error" id="{{ field.id_for_label }}-error" role="alert">{% for error in field.errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
   </div>
 {% endfor %}

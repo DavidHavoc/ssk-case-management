@@ -36,13 +36,31 @@ class StaffProfile(ValidatedModel):
     class Status(models.TextChoices):
         ACTIVE = "active", _("Active")
         INACTIVE = "inactive", _("Inactive")
+        FINISHED = "finished", _("Finished")
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="staff_profile"
     )
     employee_number = models.CharField(max_length=40, unique=True)
-    job_title = models.CharField(max_length=120, blank=True)
+    project_program = models.CharField(
+        max_length=180, blank=True, verbose_name=_("Project or program")
+    )
+    job_title = models.CharField(max_length=120, blank=True, verbose_name=_("Position"))
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
+    contact_number = models.CharField(
+        max_length=40,
+        blank=True,
+        validators=[phone_number_validator],
+        verbose_name=_("Contact number"),
+    )
+    contract_signed_on = models.DateField(
+        null=True, blank=True, verbose_name=_("Contract signing date")
+    )
+    contract_valid_until = models.DateField(
+        null=True, blank=True, verbose_name=_("Contract valid until")
+    )
+    description = models.TextField(blank=True)
+    notes = models.TextField(blank=True)
     primary_center = models.ForeignKey(
         Center,
         on_delete=models.PROTECT,
@@ -54,6 +72,16 @@ class StaffProfile(ValidatedModel):
 
     class Meta:
         ordering = ["user__last_name", "user__first_name", "employee_number"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(contract_signed_on__isnull=True)
+                    | Q(contract_valid_until__isnull=True)
+                    | Q(contract_valid_until__gte=models.F("contract_signed_on"))
+                ),
+                name="staff_contract_dates_ordered",
+            )
+        ]
 
     def __str__(self) -> str:
         return self.display_name
@@ -64,6 +92,19 @@ class StaffProfile(ValidatedModel):
 
     def clean(self) -> None:
         self.employee_number = self.employee_number.strip().upper()
+        self.project_program = self.project_program.strip()
+        self.job_title = self.job_title.strip()
+        self.contact_number = self.contact_number.strip()
+        self.description = self.description.strip()
+        self.notes = self.notes.strip()
+        if (
+            self.contract_signed_on
+            and self.contract_valid_until
+            and self.contract_valid_until < self.contract_signed_on
+        ):
+            raise ValidationError(
+                {"contract_valid_until": _("Contract validity cannot end before it begins.")}
+            )
 
 
 class SpecialistProfile(ValidatedModel):
@@ -80,6 +121,13 @@ class SpecialistProfile(ValidatedModel):
 
     def clean(self) -> None:
         self.description = self.description.strip()
+
+    def save(self, *args, **kwargs):
+        result = super().save(*args, **kwargs)
+        if self.staff_profile.description != self.description:
+            self.staff_profile.description = self.description
+            self.staff_profile.save(update_fields=["description", "updated_at"])
+        return result
 
 
 class SpecialistCenterAssignment(ValidatedModel):

@@ -18,6 +18,7 @@ from apps.core.forms import StyledModelForm
 from .models import (
     Assessment,
     AssessmentDomainScore,
+    AttachmentParentType,
     Beneficiary,
     BeneficiarySpecialistAssignment,
     IndividualPlan,
@@ -252,4 +253,11 @@ def validate_plan_goals(form: IndividualPlanForm, formset) -> None:
 class PrivateAttachmentForm(StyledModelForm):
     class Meta:
         model = PrivateAttachment
-        fields = ("file",)
+        fields = ("document_type", "file")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.parent_type == AttachmentParentType.STAFF_PROFILE:
+            self.fields["document_type"].required = True
+        else:
+            self.fields.pop("document_type", None)

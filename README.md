@@ -55,8 +55,11 @@ SQLite is an explicit test-only convenience. Development, staging, and productio
 - [Permission matrix](docs/PERMISSION_MATRIX.md)
 - [Local setup](docs/LOCAL_SETUP.md)
 - [Production deployment](docs/PRODUCTION_DEPLOYMENT.md)
+- [VPS deployment and system administration runbook](docs/VPS_OPERATIONS_RUNBOOK.md)
 - [Backup and restore](docs/BACKUP_AND_RESTORE.md)
 - [Security and privacy](docs/SECURITY_AND_PRIVACY.md)
+- [Frontend design system](docs/FRONTEND_DESIGN_SYSTEM.md)
+- [UI verification report](docs/UI_VERIFICATION_REPORT.md)
 - [Frappe migration plan](docs/FRAPPE_MIGRATION_PLAN.md)
 - [Feature parity checklist](docs/FEATURE_PARITY.md)
 

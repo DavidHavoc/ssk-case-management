@@ -9,6 +9,7 @@
     <p>{% translate "Use your staff account. Access is limited by role, center, and beneficiary assignment." %}</p>
     <form method="post" novalidate>
       {% csrf_token %}
+      {% include "includes/form_error_summary.html" %}
       {% include "includes/form_fields.html" %}
       <input type="hidden" name="next" value="{{ next }}">
       <button class="button button-primary button-block" type="submit">{% translate "Sign in" %}</button>

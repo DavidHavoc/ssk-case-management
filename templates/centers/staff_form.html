@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+  <header class="page-header"><div><div class="eyebrow">{{ staff.employee_number }}</div><h1>{{ title }}</h1><p>{% translate "Maintain project, position, contract, contact, description, and notes information." %}</p></div></header>
+  <form class="form-card" method="post" novalidate>
+    {% csrf_token %}
+    {% include "includes/form_error_summary.html" %}
+    <div class="form-grid">{% include "includes/form_fields.html" %}</div>
+    <div class="form-actions form-actions-sticky"><button class="button button-primary" type="submit">{% translate "Save" %}</button><a class="button button-quiet" href="{% url 'staff_detail' staff.pk %}">{% translate "Cancel" %}</a></div>
+  </form>
+{% endblock %}

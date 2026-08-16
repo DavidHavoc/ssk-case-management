@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ staff.display_name }}{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div>
+      <div class="eyebrow">{{ staff.employee_number }}</div>
+      <h1>{{ staff.display_name }}</h1>
+      <p>{{ staff.job_title|default:_('No position has been provided.') }}</p>
+    </div>
+    <div class="actions">
+      <a class="button button-quiet" href="{% url 'staff_list' %}">{% translate "All employees" %}</a>
+      {% if can_change_staff %}<a class="button button-secondary" href="{% url 'staff_update' staff.pk %}">{% translate "Edit employee" %}</a>{% endif %}
+    </div>
+  </header>
+  <dl class="detail-grid">
+    <div class="detail-item wide"><dt>{% translate "Project or program" %}</dt><dd>{{ staff.project_program|default:_('Not provided') }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Position" %}</dt><dd>{{ staff.job_title|default:_('Not provided') }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Status" %}</dt><dd><span class="status status-{{ staff.status }}">{{ staff.get_status_display }}</span></dd></div>
+    <div class="detail-item"><dt>{% translate "Employee number" %}</dt><dd>{{ staff.employee_number }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Contact number" %}</dt><dd>{% if staff.contact_number %}<a href="tel:{{ staff.contact_number }}">{{ staff.contact_number }}</a>{% else %}{% translate "Not provided" %}{% endif %}</dd></div>
+    <div class="detail-item"><dt>{% translate "E-mail" %}</dt><dd>{% if staff.user.email %}<a href="mailto:{{ staff.user.email }}">{{ staff.user.email }}</a>{% else %}{% translate "Not provided" %}{% endif %}</dd></div>
+    <div class="detail-item"><dt>{% translate "Contract signing date" %}</dt><dd>{{ staff.contract_signed_on|date:"SHORT_DATE_FORMAT"|default:_('Not provided') }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Contract valid until" %}</dt><dd>{{ staff.contract_valid_until|date:"SHORT_DATE_FORMAT"|default:_('Not provided') }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Application role" %}</dt><dd>{% for group in staff.user.groups.all %}{{ group.name }}{% if not forloop.last %}, {% endif %}{% empty %}{% translate "No role assigned" %}{% endfor %}</dd></div>
+    <div class="detail-item"><dt>{% translate "Primary center" %}</dt><dd>{{ staff.primary_center.name|default:_('Not provided') }}</dd></div>
+    <div class="detail-item wide"><dt>{% translate "Center stations" %}</dt><dd>{% for center in staff.centers.all %}{{ center.name }}{% if center.pk == staff.primary_center_id %} ({% translate "Primary" %}){% endif %}{% if not forloop.last %}<br>{% endif %}{% empty %}{% translate "Not stationed" %}{% endfor %}</dd></div>
+    <div class="detail-item"><dt>{% translate "Account status" %}</dt><dd>{% if staff.user.is_active %}{% translate "Active" %}{% else %}{% translate "Disabled" %}{% endif %}</dd></div>
+    <div class="detail-item"><dt>{% translate "Last updated" %}</dt><dd>{{ staff.updated_at|date:"SHORT_DATETIME_FORMAT" }}</dd></div>
+  </dl>
+  <section class="section-block">
+    <div class="section-heading"><div><h2>{% translate "Description" %}</h2><p>{% translate "Professional profile information recorded for this employee." %}</p></div></div>
+    {% if staff.description %}<p>{{ staff.description|linebreaksbr }}</p>{% else %}<div class="empty-state compact">{% translate "No description has been added." %}</div>{% endif %}
+  </section>
+  <section class="section-block">
+    <div class="section-heading"><div><h2>{% translate "Notes" %}</h2><p>{% translate "Additional internal information about this employee record." %}</p></div></div>
+    {% if staff.notes %}<p>{{ staff.notes|linebreaksbr }}</p>{% else %}<div class="empty-state compact">{% translate "No notes have been added." %}</div>{% endif %}
+  </section>
+  <section class="section-block" aria-labelledby="staff-documents-heading">
+    <div class="section-heading">
+      <div><h2 id="staff-documents-heading">{% translate "Staff documentation" %}</h2><p>{% translate "Project agreements, employee contracts, and additional documents are stored privately." %}</p></div>
+      {% if can_change_staff %}<a class="button button-secondary" href="{% url 'staff_attachment_upload' staff.pk %}">{% translate "Upload document" %}</a>{% endif %}
+    </div>
+    {% if attachments %}
+      <ul class="file-list">
+        {% for attachment in attachments %}
+          <li>
+            <div><strong>{{ attachment.get_document_type_display }}</strong><br>{{ attachment.original_filename }}<br><small>{{ attachment.size|filesizeformat }} · {{ attachment.created_at|date:"SHORT_DATETIME_FORMAT" }}</small></div>
+            <div class="actions">
+              <a class="button button-quiet" href="{% url 'staff_attachment_download' attachment.pk %}">{% translate "Download" %}</a>
+              {% if can_change_staff %}<form action="{% url 'staff_attachment_delete' attachment.pk %}" method="post">{% csrf_token %}<button class="button button-danger" type="submit" data-confirm="{% translate 'Delete this private staff document?' %}">{% translate "Delete" %}</button></form>{% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty-state compact">{% translate "No staff documents have been uploaded." %}</div>
+    {% endif %}
+  </section>
+{% endblock %}

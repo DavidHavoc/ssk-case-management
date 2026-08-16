@@ -1,14 +1,18 @@
 from datetime import date
 
 import pytest
+from django.contrib.auth.models import Permission
 from django.urls import reverse
 
+from apps.audit.models import AuditEvent
 from apps.centers.models import StaffProfile
 from apps.core.authorization import (
     accessible_centers,
     assessments_for_user,
     beneficiaries_for_user,
+    can_view_staff_directory,
     plans_for_user,
+    staff_profiles_for_user,
     summaries_for_user,
     visits_for_user,
 )
@@ -20,6 +24,86 @@ pytestmark = pytest.mark.django_db
 
 def test_system_manager_can_query_all_centers(manager, beneficiary_a, beneficiary_b):
     assert set(beneficiaries_for_user(manager)) == {beneficiary_a, beneficiary_b}
+
+
+def test_manager_can_view_all_employee_profiles_and_details(
+    client, manager, coordinator_a, specialist_a, specialist_b, center_a, center_b
+):
+    client.force_login(manager)
+
+    response = client.get(reverse("staff_list"))
+    body = response.content.decode()
+    assert response.status_code == 200
+    assert coordinator_a.staff_profile.display_name in body
+    assert specialist_a.staff_profile.display_name in body
+    assert specialist_b.staff_profile.display_name in body
+    assert center_a.name in body
+    assert center_b.name in body
+    assert set(staff_profiles_for_user(manager)) == {
+        coordinator_a.staff_profile,
+        specialist_a.staff_profile,
+        specialist_b.staff_profile,
+    }
+
+    response = client.get(reverse("staff_detail", kwargs={"pk": specialist_b.staff_profile.pk}))
+    body = response.content.decode()
+    assert response.status_code == 200
+    assert specialist_b.staff_profile.user.email in body
+    assert specialist_b.staff_profile.employee_number in body
+    assert specialist_b.description in body
+    assert center_b.name in body
+    assert AuditEvent.objects.filter(
+        event_type=AuditEvent.EventType.SENSITIVE_READ,
+        target_type="StaffProfile",
+        target_id=specialist_b.staff_profile.pk,
+        actor=manager,
+    ).exists()
+
+
+def test_staff_directory_requires_manager_role_or_explicit_permission(
+    client, coordinator_a, specialist_a, specialist_b
+):
+    client.force_login(coordinator_a)
+    assert not can_view_staff_directory(coordinator_a)
+    assert client.get(reverse("staff_list")).status_code == 403
+    assert (
+        client.get(
+            reverse("staff_detail", kwargs={"pk": specialist_a.staff_profile.pk})
+        ).status_code
+        == 403
+    )
+
+    permission = Permission.objects.get(
+        codename="view_staffprofile", content_type__app_label="centers"
+    )
+    coordinator_a.user_permissions.add(permission)
+    coordinator_a = coordinator_a.__class__.objects.get(pk=coordinator_a.pk)
+    assert can_view_staff_directory(coordinator_a)
+
+    response = client.get(reverse("staff_list"))
+    body = response.content.decode()
+    assert response.status_code == 200
+    assert specialist_a.staff_profile.display_name in body
+    assert specialist_b.staff_profile.display_name in body
+
+    response = client.get(reverse("staff_detail", kwargs={"pk": specialist_b.staff_profile.pk}))
+    assert response.status_code == 200
+    assert specialist_b.staff_profile.user.email in response.content.decode()
+
+
+def test_staff_directory_center_filter_and_invalid_center_are_safe(
+    client, manager, specialist_a, specialist_b, center_a
+):
+    client.force_login(manager)
+    response = client.get(reverse("staff_list"), {"center": str(center_a.pk)})
+    body = response.content.decode()
+    assert response.status_code == 200
+    assert specialist_a.staff_profile.display_name in body
+    assert specialist_b.staff_profile.display_name not in body
+
+    response = client.get(reverse("staff_list"), {"center": "not-a-uuid"})
+    assert response.status_code == 200
+    assert specialist_a.staff_profile.display_name not in response.content.decode()
 
 
 def test_coordinator_cannot_list_or_open_other_center(

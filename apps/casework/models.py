@@ -590,8 +590,14 @@ def private_upload_to(instance, filename: str) -> str:
 
 
 class PrivateAttachment(ValidatedModel):
+    class DocumentType(models.TextChoices):
+        PROJECT_AGREEMENT = "project_agreement", _("Project agreement")
+        EMPLOYEE_CONTRACT = "employee_contract", _("Employee contract")
+        ADDITIONAL_DOCUMENTATION = "additional_documentation", _("Additional documentation")
+
     parent_type = models.CharField(max_length=24, choices=AttachmentParentType.choices)
     parent_id = models.UUIDField()
+    document_type = models.CharField(max_length=32, choices=DocumentType.choices, blank=True)
     center = models.ForeignKey(Center, on_delete=models.PROTECT, related_name="private_attachments")
     file = models.FileField(
         storage=private_file_storage,
@@ -632,7 +638,7 @@ class PrivateAttachment(ValidatedModel):
         if not parent:
             raise ValidationError({"parent_id": _("The attachment parent does not exist.")})
         parent_center_id = (
-            parent.primary_center_id
+            parent.primary_center_id or parent.centers.values_list("pk", flat=True).first()
             if self.parent_type == AttachmentParentType.STAFF_PROFILE
             else parent.center_id
         )
@@ -644,6 +650,24 @@ class PrivateAttachment(ValidatedModel):
         if self.file:
             validate_private_upload(self.file)
             suffix = Path(self.file.name).suffix.lower()
+            if self.parent_type == AttachmentParentType.STAFF_PROFILE:
+                if self.document_type not in self.DocumentType.values:
+                    raise ValidationError({"document_type": _("Select a staff document type.")})
+                if (
+                    self.document_type
+                    in {
+                        self.DocumentType.PROJECT_AGREEMENT,
+                        self.DocumentType.EMPLOYEE_CONTRACT,
+                    }
+                    and suffix != ".pdf"
+                ):
+                    raise ValidationError(
+                        {"file": _("Project agreements and employee contracts must be PDFs.")}
+                    )
+            elif self.document_type:
+                raise ValidationError(
+                    {"document_type": _("Document type is available only for staff files.")}
+                )
             self.content_type = ATTACHMENT_CONTENT_TYPES.get(suffix, "application/octet-stream")
 
     def save(self, *args, **kwargs):

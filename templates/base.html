@@ -5,64 +5,183 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#151515">
   <title>{% block title %}{% translate "SSK Case Management" %}{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script src="{% static 'js/app.js' %}" defer></script>
 </head>
-<body>
+<body class="{% if user.is_authenticated %}has-app-shell{% else %}has-auth-shell{% endif %}">
   <a class="skip-link" href="#main-content">{% translate "Skip to main content" %}</a>
-  <header class="app-header">
-    <nav class="container nav-bar" aria-label="{% translate 'Main navigation' %}">
-      <a class="brand" href="{% url 'dashboard' %}" aria-label="{% translate 'SSK Case Management home' %}">
-        <span class="brand-mark" aria-hidden="true">SSK</span>
-        <span>{% translate "SSK Center" %}</span>
-      </a>
-      {% if user.is_authenticated %}
-        <div class="nav-links">
-          <a href="{% url 'dashboard' %}">{% translate "Dashboard" %}</a>
-          <a href="{% url 'beneficiary_list' %}">{% translate "Beneficiaries" %}</a>
-          <a href="{% url 'visit_list' %}">{% translate "Visits" %}</a>
-          <a href="{% url 'assessment_list' %}">{% translate "Assessments" %}</a>
-          <a href="{% url 'plan_list' %}">{% translate "Plans" %}</a>
-          <a href="{% url 'summary_list' %}">{% translate "Summaries" %}</a>
-          <a href="{% url 'reports' %}">{% translate "Reports" %}</a>
+
+  <svg class="icon-sprite" aria-hidden="true" focusable="false">
+    <symbol id="icon-dashboard" viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z"/></symbol>
+    <symbol id="icon-people" viewBox="0 0 24 24"><path d="M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7-1a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 20v-2.5C2 14.5 5 13 8.5 13s6.5 1.5 6.5 4.5V20H2Zm14.5 0v-2.5c0-1.2-.4-2.3-1.2-3.2.4-.1.8-.1 1.2-.1 3 0 5.5 1.3 5.5 3.8v2h-5.5Z"/></symbol>
+    <symbol id="icon-visit" viewBox="0 0 24 24"><path d="M7 3v2H5a2 2 0 0 0-2 2v13h18V7a2 2 0 0 0-2-2h-2V3h-2v2H9V3H7Zm12 7H5V8h14v2Zm-2.5 3.2 1.4 1.4-6.1 6.1-3.7-3.7 1.4-1.4 2.3 2.3 4.7-4.7Z"/></symbol>
+    <symbol id="icon-assessment" viewBox="0 0 24 24"><path d="M17 3h-2.2A3 3 0 0 0 12 1a3 3 0 0 0-2.8 2H7a2 2 0 0 0-2 2v16h14V5a2 2 0 0 0-2-2Zm-5 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm-4 7h8v2H8v-2Zm0 4h8v2H8v-2Z"/></symbol>
+    <symbol id="icon-plan" viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm2 5v2h10V8H7Zm0 4v2h7v-2H7Zm0 4v2h5v-2H7Z"/></symbol>
+    <symbol id="icon-summary" viewBox="0 0 24 24"><path d="M4 20V10h4v10H4Zm6 0V4h4v16h-4Zm6 0v-7h4v7h-4Z"/></symbol>
+    <symbol id="icon-report" viewBox="0 0 24 24"><path d="M4 3h16v18H4V3Zm3 4v2h10V7H7Zm0 4v2h10v-2H7Zm0 4v2h6v-2H7Z"/></symbol>
+    <symbol id="icon-center" viewBox="0 0 24 24"><path d="M12 2 3 6v2h18V6l-9-4ZM5 10v8H3v2h18v-2h-2v-8h-2v8h-3v-8h-4v8H7v-8H5Z"/></symbol>
+    <symbol id="icon-audit" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5.2 3.4 9.7 8 11 4.6-1.3 8-5.8 8-11V5l-8-3Zm3.7 7.7-4.5 4.5-2.9-2.9 1.4-1.4 1.5 1.5 3.1-3.1 1.4 1.4Z"/></symbol>
+    <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4 1.4 1.4L12 16.8l-5.4-5.4L8 10Z"/></symbol>
+    <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6Zm0 5h18v2H3v-2Zm0 5h18v2H3v-2Z"/></symbol>
+    <symbol id="icon-user" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm-9 9a9 9 0 0 1 18 0H3Z"/></symbol>
+    <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z"/></symbol>
+    <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="m13 5-1.4 1.4 4.6 4.6H4v2h12.2l-4.6 4.6L13 19l7-7-7-7Z"/></symbol>
+  </svg>
+
+  {% if user.is_authenticated %}
+    {% with route=request.resolver_match.url_name %}
+    <div class="app-layout">
+      <aside class="sidebar" id="primary-sidebar" aria-label="{% translate 'Main navigation' %}">
+        <div class="sidebar-brand">
+          <a class="brand" href="{% url 'dashboard' %}" aria-label="{% translate 'SSK Case Management home' %}">
+            <img class="brand-logo" src="{% static 'img/ssk-logo.png' %}" width="816" height="273" alt="" aria-hidden="true">
+          </a>
         </div>
-        <div class="nav-actions">
-          {% if active_center %}
-            <a class="center-chip" href="{% url 'center_select' %}" title="{% translate 'Change center' %}">
-              {{ active_center.name }}
+        <nav class="sidebar-nav">
+          <div class="nav-section">
+            <span class="nav-section-label">{% translate "Workspace" %}</span>
+            <a class="nav-item{% if route == 'dashboard' %} is-active{% endif %}" href="{% url 'dashboard' %}"{% if route == 'dashboard' %} aria-current="page"{% endif %}>
+              <svg aria-hidden="true"><use href="#icon-dashboard"></use></svg><span>{% translate "Dashboard" %}</span>
             </a>
-          {% endif %}
-          <form action="{% url 'set_language' %}" method="post" class="language-form">
-            {% csrf_token %}
-            <input name="next" type="hidden" value="{{ request.get_full_path }}">
-            <label class="visually-hidden" for="language-select">{% translate "Language" %}</label>
-            <select id="language-select" name="language">
-              <option value="en" {% if LANGUAGE_CODE == 'en' %}selected{% endif %}>English</option>
-              <option value="ka" {% if LANGUAGE_CODE == 'ka' %}selected{% endif %}>ქართული</option>
-            </select>
-            <button class="button button-quiet" type="submit">{% translate "Apply" %}</button>
-          </form>
-          <form action="{% url 'logout' %}" method="post">
-            {% csrf_token %}
-            <button class="button button-quiet" type="submit">{% translate "Sign out" %}</button>
-          </form>
+            <a class="nav-item{% if 'beneficiary' in route %} is-active{% endif %}" href="{% url 'beneficiary_list' %}"{% if 'beneficiary' in route %} aria-current="page"{% endif %}>
+              <svg aria-hidden="true"><use href="#icon-people"></use></svg><span>{% translate "Beneficiaries" %}</span>
+            </a>
+            <a class="nav-item{% if 'visit' in route %} is-active{% endif %}" href="{% url 'visit_list' %}"{% if 'visit' in route %} aria-current="page"{% endif %}>
+              <svg aria-hidden="true"><use href="#icon-visit"></use></svg><span>{% translate "Visits" %}</span>
+            </a>
+            <a class="nav-item{% if 'assessment' in route %} is-active{% endif %}" href="{% url 'assessment_list' %}"{% if 'assessment' in route %} aria-current="page"{% endif %}>
+              <svg aria-hidden="true"><use href="#icon-assessment"></use></svg><span>{% translate "Assessments" %}</span>
+            </a>
+            <a class="nav-item{% if 'plan' in route %} is-active{% endif %}" href="{% url 'plan_list' %}"{% if 'plan' in route %} aria-current="page"{% endif %}>
+              <svg aria-hidden="true"><use href="#icon-plan"></use></svg><span>{% translate "Plans" %}</span>
+            </a>
+            <a class="nav-item{% if route == 'summary_list' %} is-active{% endif %}" href="{% url 'summary_list' %}"{% if route == 'summary_list' %} aria-current="page"{% endif %}>
+              <svg aria-hidden="true"><use href="#icon-summary"></use></svg><span>{% translate "Summaries" %}</span>
+            </a>
+          </div>
+          <div class="nav-section">
+            <span class="nav-section-label">{% translate "Operations" %}</span>
+            <a class="nav-item{% if 'report' in route %} is-active{% endif %}" href="{% url 'reports' %}"{% if 'report' in route %} aria-current="page"{% endif %}>
+              <svg aria-hidden="true"><use href="#icon-report"></use></svg><span>{% translate "Reports" %}</span>
+            </a>
+            <a class="nav-item{% if route == 'center_detail' or 'specialist' in route %} is-active{% endif %}" href="{% url 'center_detail' %}"{% if route == 'center_detail' or 'specialist' in route %} aria-current="page"{% endif %}>
+              <svg aria-hidden="true"><use href="#icon-center"></use></svg><span>{% translate "Center roster" %}</span>
+            </a>
+            {% if can_view_staff_directory %}
+              <a class="nav-item{% if 'staff' in route %} is-active{% endif %}" href="{% url 'staff_list' %}"{% if 'staff' in route %} aria-current="page"{% endif %}>
+                <svg aria-hidden="true"><use href="#icon-people"></use></svg><span>{% translate "Employees" %}</span>
+              </a>
+            {% endif %}
+            {% if is_system_manager %}
+              <a class="nav-item{% if route == 'center_list' or route == 'center_create' %} is-active{% endif %}" href="{% url 'center_list' %}"{% if route == 'center_list' or route == 'center_create' %} aria-current="page"{% endif %}>
+                <svg aria-hidden="true"><use href="#icon-center"></use></svg><span>{% translate "Centers" %}</span>
+              </a>
+              <a class="nav-item{% if route == 'audit_log' %} is-active{% endif %}" href="{% url 'audit_log' %}"{% if route == 'audit_log' %} aria-current="page"{% endif %}>
+                <svg aria-hidden="true"><use href="#icon-audit"></use></svg><span>{% translate "Audit events" %}</span>
+              </a>
+            {% endif %}
+          </div>
+        </nav>
+        <div class="sidebar-foot">
+          <span class="security-indicator" aria-hidden="true"></span>
+          <span>{% translate "Authorized staff access only" %}</span>
         </div>
-      {% endif %}
-    </nav>
-  </header>
-  {% if messages %}
-    <div class="container messages" aria-live="polite">
-      {% for message in messages %}
-        <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
-      {% endfor %}
-    </div>
+      </aside>
+
+      <button class="nav-backdrop" type="button" aria-label="{% translate 'Close navigation' %}" hidden></button>
+
+      <div class="workspace">
+        <header class="topbar">
+          <button class="mobile-nav-toggle" type="button" aria-controls="primary-sidebar" aria-expanded="false">
+            <svg aria-hidden="true"><use href="#icon-menu"></use></svg>
+            <span class="visually-hidden">{% translate "Open navigation" %}</span>
+          </button>
+          <div class="topbar-title" aria-hidden="true">{% translate "SSK Case Management" %}</div>
+          <div class="topbar-actions">
+            {% if active_center %}
+              <a class="active-center" href="{% url 'center_select' %}" title="{% translate 'Change center' %}">
+                <span class="active-center-label">{% translate "Active center" %}</span>
+                <strong>{{ active_center.name }}</strong>
+              </a>
+            {% endif %}
+            <details class="user-menu">
+              <summary>
+                <span class="user-avatar" aria-hidden="true"><svg><use href="#icon-user"></use></svg></span>
+                <span class="user-summary"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{% if is_system_manager %}{% translate "System Manager" %}{% elif is_coordinator %}{% translate "Center Coordinator" %}{% else %}{% translate "Specialist" %}{% endif %}</small></span>
+                <svg class="chevron" aria-hidden="true"><use href="#icon-chevron"></use></svg>
+              </summary>
+              <div class="user-menu-panel">
+                <div class="user-menu-heading">
+                  <strong>{{ user.get_full_name|default:user.username }}</strong>
+                  <small>{{ user.email }}</small>
+                </div>
+                <form action="{% url 'set_language' %}" method="post" class="language-form">
+                  {% csrf_token %}
+                  <input name="next" type="hidden" value="{{ request.get_full_path }}">
+                  <label for="language-select">{% translate "Language" %}</label>
+                  <div class="language-controls">
+                    <select id="language-select" name="language">
+                      <option value="en" {% if LANGUAGE_CODE == 'en' %}selected{% endif %}>English</option>
+                      <option value="ka" {% if LANGUAGE_CODE == 'ka' %}selected{% endif %}>ქართული</option>
+                    </select>
+                    <button class="button button-quiet button-small" type="submit">{% translate "Apply" %}</button>
+                  </div>
+                </form>
+                <form action="{% url 'logout' %}" method="post" class="sign-out-form">
+                  {% csrf_token %}
+                  <button class="button button-quiet button-block" type="submit">{% translate "Sign out" %}</button>
+                </form>
+              </div>
+            </details>
+          </div>
+        </header>
+
+        {% if messages %}
+          <div class="content-container messages" aria-live="polite">
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        <main id="main-content" class="content-container page-shell" tabindex="-1">
+    {% endwith %}
+  {% else %}
+    <header class="public-header">
+      <div class="public-header-inner">
+        <a class="brand" href="{% url 'dashboard' %}" aria-label="{% translate 'SSK Case Management home' %}">
+          <img class="brand-logo" src="{% static 'img/ssk-logo.png' %}" width="816" height="273" alt="" aria-hidden="true">
+        </a>
+        <span class="public-header-note">{% translate "Authorized staff access only" %}</span>
+      </div>
+    </header>
+    {% if messages %}
+      <div class="public-container messages" aria-live="polite">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    <main id="main-content" class="public-container page-shell" tabindex="-1">
   {% endif %}
-  <main id="main-content" class="container page-shell" tabindex="-1">
-    {% block content %}{% endblock %}
-  </main>
-  <footer class="container app-footer">
-    <span>{% translate "SSK Case Management" %}</span>
-    <span>{% translate "Sensitive information must be handled according to approved policy." %}</span>
-  </footer>
+
+      {% block content %}{% endblock %}
+
+  {% if user.is_authenticated %}
+        </main>
+        <footer class="content-container app-footer">
+          <span>{% translate "SSK Case Management" %}</span>
+          <span>{% translate "Sensitive information must be handled according to approved policy." %}</span>
+        </footer>
+      </div>
+    </div>
+  {% else %}
+    </main>
+    <footer class="public-container app-footer">
+      <span>{% translate "SSK Case Management" %}</span>
+      <span>{% translate "Sensitive information must be handled according to approved policy." %}</span>
+    </footer>
+  {% endif %}
 </body>
 </html>

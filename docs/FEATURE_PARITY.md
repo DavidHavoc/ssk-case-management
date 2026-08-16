@@ -34,7 +34,7 @@ This matrix compares the inspected Frappe working tree with the standalone Djang
 | Parent-authorized downloads | Download view rechecks current parent access | Implemented |
 | Specialist denied direct beneficiary attachment | Beneficiary attachment selector | Implemented |
 | Attachment metadata filtering | Unauthorized attachment rows never enter template context | Implemented |
-| Employee contract attachment privacy | `PrivateAttachment` supports staff-parent storage, with UI and HR policy still pending | Partial |
+| Employee contract attachment privacy | Permission-controlled private project agreements, employee contracts, and additional staff documentation | Implemented |
 | Georgian language setup | Django locale, selector, complete PO and MO catalogs | Implemented for extracted MVP strings; native-speaker UAT remains required |
 | Synthetic demo seed | `seed_demo_data` management command | Implemented |
 | Stock Entry center validation | Not in focused case-management scope | Not included |
@@ -51,4 +51,3 @@ This matrix compares the inspected Frappe working tree with the standalone Djang
 - Obtain business-owner approval for intentional scope exclusions.
 - Validate Georgian terminology with native-speaking coordinators and specialists.
 - Reconcile report totals against a synthetic migration rehearsal.
-- Confirm staff contract handling requirements before enabling staff attachments in the interface.

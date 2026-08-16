@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Employees" %}{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div>
+      <div class="eyebrow">{% translate "Organization" %}</div>
+      <h1 id="page-title">{% translate "Employees" %}</h1>
+      <p>{% translate "View employee project, contract, contact, role, status, and center information." %}</p>
+    </div>
+  </header>
+  <form class="filter-bar" method="get" role="search">
+    <div class="form-group"><label for="q">{% translate "Search" %}</label><input class="form-control" id="q" name="q" type="search" value="{{ query }}" placeholder="{% translate 'Name, email, employee number, or job title' %}"></div>
+    <div class="form-group"><label for="status">{% translate "Status" %}</label><select class="form-select" id="status" name="status"><option value="">{% translate "All statuses" %}</option>{% for value,label in status_choices %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+    <div class="form-group"><label for="center">{% translate "Center station" %}</label><select class="form-select" id="center" name="center"><option value="">{% translate "All centers" %}</option>{% for center in centers %}<option value="{{ center.pk }}" {% if selected_center == center.pk|stringformat:'s' %}selected{% endif %}>{{ center.name }}</option>{% endfor %}</select></div>
+    <button class="button button-secondary" type="submit">{% translate "Filter" %}</button>
+  </form>
+  {% if page_obj %}
+    <div class="table-wrap" tabindex="0" role="region" aria-labelledby="page-title">
+      <table>
+        <thead><tr><th>{% translate "Employee" %}</th><th>{% translate "Project or program" %}</th><th>{% translate "Position" %}</th><th>{% translate "Status" %}</th><th>{% translate "Contact" %}</th><th>{% translate "Contract valid until" %}</th><th>{% translate "Stationed at" %}</th></tr></thead>
+        <tbody>
+          {% for staff in page_obj %}
+            <tr>
+              <td><a href="{% url 'staff_detail' staff.pk %}"><strong>{{ staff.display_name }}</strong></a><br><small>{{ staff.employee_number }}{% if staff.user.email %} · {{ staff.user.email }}{% endif %}</small></td>
+              <td>{{ staff.project_program|default:_('Not provided') }}</td>
+              <td>{{ staff.job_title|default:_('Not provided') }}</td>
+              <td><span class="status status-{{ staff.status }}">{{ staff.get_status_display }}</span></td>
+              <td>{{ staff.contact_number|default:_('Not provided') }}{% if staff.user.email %}<br><small>{{ staff.user.email }}</small>{% endif %}</td>
+              <td>{{ staff.contract_valid_until|date:"SHORT_DATE_FORMAT"|default:_('Not provided') }}</td>
+              <td>{% for center in staff.centers.all %}{{ center.name }}{% if center.pk == staff.primary_center_id %} ({% translate "Primary" %}){% endif %}{% if not forloop.last %}<br>{% endif %}{% empty %}{% translate "Not stationed" %}{% endfor %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+      <nav class="pagination" aria-label="{% translate 'Pagination' %}">
+        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&amp;q={{ query|urlencode }}&amp;status={{ selected_status|urlencode }}&amp;center={{ selected_center|urlencode }}">{% translate "Previous" %}</a>{% endif %}
+        <span>{% blocktranslate with page=page_obj.number pages=page_obj.paginator.num_pages %}Page {{ page }} of {{ pages }}{% endblocktranslate %}</span>
+        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&amp;q={{ query|urlencode }}&amp;status={{ selected_status|urlencode }}&amp;center={{ selected_center|urlencode }}">{% translate "Next" %}</a>{% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="empty-state"><h2>{% translate "No employees found" %}</h2><p>{% translate "Change the filters to see other employee records." %}</p></div>
+  {% endif %}
+{% endblock %}

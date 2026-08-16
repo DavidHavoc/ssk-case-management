@@ -11,6 +11,9 @@ Coordinator and specialist access also requires an active staff profile. Marking
 | Center update | Yes | Assigned center | No |
 | Specialist roster view | All | Assigned center | Assigned center |
 | Specialist roster manage | All | Assigned center | No |
+| Employee directory and details | All | With `centers.view_staffprofile` permission | With `centers.view_staffprofile` permission |
+| Employee profile edit and document management | All | With `centers.change_staffprofile` permission | With `centers.change_staffprofile` permission |
+| Employee document download | All | With `centers.view_staffprofile` permission | With `centers.view_staffprofile` permission |
 | Beneficiary list and detail | All | Current assigned center | Current center and assigned beneficiary |
 | Beneficiary create | Yes | Current assigned center | No |
 | Beneficiary unrestricted update | Yes | Current assigned center | No |

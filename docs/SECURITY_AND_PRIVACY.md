@@ -67,6 +67,12 @@ Gunicorn and the included Nginx configuration log URL paths without query string
 
 Diagnosis and case notes are visible to an assigned specialist. This matches the inspected legacy boundary and must be confirmed during the organizational privacy review.
 
+## Staff records and contracts
+
+The organization-wide staff directory is restricted to System Managers and users with the `centers.view_staffprofile` permission. Editing profiles, uploading contracts, deleting contracts, and managing additional staff documentation require System Manager access or `centers.change_staffprofile`.
+
+Project agreements and employee contracts must be PDF files. Additional staff documentation uses the approved private attachment types. All staff files use randomized private storage paths, parent authorization, and audited downloads. Staff notes, contact details, and contracts must not be copied into logs or audit metadata.
+
 ## Secrets
 
 Store the Django secret, database password, SMTP credential, TLS keys, backup encryption keys, and infrastructure tokens in an approved secret manager or protected environment. Rotate on exposure or staff change according to policy. Never place them in source control, screenshots, tickets, chat, or demo data.

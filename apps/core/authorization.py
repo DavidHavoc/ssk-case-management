@@ -68,6 +68,37 @@ def can_manage_center(user, center: Center) -> bool:
     return is_coordinator(user) and accessible_centers(user).filter(pk=center.pk).exists()
 
 
+def can_view_staff_directory(user) -> bool:
+    if not getattr(user, "is_authenticated", False):
+        return False
+    return (
+        is_system_manager(user)
+        or user.has_perm("centers.view_staffprofile")
+        or user.has_perm("centers.change_staffprofile")
+    )
+
+
+def can_change_staff_directory(user) -> bool:
+    if not getattr(user, "is_authenticated", False):
+        return False
+    return is_system_manager(user) or user.has_perm("centers.change_staffprofile")
+
+
+def staff_profiles_for_user(user) -> QuerySet[StaffProfile]:
+    queryset = (
+        StaffProfile.objects.select_related(
+            "user",
+            "primary_center",
+            "specialist_profile",
+        )
+        .prefetch_related("centers", "user__groups")
+        .order_by("user__last_name", "user__first_name", "employee_number")
+    )
+    if can_view_staff_directory(user):
+        return queryset
+    return queryset.none()
+
+
 def specialist_profile_for_user(user) -> SpecialistProfile | None:
     if not getattr(user, "is_authenticated", False):
         return None

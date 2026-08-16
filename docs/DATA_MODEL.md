@@ -8,7 +8,7 @@ All domain records use UUID primary keys and created and updated timestamps unle
 |---|---|
 | User | Django username, email, password hash, preferred language, Group roles |
 | Center | Unique code and name, active state, contact information |
-| Staff Profile | One User, unique employee number, status, primary Center, many Center memberships |
+| Staff Profile | One User, unique employee number, project or program, position, active, inactive, or finished status, contact number, contract dates, description, notes, primary Center, and many Center memberships |
 | Specialist Profile | One Staff Profile and shared specialist description |
 | Specialist Center Assignment | One Specialist Profile, one Center, optional primary flag |
 
@@ -35,7 +35,7 @@ Service Visit derives Center from Beneficiary and derives Visit Month from Visit
 
 | Entity | Important fields and relationships |
 |---|---|
-| Private Attachment | Parent type and UUID, Center, private file, original name, size, SHA-256, uploader |
+| Private Attachment | Parent type and UUID, optional staff document category, Center, private file, original name, size, SHA-256, uploader |
 | Audit Event | Actor, Center, event type, outcome, target type and UUID, safe metadata, timestamp |
 | Login Throttle | HMAC key, failure count, window start, update timestamp |
 

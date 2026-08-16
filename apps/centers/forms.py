@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.accounts.roles import SPECIALIST, ensure_application_groups
 from apps.core.forms import StyledForm, StyledModelForm
+from apps.core.validators import phone_number_validator
 
 from .models import Center, SpecialistCenterAssignment, SpecialistProfile, StaffProfile
 
@@ -52,6 +53,77 @@ class SpecialistProfileForm(StyledModelForm):
         fields = ("description",)
         widgets = {"description": forms.Textarea(attrs={"rows": 5})}
 
+    def save(self, commit=True):
+        profile = super().save(commit=commit)
+        if commit:
+            staff = profile.staff_profile
+            staff.description = profile.description
+            staff.save(update_fields=["description", "updated_at"])
+        return profile
+
+
+class StaffProfileForm(StyledModelForm):
+    email = forms.EmailField(label=_("E-mail"))
+
+    class Meta:
+        model = StaffProfile
+        fields = (
+            "project_program",
+            "job_title",
+            "status",
+            "contact_number",
+            "email",
+            "contract_signed_on",
+            "contract_valid_until",
+            "description",
+            "notes",
+        )
+        widgets = {
+            "contract_signed_on": forms.DateInput(attrs={"type": "date"}),
+            "contract_valid_until": forms.DateInput(attrs={"type": "date"}),
+            "description": forms.Textarea(attrs={"rows": 4}),
+            "notes": forms.Textarea(attrs={"rows": 5}),
+        }
+        labels = {
+            "project_program": _("Project or program"),
+            "job_title": _("Position"),
+            "contact_number": _("Contact number"),
+            "contract_signed_on": _("Contract signing date"),
+            "contract_valid_until": _("Contract valid until"),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["email"].initial = self.instance.user.email
+
+    def clean_email(self) -> str:
+        email = self.cleaned_data["email"].strip().lower()
+        if User.objects.filter(email__iexact=email).exclude(pk=self.instance.user_id).exists():
+            raise ValidationError(_("A user with this email already exists."))
+        return email
+
+    def clean(self):
+        cleaned_data = super().clean()
+        signed_on = cleaned_data.get("contract_signed_on")
+        valid_until = cleaned_data.get("contract_valid_until")
+        if signed_on and valid_until and valid_until < signed_on:
+            self.add_error(
+                "contract_valid_until", _("Contract validity cannot end before it begins.")
+            )
+        return cleaned_data
+
+    def save(self, commit=True):
+        staff = super().save(commit=commit)
+        if commit:
+            user = staff.user
+            user.email = self.cleaned_data["email"]
+            user.save(update_fields=["email"])
+            specialist = getattr(staff, "specialist_profile", None)
+            if specialist:
+                specialist.description = staff.description
+                specialist.save(update_fields=["description", "updated_at"])
+        return staff
+
 
 class NewSpecialistForm(StyledForm):
     username = forms.CharField(max_length=150, label=_("Username"))
@@ -59,9 +131,29 @@ class NewSpecialistForm(StyledForm):
     first_name = forms.CharField(max_length=150, label=_("First name"))
     last_name = forms.CharField(max_length=150, label=_("Last name"))
     employee_number = forms.CharField(max_length=40, label=_("Employee number"))
-    job_title = forms.CharField(max_length=120, required=False, label=_("Job title"))
+    project_program = forms.CharField(max_length=180, required=False, label=_("Project or program"))
+    job_title = forms.CharField(max_length=120, required=False, label=_("Position"))
+    contact_number = forms.CharField(
+        max_length=40,
+        required=False,
+        label=_("Contact number"),
+        validators=[phone_number_validator],
+    )
+    contract_signed_on = forms.DateField(
+        required=False,
+        label=_("Contract signing date"),
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
+    contract_valid_until = forms.DateField(
+        required=False,
+        label=_("Contract valid until"),
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
     description = forms.CharField(
         required=False, widget=forms.Textarea(attrs={"rows": 4}), label=_("Specialist description")
+    )
+    notes = forms.CharField(
+        required=False, widget=forms.Textarea(attrs={"rows": 4}), label=_("Notes")
     )
     is_primary = forms.BooleanField(required=False, label=_("Primary center"))
 
@@ -87,6 +179,16 @@ class NewSpecialistForm(StyledForm):
             raise ValidationError(_("A staff profile with this employee number already exists."))
         return number
 
+    def clean(self):
+        cleaned_data = super().clean()
+        signed_on = cleaned_data.get("contract_signed_on")
+        valid_until = cleaned_data.get("contract_valid_until")
+        if signed_on and valid_until and valid_until < signed_on:
+            self.add_error(
+                "contract_valid_until", _("Contract validity cannot end before it begins.")
+            )
+        return cleaned_data
+
     @transaction.atomic
     def save(self) -> SpecialistProfile:
         ensure_application_groups()
@@ -102,7 +204,13 @@ class NewSpecialistForm(StyledForm):
         staff = StaffProfile.objects.create(
             user=user,
             employee_number=self.cleaned_data["employee_number"],
+            project_program=self.cleaned_data["project_program"].strip(),
             job_title=self.cleaned_data["job_title"].strip(),
+            contact_number=self.cleaned_data["contact_number"].strip(),
+            contract_signed_on=self.cleaned_data["contract_signed_on"],
+            contract_valid_until=self.cleaned_data["contract_valid_until"],
+            description=self.cleaned_data["description"].strip(),
+            notes=self.cleaned_data["notes"].strip(),
             primary_center=self.center if self.cleaned_data["is_primary"] else None,
         )
         staff.centers.add(self.center)

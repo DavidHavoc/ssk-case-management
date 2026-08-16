@@ -1,0 +1,16 @@
+{% load i18n %}
+{% if form.errors %}
+  <div class="alert alert-error validation-summary" role="alert">
+    <strong>{% translate "Please correct the errors below." %}</strong>
+    <ul>
+      {% for error in form.non_field_errors %}
+        <li>{{ error }}</li>
+      {% endfor %}
+      {% for field in form.visible_fields %}
+        {% for error in field.errors %}
+          <li><a href="#{{ field.id_for_label }}">{{ field.label }}: {{ error }}</a></li>
+        {% endfor %}
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}

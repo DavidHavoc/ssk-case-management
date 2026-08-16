@@ -5,8 +5,9 @@
   <div class="eyebrow">{% translate "Working context" %}</div>
   <h1 id="center-title">{% translate "Select a center" %}</h1>
   <p>{% translate "Lists, forms, reports, and downloads will use the selected center." %}</p>
-  <form method="post">
+  <form method="post" novalidate>
     {% csrf_token %}<input type="hidden" name="next" value="{{ next }}">
+    {% include "includes/form_error_summary.html" %}
     <div class="form-group"><label for="center">{% translate "Center" %}</label><select class="form-select" name="center" id="center" required>
       {% for center in centers %}<option value="{{ center.pk }}" {% if active_center.pk == center.pk %}selected{% endif %}>{{ center.name }}</option>{% endfor %}
     </select></div>

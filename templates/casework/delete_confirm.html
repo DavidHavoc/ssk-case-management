@@ -2,10 +2,10 @@
 {% load i18n %}
 {% block title %}{% translate "Delete record" %}{% endblock %}
 {% block content %}
-<section class="form-card" aria-labelledby="delete-title">
+<section class="form-card danger-zone" aria-labelledby="delete-title" aria-describedby="delete-description delete-warning">
   <h1 id="delete-title">{% translate "Delete record" %}</h1>
-  <p>{% blocktranslate with object=object %}Permanently delete {{ object }}?{% endblocktranslate %}</p>
-  <p>{% translate "This action cannot be undone." %}</p>
+  <p id="delete-description">{% blocktranslate with object=object %}Permanently delete {{ object }}?{% endblocktranslate %}</p>
+  <p id="delete-warning"><strong>{% translate "This action cannot be undone." %}</strong></p>
   <form method="post">
     {% csrf_token %}
     <div class="form-actions">

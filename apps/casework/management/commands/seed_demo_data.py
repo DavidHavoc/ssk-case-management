@@ -151,7 +151,12 @@ class Command(BaseCommand):
             user=user,
             defaults={
                 "employee_number": employee_number,
+                "project_program": "Synthetic SSK Demonstration Program",
                 "job_title": role,
+                "contact_number": "+995 555 000 100",
+                "contract_signed_on": date(2026, 1, 1),
+                "contract_valid_until": date(2026, 12, 31),
+                "notes": "Synthetic staff note for local demonstration only.",
                 "primary_center": center,
                 "status": StaffProfile.Status.ACTIVE,
             },
