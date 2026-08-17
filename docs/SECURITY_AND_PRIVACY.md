@@ -35,7 +35,13 @@ This is technical guidance, not legal advice. The organization must determine la
 - resolved-path containment check
 - SHA-256 digest and size metadata
 - authorized download view with current parent authorization
+- one explicit parent-policy registry for parent models, authorization adapters, center rules, form behavior, and detail routes
+- case attachment identifiers constrained to the selected active center for every role, including System Managers
+- staff attachment identifiers constrained by staff-directory view or change permissions
+- private, no-store download cache controls on case and staff responses
+- successful and denied direct downloads recorded without filenames or file contents
 - authorized deletion with file removal scheduled only after the database transaction commits
+- failed upload transactions remove any file written before the database rollback
 - Nginx has no private-volume mount
 
 Content validation reduces obvious format spoofing. It is not antivirus or content-disarm scanning. Approve and integrate malware scanning before production if required by the threat model.
@@ -71,7 +77,7 @@ Diagnosis and case notes are visible to an assigned specialist. This matches the
 
 The organization-wide staff directory is restricted to System Managers and users with the `centers.view_staffprofile` permission. Editing profiles, uploading contracts, deleting contracts, and managing additional staff documentation require System Manager access or `centers.change_staffprofile`.
 
-Project agreements and employee contracts must be PDF files. Additional staff documentation uses the approved private attachment types. All staff files use randomized private storage paths, parent authorization, and audited downloads. Staff notes, contact details, and contracts must not be copied into logs or audit metadata.
+Project agreements and employee contracts must be PDF files. Additional staff documentation uses the approved private attachment types. All staff files use randomized private storage paths, staff-directory parent authorization, audited downloads, and no-store response headers. Staff document access is organization-wide for users with the required directory permission and does not depend on the casework active-center session. Staff notes, contact details, and contracts must not be copied into logs or audit metadata.
 
 ## Secrets
 

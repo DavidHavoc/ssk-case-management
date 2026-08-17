@@ -7,10 +7,8 @@ from django.http import Http404
 from apps.accounts.roles import is_coordinator, is_specialist, is_system_manager
 from apps.casework.models import (
     Assessment,
-    AttachmentParentType,
     Beneficiary,
     IndividualPlan,
-    PrivateAttachment,
     ServiceVisit,
     SpecialistMonthlyServiceSummary,
 )
@@ -206,35 +204,3 @@ def get_authorized_object(queryset, pk):
         return queryset.get(pk=pk)
     except queryset.model.DoesNotExist as exc:
         raise Http404 from exc
-
-
-def parent_for_attachment(parent_type: str, parent_id, user, center: Center):
-    mapping = {
-        AttachmentParentType.BENEFICIARY: beneficiaries_for_user(user, center),
-        AttachmentParentType.SERVICE_VISIT: visits_for_user(user, center),
-        AttachmentParentType.ASSESSMENT: assessments_for_user(user, center),
-        AttachmentParentType.INDIVIDUAL_PLAN: plans_for_user(user, center),
-    }
-    queryset = mapping.get(parent_type)
-    if queryset is None:
-        raise Http404
-    parent = get_authorized_object(queryset, parent_id)
-    if parent_type == AttachmentParentType.BENEFICIARY:
-        if not can_view_restricted_beneficiary_fields(user, parent):
-            raise Http404
-    return parent
-
-
-def attachments_for_parent(parent_type: str, parent_id, user, center: Center):
-    parent_for_attachment(parent_type, parent_id, user, center)
-    return PrivateAttachment.objects.filter(
-        parent_type=parent_type, parent_id=parent_id, center=center
-    ).select_related("uploaded_by", "center")
-
-
-def attachment_for_download(pk, user, center: Center) -> PrivateAttachment:
-    attachment = get_authorized_object(PrivateAttachment.objects.select_related("center"), pk)
-    if attachment.center_id != center.id and not is_system_manager(user):
-        raise Http404
-    parent_for_attachment(attachment.parent_type, attachment.parent_id, user, attachment.center)
-    return attachment

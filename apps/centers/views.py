@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from urllib.parse import urlparse
 from uuid import UUID
 
@@ -11,7 +10,7 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.db.models.deletion import ProtectedError
-from django.http import FileResponse, Http404
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -19,8 +18,11 @@ from django.utils.translation import gettext as _
 from apps.accounts.roles import is_system_manager
 from apps.audit.models import AuditEvent
 from apps.audit.services import record_event
-from apps.casework.forms import PrivateAttachmentForm
-from apps.casework.models import AttachmentParentType, PrivateAttachment
+from apps.casework.models import AttachmentParentType
+from apps.casework.private_attachments import (
+    AttachmentParentCenterRequired,
+    staff_attachments,
+)
 from apps.core.authorization import (
     ACTIVE_CENTER_SESSION_KEY,
     accessible_centers,
@@ -140,10 +142,7 @@ def staff_detail(request, pk):
         target_id=staff.pk,
         center=staff.primary_center,
     )
-    attachments = PrivateAttachment.objects.filter(
-        parent_type=AttachmentParentType.STAFF_PROFILE,
-        parent_id=staff.pk,
-    ).select_related("uploaded_by", "center")
+    attachments = staff_attachments(request.user).list(AttachmentParentType.STAFF_PROFILE, staff.pk)
     return render(
         request,
         "centers/staff_detail.html",
@@ -182,110 +181,42 @@ def staff_update(request, pk):
 
 @login_required
 def staff_attachment_upload(request, pk):
-    if not can_change_staff_directory(request.user):
-        raise PermissionDenied
-    staff = get_authorized_object(staff_profiles_for_user(request.user), pk)
-    document_center = staff.primary_center or staff.centers.first()
-    if document_center is None:
+    try:
+        result = staff_attachments(request.user).upload(
+            AttachmentParentType.STAFF_PROFILE,
+            pk,
+            data=request.POST if request.method == "POST" else None,
+            files=request.FILES if request.method == "POST" else None,
+        )
+    except AttachmentParentCenterRequired:
         messages.error(request, _("Assign the employee to a center before uploading documents."))
-        return redirect("staff_detail", pk=staff.pk)
-    attachment = PrivateAttachment(
-        parent_type=AttachmentParentType.STAFF_PROFILE,
-        parent_id=staff.pk,
-        center=document_center,
-        uploaded_by=request.user,
-    )
-    if request.method == "POST":
-        upload = request.FILES.get("file")
-        if upload:
-            attachment.original_filename = Path(upload.name.replace("\\", "/")).name
-        form = PrivateAttachmentForm(request.POST, request.FILES, instance=attachment)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    attachment = form.save(commit=False)
-                    attachment.save()
-                    record_event(
-                        actor=request.user,
-                        event_type=AuditEvent.EventType.CREATE,
-                        target_type="PrivateAttachment",
-                        target_id=attachment.pk,
-                        center=attachment.center,
-                        metadata={
-                            "parent_type": AttachmentParentType.STAFF_PROFILE,
-                            "file_extension": Path(upload.name).suffix.lower(),
-                        },
-                    )
-            except Exception:
-                if attachment.file.name:
-                    attachment.file.storage.delete(attachment.file.name)
-                raise
-            messages.success(request, _("Staff document uploaded securely."))
-            return redirect("staff_detail", pk=staff.pk)
-    else:
-        form = PrivateAttachmentForm(instance=attachment)
+        return redirect("staff_detail", pk=pk)
+    if result.saved:
+        messages.success(request, _("Staff document uploaded securely."))
+        return redirect(result.redirect_url)
     return render(
         request,
         "casework/attachment_form.html",
         {
-            "form": form,
-            "parent": staff,
-            "cancel_url": reverse("staff_detail", kwargs={"pk": staff.pk}),
+            "form": result.form,
+            "parent": result.parent,
+            "cancel_url": result.redirect_url,
         },
     )
 
 
 @login_required
 def staff_attachment_download(request, pk):
-    if not can_view_staff_directory(request.user):
-        raise PermissionDenied
-    attachment = get_object_or_404(
-        PrivateAttachment.objects.select_related("center"),
-        pk=pk,
-        parent_type=AttachmentParentType.STAFF_PROFILE,
-    )
-    get_authorized_object(staff_profiles_for_user(request.user), attachment.parent_id)
-    record_event(
-        actor=request.user,
-        event_type=AuditEvent.EventType.DOWNLOAD,
-        target_type="PrivateAttachment",
-        target_id=attachment.pk,
-        center=attachment.center,
-        metadata={"file_extension": Path(attachment.original_filename).suffix.lower()},
-    )
-    return FileResponse(
-        attachment.file.open("rb"),
-        as_attachment=True,
-        filename=Path(attachment.original_filename).name,
-        content_type=attachment.content_type or "application/octet-stream",
-    )
+    return staff_attachments(request.user).download(pk)
 
 
 @login_required
 def staff_attachment_delete(request, pk):
     if request.method != "POST":
         raise Http404
-    if not can_change_staff_directory(request.user):
-        raise PermissionDenied
-    attachment = get_object_or_404(
-        PrivateAttachment.objects.select_related("center"),
-        pk=pk,
-        parent_type=AttachmentParentType.STAFF_PROFILE,
-    )
-    staff = get_authorized_object(staff_profiles_for_user(request.user), attachment.parent_id)
-    attachment_id = attachment.pk
-    center = attachment.center
-    with transaction.atomic():
-        attachment.delete()
-        record_event(
-            actor=request.user,
-            event_type=AuditEvent.EventType.DELETE,
-            target_type="PrivateAttachment",
-            target_id=attachment_id,
-            center=center,
-        )
+    redirect_url = staff_attachments(request.user).delete(pk)
     messages.success(request, _("Staff document deleted."))
-    return redirect("staff_detail", pk=staff.pk)
+    return redirect(redirect_url)
 
 
 @active_center_required
@@ -429,8 +360,13 @@ def specialist_create(request):
         )
         messages.success(
             request,
-            _("Specialist created. Use password reset to establish the first password."),
+            _(
+                "Specialist and employee record created. Use password reset to establish "
+                "the first password."
+            ),
         )
+        if can_view_staff_directory(request.user):
+            return redirect("staff_detail", pk=profile.staff_profile_id)
         return redirect("center_detail")
     return render(
         request,

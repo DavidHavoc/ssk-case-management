@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.db.models.deletion import ProtectedError
-from django.http import FileResponse, Http404
+from django.http import Http404
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -18,12 +16,9 @@ from apps.audit.models import AuditEvent
 from apps.audit.services import record_event
 from apps.core.authorization import (
     assessments_for_user,
-    attachment_for_download,
-    attachments_for_parent,
     beneficiaries_for_user,
     can_view_restricted_beneficiary_fields,
     get_authorized_object,
-    parent_for_attachment,
     plans_for_user,
     summaries_for_user,
     visits_for_user,
@@ -37,7 +32,6 @@ from .forms import (
     BeneficiaryForm,
     IndividualPlanForm,
     IndividualPlanGoalFormSet,
-    PrivateAttachmentForm,
     ServiceVisitForm,
     validate_plan_goals,
 )
@@ -48,6 +42,9 @@ from .models import (
     IndividualPlan,
     PrivateAttachment,
     ServiceVisit,
+)
+from .private_attachments import (
+    case_attachments,
 )
 
 
@@ -105,8 +102,8 @@ def beneficiary_detail(request, pk):
     )
     restricted = can_view_restricted_beneficiary_fields(request.user, beneficiary)
     attachments = (
-        attachments_for_parent(
-            AttachmentParentType.BENEFICIARY, beneficiary.pk, request.user, request.ssk_center
+        case_attachments(request.user, request.ssk_center).list(
+            AttachmentParentType.BENEFICIARY, beneficiary.pk
         )
         if restricted
         else []
@@ -139,24 +136,44 @@ def beneficiary_create(request):
         prefix="assignments",
         form_kwargs={"center": request.ssk_center},
     )
-    if request.method == "POST" and form.is_valid() and formset.is_valid():
-        with transaction.atomic():
-            beneficiary = form.save()
-            formset.instance = beneficiary
-            formset.save()
-            record_event(
-                actor=request.user,
-                event_type=AuditEvent.EventType.CREATE,
-                target_type="Beneficiary",
-                target_id=beneficiary.pk,
-                center=beneficiary.center,
-            )
-        messages.success(request, _("Beneficiary created."))
-        return redirect("beneficiary_detail", pk=beneficiary.pk)
+    attachment_workflow = case_attachments(request.user, request.ssk_center)
+    attachment_form = attachment_workflow.optional_form(
+        request.POST or None,
+        request.FILES or None,
+        prefix="attachment",
+    )
+    if request.method == "POST":
+        form_valid = form.is_valid()
+        formset_valid = formset.is_valid()
+        attachment_valid = attachment_form.is_valid()
+        if form_valid and formset_valid and attachment_valid:
+            with attachment_workflow.atomic_uploads() as attachment_uploader:
+                beneficiary = form.save()
+                formset.instance = beneficiary
+                formset.save()
+                record_event(
+                    actor=request.user,
+                    event_type=AuditEvent.EventType.CREATE,
+                    target_type="Beneficiary",
+                    target_id=beneficiary.pk,
+                    center=beneficiary.center,
+                )
+                attachment_uploader.create(
+                    parent=beneficiary,
+                    parent_type=AttachmentParentType.BENEFICIARY,
+                    upload=attachment_form.cleaned_data.get("file"),
+                )
+            messages.success(request, _("Beneficiary created."))
+            return redirect("beneficiary_detail", pk=beneficiary.pk)
     return render(
         request,
         "casework/beneficiary_form.html",
-        {"form": form, "formset": formset, "title": _("New beneficiary")},
+        {
+            "form": form,
+            "formset": formset,
+            "attachment_form": attachment_form,
+            "title": _("New beneficiary"),
+        },
     )
 
 
@@ -238,8 +255,8 @@ def visit_list(request):
 @active_center_required
 def visit_detail(request, pk):
     visit = get_authorized_object(visits_for_user(request.user, request.ssk_center), pk)
-    attachments = attachments_for_parent(
-        AttachmentParentType.SERVICE_VISIT, visit.pk, request.user, request.ssk_center
+    attachments = case_attachments(request.user, request.ssk_center).list(
+        AttachmentParentType.SERVICE_VISIT, visit.pk
     )
     _audit_read(request, visit, "ServiceVisit")
     return render(
@@ -289,21 +306,44 @@ def _simple_case_form(
         user=request.user,
         center=request.ssk_center,
     )
-    if request.method == "POST" and form.is_valid():
-        with transaction.atomic():
-            obj = form.save()
-            record_event(
-                actor=request.user,
-                event_type=(
-                    AuditEvent.EventType.UPDATE if instance else AuditEvent.EventType.CREATE
-                ),
-                target_type=target_type,
-                target_id=obj.pk,
-                center=obj.center,
-            )
-        messages.success(request, _("Changes saved."))
-        return redirect(detail_route, pk=obj.pk)
-    return render(request, "casework/simple_form.html", {"form": form, "title": title})
+    attachment_workflow = case_attachments(request.user, request.ssk_center)
+    attachment_form = (
+        attachment_workflow.optional_form(
+            request.POST or None,
+            request.FILES or None,
+            prefix="attachment",
+        )
+        if instance is None
+        else None
+    )
+    if request.method == "POST":
+        form_valid = form.is_valid()
+        attachment_valid = attachment_form.is_valid() if attachment_form else True
+        if form_valid and attachment_valid:
+            with attachment_workflow.atomic_uploads() as attachment_uploader:
+                obj = form.save()
+                record_event(
+                    actor=request.user,
+                    event_type=(
+                        AuditEvent.EventType.UPDATE if instance else AuditEvent.EventType.CREATE
+                    ),
+                    target_type=target_type,
+                    target_id=obj.pk,
+                    center=obj.center,
+                )
+                if attachment_form:
+                    attachment_uploader.create(
+                        parent=obj,
+                        parent_type=AttachmentParentType.SERVICE_VISIT,
+                        upload=attachment_form.cleaned_data.get("file"),
+                    )
+            messages.success(request, _("Changes saved."))
+            return redirect(detail_route, pk=obj.pk)
+    return render(
+        request,
+        "casework/simple_form.html",
+        {"form": form, "attachment_form": attachment_form, "title": title},
+    )
 
 
 @active_center_required
@@ -320,8 +360,8 @@ def assessment_list(request):
 @active_center_required
 def assessment_detail(request, pk):
     assessment = get_authorized_object(assessments_for_user(request.user, request.ssk_center), pk)
-    attachments = attachments_for_parent(
-        AttachmentParentType.ASSESSMENT, assessment.pk, request.user, request.ssk_center
+    attachments = case_attachments(request.user, request.ssk_center).list(
+        AttachmentParentType.ASSESSMENT, assessment.pk
     )
     _audit_read(request, assessment, "Assessment")
     return render(
@@ -399,8 +439,8 @@ def plan_list(request):
 @active_center_required
 def plan_detail(request, pk):
     plan = get_authorized_object(plans_for_user(request.user, request.ssk_center), pk)
-    attachments = attachments_for_parent(
-        AttachmentParentType.INDIVIDUAL_PLAN, plan.pk, request.user, request.ssk_center
+    attachments = case_attachments(request.user, request.ssk_center).list(
+        AttachmentParentType.INDIVIDUAL_PLAN, plan.pk
     )
     _audit_read(request, plan, "IndividualPlan")
     return render(
@@ -488,76 +528,29 @@ def summary_list(request):
 
 @active_center_required
 def attachment_upload(request, parent_type, parent_id):
-    parent = parent_for_attachment(parent_type, parent_id, request.user, request.ssk_center)
-    attachment = PrivateAttachment(
-        parent_type=parent_type,
-        parent_id=parent.pk,
-        center=parent.center,
-        uploaded_by=request.user,
+    result = case_attachments(request.user, request.ssk_center).upload(
+        parent_type,
+        parent_id,
+        data=request.POST if request.method == "POST" else None,
+        files=request.FILES if request.method == "POST" else None,
     )
-    if request.method == "POST":
-        upload = request.FILES.get("file")
-        if upload:
-            attachment.original_filename = Path(upload.name.replace("\\", "/")).name
-        form = PrivateAttachmentForm(request.POST, request.FILES, instance=attachment)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    attachment = form.save(commit=False)
-                    attachment.save()
-                    record_event(
-                        actor=request.user,
-                        event_type=AuditEvent.EventType.CREATE,
-                        target_type="PrivateAttachment",
-                        target_id=attachment.pk,
-                        center=attachment.center,
-                        metadata={
-                            "parent_type": parent_type,
-                            "file_extension": Path(upload.name).suffix.lower(),
-                        },
-                    )
-            except Exception:
-                if attachment and attachment.file.name:
-                    attachment.file.storage.delete(attachment.file.name)
-                raise
-            messages.success(request, _("Attachment uploaded securely."))
-            return redirect(_parent_detail_url(parent_type, parent.pk))
-    else:
-        form = PrivateAttachmentForm(instance=attachment)
+    if result.saved:
+        messages.success(request, _("Attachment uploaded securely."))
+        return redirect(result.redirect_url)
     return render(
         request,
         "casework/attachment_form.html",
-        {"form": form, "parent": parent, "cancel_url": _parent_detail_url(parent_type, parent.pk)},
+        {
+            "form": result.form,
+            "parent": result.parent,
+            "cancel_url": result.redirect_url,
+        },
     )
 
 
 @active_center_required
 def attachment_download(request, pk):
-    try:
-        attachment = attachment_for_download(pk, request.user, request.ssk_center)
-    except Http404:
-        record_event(
-            actor=request.user,
-            event_type=AuditEvent.EventType.DOWNLOAD,
-            target_type="PrivateAttachment",
-            target_id=pk,
-            outcome=AuditEvent.Outcome.DENIED,
-        )
-        raise
-    record_event(
-        actor=request.user,
-        event_type=AuditEvent.EventType.DOWNLOAD,
-        target_type="PrivateAttachment",
-        target_id=attachment.pk,
-        center=attachment.center,
-        metadata={"file_extension": Path(attachment.original_filename).suffix.lower()},
-    )
-    return FileResponse(
-        attachment.file.open("rb"),
-        as_attachment=True,
-        filename=Path(attachment.original_filename).name,
-        content_type=attachment.content_type or "application/octet-stream",
-    )
+    return case_attachments(request.user, request.ssk_center).download(pk)
 
 
 def _delete_case_record(
@@ -669,31 +662,6 @@ def plan_delete(request, pk):
 def attachment_delete(request, pk):
     if request.method != "POST":
         raise Http404
-    attachment = attachment_for_download(pk, request.user, request.ssk_center)
-    parent_url = _parent_detail_url(attachment.parent_type, attachment.parent_id)
-    attachment_id = attachment.pk
-    center = attachment.center
-    with transaction.atomic():
-        attachment.delete()
-        record_event(
-            actor=request.user,
-            event_type=AuditEvent.EventType.DELETE,
-            target_type="PrivateAttachment",
-            target_id=attachment_id,
-            center=center,
-        )
+    parent_url = case_attachments(request.user, request.ssk_center).delete(pk)
     messages.success(request, _("Attachment deleted."))
     return redirect(parent_url)
-
-
-def _parent_detail_url(parent_type: str, parent_id) -> str:
-    routes = {
-        AttachmentParentType.BENEFICIARY: "beneficiary_detail",
-        AttachmentParentType.SERVICE_VISIT: "visit_detail",
-        AttachmentParentType.ASSESSMENT: "assessment_detail",
-        AttachmentParentType.INDIVIDUAL_PLAN: "plan_detail",
-    }
-    route = routes.get(parent_type)
-    if not route:
-        raise Http404
-    return reverse(route, kwargs={"pk": parent_id})

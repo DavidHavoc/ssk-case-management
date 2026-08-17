@@ -18,12 +18,10 @@ from apps.core.forms import StyledModelForm
 from .models import (
     Assessment,
     AssessmentDomainScore,
-    AttachmentParentType,
     Beneficiary,
     BeneficiarySpecialistAssignment,
     IndividualPlan,
     IndividualPlanGoal,
-    PrivateAttachment,
     ServiceVisit,
 )
 
@@ -248,16 +246,3 @@ def validate_plan_goals(form: IndividualPlanForm, formset) -> None:
     ]
     if not active:
         raise ValidationError(_("At least one goal is required for an active or completed plan."))
-
-
-class PrivateAttachmentForm(StyledModelForm):
-    class Meta:
-        model = PrivateAttachment
-        fields = ("document_type", "file")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance.parent_type == AttachmentParentType.STAFF_PROFILE:
-            self.fields["document_type"].required = True
-        else:
-            self.fields.pop("document_type", None)

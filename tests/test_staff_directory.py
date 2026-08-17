@@ -1,4 +1,5 @@
 from datetime import date
+from pathlib import Path
 
 import pytest
 from django.contrib.auth.models import Permission
@@ -10,8 +11,10 @@ from django.utils.translation import override
 from apps.audit.models import AuditEvent
 from apps.casework.models import AttachmentParentType, PrivateAttachment
 from apps.centers.forms import StaffProfileForm
-from apps.centers.models import StaffProfile
+from apps.centers.models import SpecialistProfile, StaffProfile
 from apps.core.authorization import accessible_centers
+
+from .factories import set_active_center
 
 pytestmark = pytest.mark.django_db
 
@@ -91,6 +94,49 @@ def test_staff_fields_have_georgian_labels(specialist_a):
             str(PrivateAttachment.DocumentType.EMPLOYEE_CONTRACT.label)
             == "თანამშრომლის ხელშეკრულება"
         )
+
+
+def test_specialist_creation_collects_complete_employee_fields(client, manager, center_a):
+    client.force_login(manager)
+    set_active_center(client, center_a)
+
+    response = client.get(reverse("specialist_create"))
+    assert response.status_code == 200
+    assert 'name="status"' in response.content.decode()
+
+    response = client.post(
+        reverse("specialist_create"),
+        {
+            "username": "synthetic.new-specialist@example.invalid",
+            "email": "synthetic.new-specialist@example.invalid",
+            "first_name": "Synthetic",
+            "last_name": "New Specialist",
+            "employee_number": "EMP-SYNTHETIC-NEW",
+            "project_program": "Synthetic Family Program",
+            "job_title": "Program Specialist",
+            "status": StaffProfile.Status.INACTIVE,
+            "contact_number": "+995 555 600 700",
+            "contract_signed_on": "2026-02-01",
+            "contract_valid_until": "2026-11-30",
+            "description": "Synthetic creation workflow description.",
+            "notes": "Synthetic creation workflow notes.",
+            "is_primary": "on",
+        },
+    )
+
+    staff = StaffProfile.objects.get(employee_number="EMP-SYNTHETIC-NEW")
+    specialist = SpecialistProfile.objects.get(staff_profile=staff)
+    assert response.status_code == 302
+    assert response.url == reverse("staff_detail", kwargs={"pk": staff.pk})
+    assert staff.project_program == "Synthetic Family Program"
+    assert staff.job_title == "Program Specialist"
+    assert staff.status == StaffProfile.Status.INACTIVE
+    assert staff.contact_number == "+995 555 600 700"
+    assert staff.contract_signed_on == date(2026, 2, 1)
+    assert staff.contract_valid_until == date(2026, 11, 30)
+    assert staff.description == specialist.description
+    assert staff.notes == "Synthetic creation workflow notes."
+    assert staff.primary_center == center_a
 
 
 def test_view_permission_does_not_allow_staff_changes(client, coordinator_a, specialist_a):
@@ -174,6 +220,8 @@ def test_staff_contract_upload_download_and_pdf_requirement(
     response = client.get(reverse("staff_attachment_download", kwargs={"pk": attachment.pk}))
     assert response.status_code == 200
     assert response.streaming
+    assert response["Cache-Control"] == "private, no-store"
+    assert response["Pragma"] == "no-cache"
     assert AuditEvent.objects.filter(
         event_type=AuditEvent.EventType.DOWNLOAD,
         target_id=attachment.pk,
@@ -202,3 +250,70 @@ def test_staff_contract_upload_download_and_pdf_requirement(
     client.force_login(coordinator_a)
     response = client.get(reverse("staff_attachment_download", kwargs={"pk": attachment.pk}))
     assert response.status_code == 200
+
+
+def test_staff_download_denial_is_audited(client, coordinator_a, manager, specialist_a):
+    staff = specialist_a.staff_profile
+    attachment = PrivateAttachment.objects.create(
+        parent_type=AttachmentParentType.STAFF_PROFILE,
+        parent_id=staff.pk,
+        document_type=PrivateAttachment.DocumentType.ADDITIONAL_DOCUMENTATION,
+        center=staff.primary_center,
+        file=SimpleUploadedFile(
+            "staff-note.pdf",
+            b"%PDF-1.7\nSynthetic staff documentation",
+            content_type="application/pdf",
+        ),
+        original_filename="staff-note.pdf",
+        uploaded_by=manager,
+    )
+    client.force_login(coordinator_a)
+
+    response = client.get(reverse("staff_attachment_download", kwargs={"pk": attachment.pk}))
+
+    assert response.status_code == 403
+    assert AuditEvent.objects.filter(
+        event_type=AuditEvent.EventType.DOWNLOAD,
+        target_id=attachment.pk,
+        outcome=AuditEvent.Outcome.DENIED,
+    ).exists()
+
+
+def test_staff_document_delete_removes_file_only_after_commit(
+    client,
+    manager,
+    specialist_a,
+    django_capture_on_commit_callbacks,
+):
+    staff = specialist_a.staff_profile
+    attachment = PrivateAttachment.objects.create(
+        parent_type=AttachmentParentType.STAFF_PROFILE,
+        parent_id=staff.pk,
+        document_type=PrivateAttachment.DocumentType.ADDITIONAL_DOCUMENTATION,
+        center=staff.primary_center,
+        file=SimpleUploadedFile(
+            "delete-after-commit.pdf",
+            b"%PDF-1.7\nSynthetic staff documentation",
+            content_type="application/pdf",
+        ),
+        original_filename="delete-after-commit.pdf",
+        uploaded_by=manager,
+    )
+    stored_path = Path(attachment.file.path)
+    client.force_login(manager)
+
+    with django_capture_on_commit_callbacks(execute=False) as callbacks:
+        response = client.post(reverse("staff_attachment_delete", kwargs={"pk": attachment.pk}))
+
+    assert response.status_code == 302
+    assert not PrivateAttachment.objects.filter(pk=attachment.pk).exists()
+    assert stored_path.exists()
+    assert callbacks
+    for callback in callbacks:
+        callback()
+    assert not stored_path.exists()
+    assert AuditEvent.objects.filter(
+        event_type=AuditEvent.EventType.DELETE,
+        target_id=attachment.pk,
+        actor=manager,
+    ).exists()

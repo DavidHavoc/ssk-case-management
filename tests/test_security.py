@@ -13,9 +13,15 @@ from django.urls import reverse
 
 from apps.accounts.models import LoginThrottle
 from apps.audit.models import AuditEvent
-from apps.casework.models import AttachmentParentType, PrivateAttachment
+from apps.casework import private_attachments
+from apps.casework.models import (
+    AttachmentParentType,
+    Beneficiary,
+    PrivateAttachment,
+    ServiceVisit,
+)
 
-from .factories import make_assessment, make_coordinator, make_visit, set_active_center
+from .factories import make_assessment, make_coordinator, make_plan, make_visit, set_active_center
 
 pytestmark = pytest.mark.django_db
 User = get_user_model()
@@ -37,6 +43,14 @@ def _attachment(
         original_filename=filename,
         content_type="application/pdf",
         uploaded_by=user,
+    )
+
+
+def test_private_attachment_module_has_a_narrow_public_interface():
+    assert private_attachments.__all__ == (
+        "AttachmentParentCenterRequired",
+        "case_attachments",
+        "staff_attachments",
     )
 
 
@@ -170,19 +184,197 @@ def test_attachment_upload_sets_parent_before_validation_and_audits(
     ).exists()
 
 
-def test_case_attachment_follows_case_record_access(client, specialist_a, center_a, beneficiary_a):
+def test_every_case_parent_type_uploads_downloads_and_redirects(
+    client,
+    coordinator_a,
+    specialist_a,
+    center_a,
+    beneficiary_a,
+    private_media_root,
+):
+    visit = make_visit(beneficiary_a, specialist_a)
     assessment = make_assessment(beneficiary_a, specialist_a)
+    plan = make_plan(beneficiary_a, specialist_a)
+    client.force_login(coordinator_a)
+    set_active_center(client, center_a)
+
+    parents = (
+        (AttachmentParentType.BENEFICIARY, beneficiary_a, "beneficiary_detail"),
+        (AttachmentParentType.SERVICE_VISIT, visit, "visit_detail"),
+        (AttachmentParentType.ASSESSMENT, assessment, "assessment_detail"),
+        (AttachmentParentType.INDIVIDUAL_PLAN, plan, "plan_detail"),
+    )
+    for parent_type, parent, detail_route in parents:
+        content = b"%PDF-1.7\nSynthetic supporting document"
+        response = client.post(
+            reverse(
+                "attachment_upload",
+                kwargs={"parent_type": parent_type, "parent_id": parent.pk},
+            ),
+            {
+                "file": SimpleUploadedFile(
+                    "supporting-document.pdf",
+                    content,
+                    content_type="application/pdf",
+                )
+            },
+        )
+
+        assert response.status_code == 302
+        assert response.url == reverse(detail_route, kwargs={"pk": parent.pk})
+        attachment = PrivateAttachment.objects.get(
+            parent_type=parent_type,
+            parent_id=parent.pk,
+        )
+        assert Path(attachment.file.path).is_relative_to(private_media_root)
+        assert attachment.content_type == "application/pdf"
+
+        download = client.get(reverse("attachment_download", kwargs={"pk": attachment.pk}))
+        assert download.status_code == 200
+        assert b"".join(download.streaming_content) == content
+        assert download["Content-Type"] == "application/pdf"
+        assert "attachment;" in download["Content-Disposition"]
+        assert download["Cache-Control"] == "private, no-store"
+        assert download["Pragma"] == "no-cache"
+
+
+def test_pdf_can_be_uploaded_while_creating_beneficiary(
+    client,
+    coordinator_a,
+    center_a,
+    private_media_root,
+):
+    client.force_login(coordinator_a)
+    set_active_center(client, center_a)
+    content = b"%PDF-1.7\nSynthetic beneficiary creation document"
+
+    response = client.post(
+        reverse("beneficiary_create"),
+        {
+            "beneficiary_code": "BEN-CREATE-PDF",
+            "service_type": Beneficiary.ServiceType.OTHER,
+            "service_status": Beneficiary.ServiceStatus.ACTIVE,
+            "full_name": "Synthetic Created Beneficiary",
+            "assignments-TOTAL_FORMS": "0",
+            "assignments-INITIAL_FORMS": "0",
+            "assignments-MIN_NUM_FORMS": "0",
+            "assignments-MAX_NUM_FORMS": "1000",
+            "attachment-file": SimpleUploadedFile(
+                "beneficiary-create.pdf",
+                content,
+                content_type="application/pdf",
+            ),
+        },
+    )
+
+    beneficiary = Beneficiary.objects.get(beneficiary_code="BEN-CREATE-PDF")
+    attachment = PrivateAttachment.objects.get(
+        parent_type=AttachmentParentType.BENEFICIARY,
+        parent_id=beneficiary.pk,
+    )
+    assert response.status_code == 302
+    assert response.url == reverse("beneficiary_detail", kwargs={"pk": beneficiary.pk})
+    assert Path(attachment.file.path).is_relative_to(private_media_root)
+    assert attachment.content_type == "application/pdf"
+
+
+def test_pdf_can_be_uploaded_while_creating_visit(
+    client,
+    coordinator_a,
+    specialist_a,
+    center_a,
+    beneficiary_a,
+):
+    client.force_login(coordinator_a)
+    set_active_center(client, center_a)
+
+    response = client.post(
+        reverse("visit_create"),
+        {
+            "beneficiary": str(beneficiary_a.pk),
+            "specialist": str(specialist_a.pk),
+            "visit_date": "2026-08-16",
+            "visit_type": ServiceVisit.VisitType.CENTER,
+            "status": ServiceVisit.Status.COMPLETED,
+            "service_units": "1",
+            "duration_minutes": "45",
+            "attachment-file": SimpleUploadedFile(
+                "visit-create.pdf",
+                b"%PDF-1.7\nSynthetic visit creation document",
+                content_type="application/pdf",
+            ),
+        },
+    )
+
+    visit = ServiceVisit.objects.get(visit_date="2026-08-16")
+    attachment = PrivateAttachment.objects.get(
+        parent_type=AttachmentParentType.SERVICE_VISIT,
+        parent_id=visit.pk,
+    )
+    assert response.status_code == 302
+    assert response.url == reverse("visit_detail", kwargs={"pk": visit.pk})
+    assert attachment.content_type == "application/pdf"
+
+
+def test_invalid_creation_pdf_does_not_create_visit(
+    client,
+    coordinator_a,
+    specialist_a,
+    center_a,
+    beneficiary_a,
+):
+    client.force_login(coordinator_a)
+    set_active_center(client, center_a)
+
+    response = client.post(
+        reverse("visit_create"),
+        {
+            "beneficiary": str(beneficiary_a.pk),
+            "specialist": str(specialist_a.pk),
+            "visit_date": "2026-08-17",
+            "visit_type": ServiceVisit.VisitType.CENTER,
+            "status": ServiceVisit.Status.COMPLETED,
+            "service_units": "1",
+            "duration_minutes": "45",
+            "attachment-file": SimpleUploadedFile(
+                "forged.pdf",
+                b"not a pdf",
+                content_type="application/pdf",
+            ),
+        },
+    )
+
+    assert response.status_code == 200
+    assert "does not match a PDF" in response.content.decode()
+    assert not ServiceVisit.objects.filter(visit_date="2026-08-17").exists()
+    assert not PrivateAttachment.objects.filter(original_filename="forged.pdf").exists()
+
+
+def test_specialist_case_attachments_follow_each_authorized_parent(
+    client, specialist_a, center_a, beneficiary_a
+):
     user = specialist_a.staff_profile.user
-    attachment = _attachment(
-        parent=assessment,
-        parent_type=AttachmentParentType.ASSESSMENT,
-        user=user,
+    parents = (
+        (
+            AttachmentParentType.SERVICE_VISIT,
+            make_visit(beneficiary_a, specialist_a),
+        ),
+        (
+            AttachmentParentType.ASSESSMENT,
+            make_assessment(beneficiary_a, specialist_a),
+        ),
+        (
+            AttachmentParentType.INDIVIDUAL_PLAN,
+            make_plan(beneficiary_a, specialist_a),
+        ),
     )
     client.force_login(user)
     set_active_center(client, center_a)
-    assert (
-        client.get(reverse("attachment_download", kwargs={"pk": attachment.pk})).status_code == 200
-    )
+
+    for parent_type, parent in parents:
+        attachment = _attachment(parent=parent, parent_type=parent_type, user=user)
+        response = client.get(reverse("attachment_download", kwargs={"pk": attachment.pk}))
+        assert response.status_code == 200
 
 
 def test_cross_center_attachment_download_is_denied(
@@ -199,6 +391,23 @@ def test_cross_center_attachment_download_is_denied(
     assert (
         client.get(reverse("attachment_download", kwargs={"pk": attachment.pk})).status_code == 404
     )
+
+
+def test_manager_attachment_download_is_scoped_to_active_center(
+    client, manager, center_a, center_b, beneficiary_b
+):
+    coordinator_b = make_coordinator(center_b, "coordinator-b-manager-scope")
+    attachment = _attachment(
+        parent=beneficiary_b,
+        parent_type=AttachmentParentType.BENEFICIARY,
+        user=coordinator_b,
+    )
+    client.force_login(manager)
+    set_active_center(client, center_a)
+
+    response = client.get(reverse("attachment_download", kwargs={"pk": attachment.pk}))
+
+    assert response.status_code == 404
 
 
 def test_attachment_delete_rechecks_parent_access_and_removes_file_after_commit(
@@ -219,11 +428,15 @@ def test_attachment_delete_rechecks_parent_access_and_removes_file_after_commit(
     client.force_login(specialist_a.staff_profile.user)
     set_active_center(client, center_a)
 
-    with django_capture_on_commit_callbacks(execute=True):
+    with django_capture_on_commit_callbacks(execute=False) as callbacks:
         response = client.post(reverse("attachment_delete", kwargs={"pk": attachment.pk}))
 
     assert response.status_code == 302
     assert not PrivateAttachment.objects.filter(pk=attachment.pk).exists()
+    assert stored_path.exists()
+    assert callbacks
+    for callback in callbacks:
+        callback()
     assert not stored_path.exists()
     assert AuditEvent.objects.filter(
         event_type=AuditEvent.EventType.DELETE,
@@ -302,7 +515,7 @@ def test_failed_attachment_audit_rolls_back_row_and_stored_file(
     def fail_audit(**kwargs):
         raise RuntimeError("synthetic audit failure")
 
-    monkeypatch.setattr("apps.casework.views.record_event", fail_audit)
+    monkeypatch.setattr("apps.casework.private_attachments.record_event", fail_audit)
     client.force_login(coordinator_a)
     set_active_center(client, center_a)
     client.raise_request_exception = False
@@ -324,6 +537,50 @@ def test_failed_attachment_audit_rolls_back_row_and_stored_file(
     assert response.status_code == 500
     assert PrivateAttachment.objects.count() == 0
     assert not [path for path in private_media_root.rglob("*") if path.is_file()]
+
+
+def test_unsupported_attachment_parent_type_returns_404(
+    client, coordinator_a, center_a, beneficiary_a
+):
+    client.force_login(coordinator_a)
+    set_active_center(client, center_a)
+
+    response = client.get(
+        reverse(
+            "attachment_upload",
+            kwargs={"parent_type": "unsupported", "parent_id": beneficiary_a.pk},
+        )
+    )
+
+    assert response.status_code == 404
+
+
+def test_case_download_route_rejects_staff_attachment_and_audits_denial(
+    client, manager, specialist_a
+):
+    staff = specialist_a.staff_profile
+    attachment = PrivateAttachment.objects.create(
+        parent_type=AttachmentParentType.STAFF_PROFILE,
+        parent_id=staff.pk,
+        document_type=PrivateAttachment.DocumentType.ADDITIONAL_DOCUMENTATION,
+        center=staff.primary_center,
+        file=SimpleUploadedFile(
+            "staff.pdf", b"%PDF-1.7\nSynthetic staff file", content_type="application/pdf"
+        ),
+        original_filename="staff.pdf",
+        uploaded_by=manager,
+    )
+    client.force_login(manager)
+    set_active_center(client, staff.primary_center)
+
+    response = client.get(reverse("attachment_download", kwargs={"pk": attachment.pk}))
+
+    assert response.status_code == 404
+    assert AuditEvent.objects.filter(
+        event_type=AuditEvent.EventType.DOWNLOAD,
+        target_id=attachment.pk,
+        outcome=AuditEvent.Outcome.DENIED,
+    ).exists()
 
 
 def test_csv_export_escapes_formulas_and_excludes_other_centers(

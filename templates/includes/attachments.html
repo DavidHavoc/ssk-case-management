@@ -3,9 +3,9 @@
   <div class="section-heading">
     <div>
       <h2 id="attachments-heading">{% translate "Private attachments" %}</h2>
-      <p>{% translate "Files are stored privately and every download is authorized." %}</p>
+      <p>{% translate "PDFs and other allowed files are stored privately. Every download is authorized." %}</p>
     </div>
-    <a class="button button-secondary" href="{% url 'attachment_upload' attachment_parent_type object_id %}">{% translate "Upload file" %}</a>
+    <a class="button button-secondary" href="{% url 'attachment_upload' attachment_parent_type object_id %}">{% translate "Upload PDF or file" %}</a>
   </div>
   {% if attachments %}
     <ul class="file-list">

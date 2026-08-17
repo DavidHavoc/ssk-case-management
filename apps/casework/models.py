@@ -13,7 +13,7 @@ from django.db.models import F, Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from apps.centers.models import Center, SpecialistProfile, StaffProfile
+from apps.centers.models import Center, SpecialistProfile
 from apps.core.models import ValidatedModel
 from apps.core.validators import phone_number_validator
 
@@ -566,14 +566,6 @@ class AttachmentParentType(models.TextChoices):
     STAFF_PROFILE = "staff_profile", _("Staff Profile")
 
 
-ATTACHMENT_MODEL_MAP = {
-    AttachmentParentType.BENEFICIARY: Beneficiary,
-    AttachmentParentType.SERVICE_VISIT: ServiceVisit,
-    AttachmentParentType.ASSESSMENT: Assessment,
-    AttachmentParentType.INDIVIDUAL_PLAN: IndividualPlan,
-    AttachmentParentType.STAFF_PROFILE: StaffProfile,
-}
-
 ATTACHMENT_CONTENT_TYPES = {
     ".pdf": "application/pdf",
     ".png": "image/png",
@@ -627,7 +619,9 @@ class PrivateAttachment(ValidatedModel):
 
     @property
     def parent_object(self):
-        model = ATTACHMENT_MODEL_MAP.get(self.parent_type)
+        from .private_attachments import _parent_model
+
+        model = _parent_model(self.parent_type)
         if not model:
             return None
         return model.objects.filter(pk=self.parent_id).first()
@@ -637,11 +631,10 @@ class PrivateAttachment(ValidatedModel):
         parent = self.parent_object
         if not parent:
             raise ValidationError({"parent_id": _("The attachment parent does not exist.")})
-        parent_center_id = (
-            parent.primary_center_id or parent.centers.values_list("pk", flat=True).first()
-            if self.parent_type == AttachmentParentType.STAFF_PROFILE
-            else parent.center_id
-        )
+        from .private_attachments import _center_for_parent
+
+        parent_center = _center_for_parent(self.parent_type, parent)
+        parent_center_id = parent_center.pk if parent_center else None
         if not parent_center_id:
             raise ValidationError({"center": _("The attachment parent must have a center.")})
         if self.center_id and self.center_id != parent_center_id:

@@ -1833,3 +1833,6 @@ msgstr "თანამშრომლის დოკუმენტები �
 
 msgid "Maintain project, position, contract, contact, description, and notes information."
 msgstr "განაახლეთ პროექტის, თანამდებობის, ხელშეკრულების, საკონტაქტო მონაცემების, აღწერისა და შენიშვნების ინფორმაცია."
+
+msgid "Specialist and employee record created. Use password reset to establish the first password."
+msgstr "სპეციალისტისა და თანამშრომლის ჩანაწერი შეიქმნა. პირველი პაროლის დასაყენებლად გამოიყენეთ პაროლის აღდგენა."

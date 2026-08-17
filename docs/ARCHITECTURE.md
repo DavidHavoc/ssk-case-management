@@ -22,7 +22,7 @@ There is no separate browser application, API gateway, worker requirement, Redis
 |---|---|
 | `accounts` | Custom User, Django Group roles, login throttling |
 | `centers` | Center, Staff Profile, Specialist Profile, roster assignments |
-| `casework` | Beneficiaries, visits, assessments, plans, summaries, private files |
+| `casework` | Beneficiaries, visits, assessments, plans, summaries, and the private attachment module |
 | `audit` | Append-only application audit events and safe event writer |
 | `core` | Authorization selectors, active-center context, dashboard, reports, shared UI |
 
@@ -36,7 +36,7 @@ There is no separate browser application, API gateway, worker requirement, Redis
 6. Detail views fetch only from that QuerySet, returning 404 for out-of-scope identifiers.
 7. Forms restrict relationship choices to authorized QuerySets.
 8. Model validation checks center and assignment consistency independently of the view.
-9. Reports, CSV exports, and downloads reuse the same selectors.
+9. Reports and CSV exports reuse the same selectors. The private attachment module applies those selectors through explicit parent-policy adapters.
 
 System Manager bypasses record scope. Coordinator access takes precedence when a user also holds Specialist. Specialist access requires a Specialist Profile and valid Specialist Center Assignment.
 
@@ -46,13 +46,18 @@ Restricted beneficiary values are represented in the model because coordinators 
 
 Private attachments have randomized stored names, parent type, parent UUID, center, original display name, content type, size, and SHA-256 digest. The storage backend rejects resolved paths outside its root. Nginx never maps the private volume.
 
+`apps/casework/private_attachments.py` owns the complete private attachment lifecycle behind two public factories: `case_attachments(actor, center)` and `staff_attachments(actor)`. The returned workflow exposes lifecycle-level list, upload, create-time upload, download, and delete operations. Policy lookup, forms, authorization, transaction helpers, response construction, cleanup, and route selection remain internal. Its parent-policy registry is the single map from parent type to model, authorization adapter, center rule, form behavior, and detail route. Beneficiary, visit, assessment, and plan policies adapt the existing case selectors and require the selected active center. The staff policy adapts staff-directory view and change permissions and intentionally remains organization-wide. Casework and centers views only supply request context, messages, and templates.
+
+The attachment module constructs metadata, coordinates database transactions and rollback cleanup, records audit events, authorizes every selection, builds download responses, resolves redirects, and schedules deleted files for post-commit removal. Low-level upload validation and private storage remain in `validators.py` and `storage.py` so existing model field and migration import paths stay stable. `PrivateAttachment.clean()` uses the same registry for parent and center validation as a defense-in-depth control.
+
 ## Business logic placement
 
 - Models enforce invariant data relationships and dates.
 - Forms enforce user-specific choices and inline child requirements.
-- Authorization selectors define read scope once for lists, details, reports, and downloads.
+- Authorization selectors define domain read scope once for lists, details, reports, and attachment policy adapters.
+- The private attachment module owns parent resolution, forms, upload transactions, auditing, download responses, deletion, cleanup, and navigation.
 - Services rebuild derived monthly summaries inside the visit transaction. PostgreSQL advisory locks serialize rebuilds for the same specialist, center, and month.
-- Views coordinate transactions and record audit events.
+- Other views coordinate domain record transactions and record domain audit events.
 - Templates contain presentation only.
 
 ## Performance

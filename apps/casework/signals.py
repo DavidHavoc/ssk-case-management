@@ -1,8 +1,8 @@
-from django.db import transaction
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from .models import PrivateAttachment, ServiceVisit
+from .private_attachments import _schedule_file_cleanup
 from .services import rebuild_monthly_summary
 
 
@@ -35,7 +35,4 @@ def rebuild_deleted_visit_summary(sender, instance, **kwargs) -> None:
 
 @receiver(post_delete, sender=PrivateAttachment)
 def remove_private_file(sender, instance, **kwargs) -> None:
-    if instance.file:
-        storage = instance.file.storage
-        name = instance.file.name
-        transaction.on_commit(lambda: storage.delete(name))
+    _schedule_file_cleanup(instance)

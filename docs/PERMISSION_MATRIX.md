@@ -13,7 +13,7 @@ Coordinator and specialist access also requires an active staff profile. Marking
 | Specialist roster manage | All | Assigned center | No |
 | Employee directory and details | All | With `centers.view_staffprofile` permission | With `centers.view_staffprofile` permission |
 | Employee profile edit and document management | All | With `centers.change_staffprofile` permission | With `centers.change_staffprofile` permission |
-| Employee document download | All | With `centers.view_staffprofile` permission | With `centers.view_staffprofile` permission |
+| Employee document download | All staff records | Organization-wide with `centers.view_staffprofile` permission | Organization-wide with `centers.view_staffprofile` permission |
 | Beneficiary list and detail | All | Current assigned center | Current center and assigned beneficiary |
 | Beneficiary create | Yes | Current assigned center | No |
 | Beneficiary unrestricted update | Yes | Current assigned center | No |
@@ -52,7 +52,8 @@ Coordinator and specialist access also requires an active staff profile. Marking
 | Cross-center form POST | Relationship fields contain authorized choices only, followed by model validation |
 | Report filter | Base report QuerySet is authorized before filters are applied |
 | CSV export | Same report selector, coordinator or manager role gate, safe columns only |
-| Attachment identifier | Attachment center and current parent authorization are rechecked |
+| Case attachment identifier | Attachment center must equal the selected active center, then current parent authorization is rechecked for every role |
+| Staff attachment identifier | Staff parent authorization is rechecked through organization-wide directory view or change permission |
 | Public file URL | Private storage has no URL and is not mounted in the reverse proxy |
 | Restricted extra POST keys | Fields are absent from the specialist ModelForm |
 | Specialist assignment edit | No specialist route accepts assignment child data |

@@ -133,6 +133,12 @@ class NewSpecialistForm(StyledForm):
     employee_number = forms.CharField(max_length=40, label=_("Employee number"))
     project_program = forms.CharField(max_length=180, required=False, label=_("Project or program"))
     job_title = forms.CharField(max_length=120, required=False, label=_("Position"))
+    status = forms.ChoiceField(
+        choices=StaffProfile.Status.choices,
+        initial=StaffProfile.Status.ACTIVE,
+        required=False,
+        label=_("Status"),
+    )
     contact_number = forms.CharField(
         max_length=40,
         required=False,
@@ -206,6 +212,7 @@ class NewSpecialistForm(StyledForm):
             employee_number=self.cleaned_data["employee_number"],
             project_program=self.cleaned_data["project_program"].strip(),
             job_title=self.cleaned_data["job_title"].strip(),
+            status=self.cleaned_data.get("status") or StaffProfile.Status.ACTIVE,
             contact_number=self.cleaned_data["contact_number"].strip(),
             contract_signed_on=self.cleaned_data["contract_signed_on"],
             contract_valid_until=self.cleaned_data["contract_valid_until"],
