@@ -54,6 +54,18 @@ A summary is unique by Specialist, Center, and calendar month. Rebuilds count:
 
 Updating a visit rebuilds both its new summary key and its previous key. Deleting the last visit removes the empty summary.
 
+## Derived beneficiary timeline rules
+
+The beneficiary timeline is a read model and has no timeline-event table. Its activity dates are:
+
+- Service Visit: `visit_date`
+- Assessment: `assessment_date`
+- Individual Plan: `plan_start_date`
+- Individual Plan Goal: `target_date`, falling back to its plan's `plan_start_date`
+- Private Attachment: `created_at`
+
+Entries are ordered by activity date descending, record creation timestamp descending, fixed type rank, and UUID. The final fields make ties deterministic. Attachments display their full creation timestamp while the heterogeneous database index compares their calendar date with date-based case records.
+
 ## Index strategy
 
 - Center plus status for beneficiary and plan lists

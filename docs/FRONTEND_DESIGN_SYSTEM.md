@@ -57,6 +57,10 @@ Forms use persistent labels, visible required markers, grouped sections, inline 
 
 Empty states explain why content is missing and provide an available next action. Permission, not-found, server-error, reset-link, and destructive confirmation states share the same visual hierarchy and accessible heading structure.
 
+### Beneficiary timeline
+
+The beneficiary detail page presents authorized case activity as a semantic ordered list. Every entry has a visible date, textual type label, linked title, optional status text, and explicit record or download action. Type colors support scanning but never replace the type label. The desktop date rail collapses to a single-column layout on narrow screens. Pagination remains server-rendered and preserves existing query parameters. The empty timeline uses a live status region with a heading and explanatory text.
+
 ## Accessibility rules
 
 - Keep one `h1` per page and do not skip heading levels.

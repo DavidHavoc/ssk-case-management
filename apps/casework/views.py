@@ -46,6 +46,7 @@ from .models import (
 from .private_attachments import (
     case_attachments,
 )
+from .timeline import beneficiary_timeline_page
 
 
 def _page(request, queryset, per_page: int = 30):
@@ -109,6 +110,12 @@ def beneficiary_detail(request, pk):
         else []
     )
     _audit_read(request, beneficiary, "Beneficiary")
+    timeline_page = beneficiary_timeline_page(
+        user=request.user,
+        center=request.ssk_center,
+        beneficiary=beneficiary,
+        page_number=request.GET.get("timeline_page"),
+    )
     return render(
         request,
         "casework/beneficiary_detail.html",
@@ -118,6 +125,7 @@ def beneficiary_detail(request, pk):
             "attachments": attachments,
             "attachment_parent_type": AttachmentParentType.BENEFICIARY,
             "can_delete": is_system_manager(request.user),
+            "timeline_page": timeline_page,
         },
     )
 

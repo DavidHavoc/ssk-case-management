@@ -24,6 +24,7 @@ Coordinator and specialist access also requires an active staff profile. Marking
 | Service Visit | All | Current center | Current center and record specialist or beneficiary assignment |
 | Assessment | All | Current center | Current center and record specialist or beneficiary assignment |
 | Individual Plan | All | Current center | Current center and record specialist or beneficiary assignment |
+| Beneficiary activity timeline | Authorized records in selected center | Authorized records in current center | Assigned beneficiary and authorized case records only |
 | Visit, assessment, and plan delete | Yes, current center | No | No |
 | Monthly summaries | All | Current center | Own specialist summary only |
 | HTML reports | All | Current center | Authorized record scope |
@@ -54,6 +55,7 @@ Coordinator and specialist access also requires an active staff profile. Marking
 | CSV export | Same report selector, coordinator or manager role gate, safe columns only |
 | Case attachment identifier | Attachment center must equal the selected active center, then current parent authorization is rechecked for every role |
 | Staff attachment identifier | Staff parent authorization is rechecked through organization-wide directory view or change permission |
+| Timeline entry or attachment | Entry sources begin with authorized selectors; attachment parent scopes are built by the centralized private attachment module |
 | Public file URL | Private storage has no URL and is not mounted in the reverse proxy |
 | Restricted extra POST keys | Fields are absent from the specialist ModelForm |
 | Specialist assignment edit | No specialist route accepts assignment child data |

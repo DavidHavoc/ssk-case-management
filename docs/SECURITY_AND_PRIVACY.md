@@ -23,6 +23,7 @@ This is technical guidance, not legal advice. The organization must determine la
 - inactive staff profiles excluded from center, case, and assignment selectors
 - restricted beneficiary fields removed from specialist forms and pages
 - cross-center and unassigned object identifiers return 404
+- beneficiary timelines are derived only from authorized selectors and expose presentation-only normalized values
 - no public or generic JSON API in the MVP
 
 ### Private files
@@ -40,6 +41,7 @@ This is technical guidance, not legal advice. The organization must determine la
 - staff attachment identifiers constrained by staff-directory view or change permissions
 - private, no-store download cache controls on case and staff responses
 - successful and denied direct downloads recorded without filenames or file contents
+- beneficiary timeline attachments exclude staff documents, keep beneficiary attachments hidden from specialists, and link only to the authorized download view
 - authorized deletion with file removal scheduled only after the database transaction commits
 - failed upload transactions remove any file written before the database rollback
 - Nginx has no private-volume mount
@@ -72,6 +74,8 @@ Gunicorn and the included Nginx configuration log URL paths without query string
 - attachments.
 
 Diagnosis and case notes are visible to an assigned specialist. This matches the inspected legacy boundary and must be confirmed during the organizational privacy review.
+
+The beneficiary timeline does not create a secondary copy of case or attachment data. Service visits, assessments, plans, goals, and attachments are read from current authorized sources for every request. Restricted beneficiary fields, private storage paths, stored filenames, hashes, content types, sizes, and uploader metadata are not included in normalized timeline entries. An original attachment filename is shown only as an authorized display label.
 
 ## Staff records and contracts
 

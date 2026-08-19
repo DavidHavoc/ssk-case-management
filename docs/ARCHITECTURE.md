@@ -22,7 +22,7 @@ There is no separate browser application, API gateway, worker requirement, Redis
 |---|---|
 | `accounts` | Custom User, Django Group roles, login throttling |
 | `centers` | Center, Staff Profile, Specialist Profile, roster assignments |
-| `casework` | Beneficiaries, visits, assessments, plans, summaries, and the private attachment module |
+| `casework` | Beneficiaries, visits, assessments, plans, summaries, the derived timeline, and the private attachment module |
 | `audit` | Append-only application audit events and safe event writer |
 | `core` | Authorization selectors, active-center context, dashboard, reports, shared UI |
 
@@ -37,6 +37,8 @@ There is no separate browser application, API gateway, worker requirement, Redis
 7. Forms restrict relationship choices to authorized QuerySets.
 8. Model validation checks center and assignment consistency independently of the view.
 9. Reports and CSV exports reuse the same selectors. The private attachment module applies those selectors through explicit parent-policy adapters.
+
+The beneficiary detail timeline follows the same flow. `apps/casework/timeline.py` starts with the authorized visit, assessment, and plan selectors, narrows them to the already authorized beneficiary, and reaches goals only through the authorized plan scope. The private attachment workflow supplies a beneficiary-timeline QuerySet whose parent IDs come from the same selectors. Templates receive frozen presentation-only timeline entries rather than model instances.
 
 System Manager bypasses record scope. Coordinator access takes precedence when a user also holds Specialist. Specialist access requires a Specialist Profile and valid Specialist Center Assignment.
 
@@ -55,6 +57,7 @@ The attachment module constructs metadata, coordinates database transactions and
 - Models enforce invariant data relationships and dates.
 - Forms enforce user-specific choices and inline child requirements.
 - Authorization selectors define domain read scope once for lists, details, reports, and attachment policy adapters.
+- The timeline module owns authorized heterogeneous indexing, normalization, deterministic ordering, and pagination for beneficiary activity.
 - The private attachment module owns parent resolution, forms, upload transactions, auditing, download responses, deletion, cleanup, and navigation.
 - Services rebuild derived monthly summaries inside the visit transaction. PostgreSQL advisory locks serialize rebuilds for the same specialist, center, and month.
 - Other views coordinate domain record transactions and record domain audit events.
@@ -63,6 +66,8 @@ The attachment module constructs metadata, coordinates database transactions and
 ## Performance
 
 Major lists use `select_related()` and `prefetch_related()` for beneficiary, specialist, staff, user, center, and assignment relationships. Reporting columns have indexes for center, specialist, beneficiary, date, month, status, and type. Lists are paginated and report pages cap rendered rows at 500. CSV writes rows incrementally.
+
+The timeline builds a database `UNION ALL` of presentation-safe index columns, orders that union deterministically, and applies offset pagination before normalization. Only IDs on the requested 20-entry page are loaded, in bounded per-type `values()` queries. Query count therefore does not grow per rendered entry. Deep offset pages still require the database to count and seek through earlier authorized rows, which is acceptable for the initial scale but should be monitored if individual histories become very large.
 
 ## Production topology
 

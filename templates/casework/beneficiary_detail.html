@@ -1,6 +1,131 @@
-{% extends "base.html" %}{% load i18n %}{% block title %}{{ beneficiary.full_name }}{% endblock %}
-{% block content %}<header class="page-header"><div><div class="eyebrow">{{ beneficiary.beneficiary_code }}</div><h1>{{ beneficiary.full_name }}</h1><p>{{ beneficiary.get_service_type_display }} · {{ beneficiary.get_service_status_display }}</p></div><div class="actions"><a class="button button-secondary" href="{% url 'beneficiary_update' beneficiary.pk %}">{% translate "Edit" %}</a>{% if can_delete %}<a class="button button-danger" href="{% url 'beneficiary_delete' beneficiary.pk %}">{% translate "Delete" %}</a>{% endif %}<a class="button button-quiet" href="{% url 'beneficiary_list' %}">{% translate "Back to list" %}</a></div></header>
-{% if not show_restricted %}<div class="privacy-note" role="note"><strong>{% translate "Restricted view" %}</strong><span>{% translate "Identifiers, contact information, guardian details, assignments, contract numbers, and beneficiary attachments are not available to the specialist role." %}</span></div>{% endif %}
-<section class="section-block"><h2>{% translate "Case information" %}</h2><dl class="detail-grid"><div class="detail-item"><dt>{% translate "Birth date" %}</dt><dd>{{ beneficiary.birth_date|date:"SHORT_DATE_FORMAT"|default:_('Not provided') }}</dd></div><div class="detail-item"><dt>{% translate "Age" %}</dt><dd>{% if beneficiary.age != None %}{{ beneficiary.age }} · {{ beneficiary.age_category }}{% else %}{% translate "Not provided" %}{% endif %}</dd></div><div class="detail-item"><dt>{% translate "Sex" %}</dt><dd>{{ beneficiary.get_sex_display|default:_('Not provided') }}</dd></div><div class="detail-item"><dt>{% translate "Region" %}</dt><dd>{{ beneficiary.region|default:_('Not provided') }}</dd></div><div class="detail-item"><dt>{% translate "Municipality" %}</dt><dd>{{ beneficiary.municipality|default:_('Not provided') }}</dd></div><div class="detail-item"><dt>{% translate "Enrollment date" %}</dt><dd>{{ beneficiary.enrollment_date|date:"SHORT_DATE_FORMAT"|default:_('Not provided') }}</dd></div><div class="detail-item wide"><dt>{% translate "Diagnosis or status" %}</dt><dd>{{ beneficiary.diagnosis_status|default:_('Not provided')|linebreaksbr }}</dd></div><div class="detail-item wide"><dt>{% translate "Notes" %}</dt><dd>{{ beneficiary.notes|default:_('No notes')|linebreaksbr }}</dd></div></dl></section>
-{% if show_restricted %}<section class="section-block"><h2>{% translate "Restricted information" %}</h2><dl class="detail-grid"><div class="detail-item"><dt>{% translate "Personal ID" %}</dt><dd>{{ beneficiary.personal_id|default:_('Not provided') }}</dd></div><div class="detail-item"><dt>{% translate "Phone" %}</dt><dd>{{ beneficiary.phone|default:_('Not provided') }}</dd></div><div class="detail-item"><dt>{% translate "Email" %}</dt><dd>{{ beneficiary.email|default:_('Not provided') }}</dd></div><div class="detail-item"><dt>{% translate "Guardian or parent" %}</dt><dd>{{ beneficiary.guardian_parent|default:_('Not provided') }}</dd></div><div class="detail-item"><dt>{% translate "Contract number" %}</dt><dd>{{ beneficiary.application_contract_number|default:_('Not provided') }}</dd></div><div class="detail-item wide"><dt>{% translate "Address" %}</dt><dd>{{ beneficiary.address|default:_('Not provided')|linebreaksbr }}</dd></div></dl><h3>{% translate "Responsible specialists" %}</h3>{% if beneficiary.specialist_assignments.all %}<ul>{% for assignment in beneficiary.specialist_assignments.all %}<li>{{ assignment.specialist }} · {{ assignment.get_assignment_role_display }}</li>{% endfor %}</ul>{% else %}<p>{% translate "No specialist assignments." %}</p>{% endif %}</section>{% include "includes/attachments.html" with object_id=beneficiary.pk %}{% endif %}
-<section class="section-block"><div class="section-heading"><div><h2>{% translate "Related work" %}</h2><p>{% translate "Authorized records linked to this beneficiary." %}</p></div></div><div class="actions"><a class="button button-quiet" href="{% url 'visit_list' %}?q={{ beneficiary.beneficiary_code|urlencode }}">{% translate "Service visits" %}</a><a class="button button-quiet" href="{% url 'assessment_list' %}?q={{ beneficiary.beneficiary_code|urlencode }}">{% translate "Assessments" %}</a><a class="button button-quiet" href="{% url 'plan_list' %}?q={{ beneficiary.beneficiary_code|urlencode }}">{% translate "Individual plans" %}</a></div></section>{% endblock %}
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ beneficiary.full_name }}{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div>
+      <div class="eyebrow">{{ beneficiary.beneficiary_code }}</div>
+      <h1>{{ beneficiary.full_name }}</h1>
+      <p>{{ beneficiary.get_service_type_display }} · {{ beneficiary.get_service_status_display }}</p>
+    </div>
+    <div class="actions">
+      <a class="button button-secondary" href="{% url 'beneficiary_update' beneficiary.pk %}">{% translate "Edit" %}</a>
+      {% if can_delete %}<a class="button button-danger" href="{% url 'beneficiary_delete' beneficiary.pk %}">{% translate "Delete" %}</a>{% endif %}
+      <a class="button button-quiet" href="{% url 'beneficiary_list' %}">{% translate "Back to list" %}</a>
+    </div>
+  </header>
+
+  {% if not show_restricted %}
+    <div class="privacy-note" role="note">
+      <strong>{% translate "Restricted view" %}</strong>
+      <span>{% translate "Identifiers, contact information, guardian details, assignments, contract numbers, and beneficiary attachments are not available to the specialist role." %}</span>
+    </div>
+  {% endif %}
+
+  <section class="section-block">
+    <h2>{% translate "Case information" %}</h2>
+    <dl class="detail-grid">
+      <div class="detail-item"><dt>{% translate "Birth date" %}</dt><dd>{{ beneficiary.birth_date|date:"SHORT_DATE_FORMAT"|default:_('Not provided') }}</dd></div>
+      <div class="detail-item"><dt>{% translate "Age" %}</dt><dd>{% if beneficiary.age != None %}{{ beneficiary.age }} · {{ beneficiary.age_category }}{% else %}{% translate "Not provided" %}{% endif %}</dd></div>
+      <div class="detail-item"><dt>{% translate "Sex" %}</dt><dd>{{ beneficiary.get_sex_display|default:_('Not provided') }}</dd></div>
+      <div class="detail-item"><dt>{% translate "Region" %}</dt><dd>{{ beneficiary.region|default:_('Not provided') }}</dd></div>
+      <div class="detail-item"><dt>{% translate "Municipality" %}</dt><dd>{{ beneficiary.municipality|default:_('Not provided') }}</dd></div>
+      <div class="detail-item"><dt>{% translate "Enrollment date" %}</dt><dd>{{ beneficiary.enrollment_date|date:"SHORT_DATE_FORMAT"|default:_('Not provided') }}</dd></div>
+      <div class="detail-item wide"><dt>{% translate "Diagnosis or status" %}</dt><dd>{{ beneficiary.diagnosis_status|default:_('Not provided')|linebreaksbr }}</dd></div>
+      <div class="detail-item wide"><dt>{% translate "Notes" %}</dt><dd>{{ beneficiary.notes|default:_('No notes')|linebreaksbr }}</dd></div>
+    </dl>
+  </section>
+
+  {% if show_restricted %}
+    <section class="section-block">
+      <h2>{% translate "Restricted information" %}</h2>
+      <dl class="detail-grid">
+        <div class="detail-item"><dt>{% translate "Personal ID" %}</dt><dd>{{ beneficiary.personal_id|default:_('Not provided') }}</dd></div>
+        <div class="detail-item"><dt>{% translate "Phone" %}</dt><dd>{{ beneficiary.phone|default:_('Not provided') }}</dd></div>
+        <div class="detail-item"><dt>{% translate "Email" %}</dt><dd>{{ beneficiary.email|default:_('Not provided') }}</dd></div>
+        <div class="detail-item"><dt>{% translate "Guardian or parent" %}</dt><dd>{{ beneficiary.guardian_parent|default:_('Not provided') }}</dd></div>
+        <div class="detail-item"><dt>{% translate "Contract number" %}</dt><dd>{{ beneficiary.application_contract_number|default:_('Not provided') }}</dd></div>
+        <div class="detail-item wide"><dt>{% translate "Address" %}</dt><dd>{{ beneficiary.address|default:_('Not provided')|linebreaksbr }}</dd></div>
+      </dl>
+      <h3>{% translate "Responsible specialists" %}</h3>
+      {% if beneficiary.specialist_assignments.all %}
+        <ul>
+          {% for assignment in beneficiary.specialist_assignments.all %}
+            <li>{{ assignment.specialist }} · {{ assignment.get_assignment_role_display }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>{% translate "No specialist assignments." %}</p>
+      {% endif %}
+    </section>
+    {% include "includes/attachments.html" with object_id=beneficiary.pk %}
+  {% endif %}
+
+  <section class="section-block" aria-labelledby="timeline-heading">
+    <div class="section-heading">
+      <div>
+        <h2 id="timeline-heading">{% translate "Case activity timeline" %}</h2>
+        <p>{% translate "Authorized visits, assessments, plans, goals, and documents in newest-first order." %}</p>
+      </div>
+    </div>
+    {% if timeline_page.object_list %}
+      <ol class="timeline-list">
+        {% for entry in timeline_page.object_list %}
+          <li class="timeline-entry timeline-entry-{{ entry.entry_type }}">
+            <div class="timeline-date">
+              <time datetime="{{ entry.display_date|date:'c' }}">
+                {% if entry.entry_type == "attachment" %}
+                  {{ entry.display_date|date:"SHORT_DATETIME_FORMAT" }}
+                {% else %}
+                  {{ entry.display_date|date:"SHORT_DATE_FORMAT" }}
+                {% endif %}
+              </time>
+            </div>
+            <article class="timeline-content" aria-labelledby="timeline-title-{{ forloop.counter }}">
+              <div class="timeline-meta">
+                <span class="timeline-kind">{{ entry.type_label }}</span>
+                {% if entry.status %}<span class="status status-{{ entry.status_key }}">{{ entry.status }}</span>{% endif %}
+              </div>
+              <h3 id="timeline-title-{{ forloop.counter }}"><a href="{{ entry.detail_url }}">{{ entry.title }}</a></h3>
+              {% if entry.summary %}<p>{{ entry.summary }}</p>{% endif %}
+              <div class="actions timeline-actions">
+                <a class="button button-quiet button-small" href="{{ entry.detail_url }}">{% translate "View record" %}</a>
+                {% if entry.download_url %}<a class="button button-secondary button-small" href="{{ entry.download_url }}">{% translate "Download attachment" %}</a>{% endif %}
+              </div>
+            </article>
+          </li>
+        {% endfor %}
+      </ol>
+      {% if timeline_page.paginator.num_pages > 1 %}
+        <nav class="pagination" aria-label="{% translate 'Timeline pagination' %}">
+          {% if timeline_page.has_previous %}
+            <a href="{% querystring timeline_page=timeline_page.previous_page_number %}">{% translate "Previous" %}</a>
+          {% endif %}
+          <span>{% blocktranslate with page=timeline_page.number pages=timeline_page.paginator.num_pages %}Page {{ page }} of {{ pages }}{% endblocktranslate %}</span>
+          {% if timeline_page.has_next %}
+            <a href="{% querystring timeline_page=timeline_page.next_page_number %}">{% translate "Next" %}</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="empty-state compact" role="status">
+        <h3>{% translate "No case activity yet" %}</h3>
+        <p>{% translate "Authorized case records and documents will appear here when they are added." %}</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <div>
+        <h2>{% translate "Related work" %}</h2>
+        <p>{% translate "Authorized records linked to this beneficiary." %}</p>
+      </div>
+    </div>
+    <div class="actions">
+      <a class="button button-quiet" href="{% url 'visit_list' %}?q={{ beneficiary.beneficiary_code|urlencode }}">{% translate "Service visits" %}</a>
+      <a class="button button-quiet" href="{% url 'assessment_list' %}?q={{ beneficiary.beneficiary_code|urlencode }}">{% translate "Assessments" %}</a>
+      <a class="button button-quiet" href="{% url 'plan_list' %}?q={{ beneficiary.beneficiary_code|urlencode }}">{% translate "Individual plans" %}</a>
+    </div>
+  </section>
+{% endblock %}

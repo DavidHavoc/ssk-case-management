@@ -10,6 +10,7 @@ from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Q, Subquery
 from django.http import FileResponse, Http404
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -217,6 +218,46 @@ def _attachments_for_parent(
     if _parent_policy(parent_type).requires_active_center:
         filters["center"] = _center_for_parent(parent_type, parent)
     return PrivateAttachment.objects.filter(**filters).select_related("uploaded_by", "center")
+
+
+def _timeline_attachments_for_beneficiary(beneficiary, user, *, center):
+    from apps.core.authorization import (
+        assessments_for_user,
+        beneficiaries_for_user,
+        can_view_restricted_beneficiary_fields,
+        get_authorized_object,
+        plans_for_user,
+        visits_for_user,
+    )
+
+    if center is None:
+        raise Http404
+    beneficiary = get_authorized_object(beneficiaries_for_user(user, center), beneficiary.pk)
+    visits = visits_for_user(user, center).filter(beneficiary=beneficiary).order_by()
+    assessments = assessments_for_user(user, center).filter(beneficiary=beneficiary).order_by()
+    plans = plans_for_user(user, center).filter(beneficiary=beneficiary).order_by()
+
+    parent_scope = (
+        Q(
+            parent_type=AttachmentParentType.SERVICE_VISIT,
+            parent_id__in=Subquery(visits.values("pk")),
+        )
+        | Q(
+            parent_type=AttachmentParentType.ASSESSMENT,
+            parent_id__in=Subquery(assessments.values("pk")),
+        )
+        | Q(
+            parent_type=AttachmentParentType.INDIVIDUAL_PLAN,
+            parent_id__in=Subquery(plans.values("pk")),
+        )
+    )
+    if can_view_restricted_beneficiary_fields(user, beneficiary):
+        parent_scope |= Q(
+            parent_type=AttachmentParentType.BENEFICIARY,
+            parent_id=beneficiary.pk,
+        )
+
+    return PrivateAttachment.objects.filter(center=center).filter(parent_scope)
 
 
 def _parent_detail_url(parent_type: str, parent_id) -> str:
@@ -505,6 +546,13 @@ class _AttachmentWorkflow:
             self._actor,
             center=self._center,
             allowed_parent_types=self._allowed_parent_types,
+        )
+
+    def timeline_for_beneficiary(self, beneficiary):
+        return _timeline_attachments_for_beneficiary(
+            beneficiary,
+            self._actor,
+            center=self._center,
         )
 
     def optional_form(self, data=None, files=None, *, prefix=None):
