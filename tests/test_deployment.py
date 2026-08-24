@@ -10,6 +10,10 @@ import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import override_settings
+from django.utils import translation
+
+from apps.casework.models import Beneficiary, ServiceEnrollment, ServiceVisit
+from apps.core.reporting import report_headers
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 
@@ -24,10 +28,6 @@ def _production_settings_environment() -> dict[str, str]:
             ),
             "DJANGO_ALLOWED_HOSTS": "cases.example.invalid",
             "DATABASE_URL": "postgresql://synthetic:synthetic@database.invalid:5432/synthetic",
-            "DJANGO_EMAIL_BACKEND": "django.core.mail.backends.smtp.EmailBackend",
-            "DJANGO_DEFAULT_FROM_EMAIL": "noreply@example.invalid",
-            "EMAIL_HOST": "smtp.example.invalid",
-            "EMAIL_USE_TLS": "1",
         }
     )
     environment.pop("SSK_USE_SQLITE", None)
@@ -61,18 +61,6 @@ def test_production_settings_fail_closed_for_missing_or_unsafe_values():
     assert result.returncode != 0
     assert "explicit production hosts" in result.stderr
 
-    console_email = valid.copy()
-    console_email["DJANGO_EMAIL_BACKEND"] = "django.core.mail.backends.console.EmailBackend"
-    result = _import_settings(console_email)
-    assert result.returncode != 0
-    assert "deliver password reset email" in result.stderr
-
-    insecure_smtp = valid.copy()
-    insecure_smtp["EMAIL_USE_TLS"] = "0"
-    result = _import_settings(insecure_smtp)
-    assert result.returncode != 0
-    assert "Production SMTP must enable" in result.stderr
-
 
 def test_access_log_formats_omit_query_strings():
     gunicorn_config = runpy.run_path(REPOSITORY_ROOT / "config/gunicorn.conf.py")
@@ -102,7 +90,46 @@ def test_georgian_catalog_has_no_empty_or_fuzzy_application_messages():
     assert "#, fuzzy" not in catalog
 
 
+def test_report_exports_have_georgian_headers():
+    with translation.override("ka"):
+        assert report_headers("visits") == [
+            "ბენეფიციარის კოდი",
+            "ბენეფიციარი",
+            "ჩარიცხვის კოდი",
+            "მომსახურება",
+            "სპეციალისტი",
+            "ვიზიტის თარიღი",
+            "აქტივობა",
+            "მომსახურების ადგილი",
+            "ფორმატი",
+            "სტატუსი",
+            "ერთეულები",
+            "ხანგრძლივობა წუთებში",
+            "მონაწილეები",
+            "გაუქმების მიზეზი",
+        ]
+
+
 @override_settings(DEBUG=False)
 def test_demo_seed_refuses_to_run_outside_debug_mode():
     with pytest.raises(CommandError, match="only when DJANGO_DEBUG is enabled"):
         call_command("seed_demo_data")
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)
+def test_demo_seed_is_idempotent_and_includes_multiple_service_enrollments():
+    call_command("seed_demo_data", verbosity=0)
+    call_command("seed_demo_data", verbosity=0)
+
+    beneficiary = Beneficiary.objects.get(beneficiary_code="BEN-DEMO-0002")
+    assert beneficiary.enrollments.count() == 2
+    assert (
+        ServiceEnrollment.objects.filter(
+            beneficiary__beneficiary_code__startswith="BEN-DEMO-"
+        ).count()
+        == 4
+    )
+    assert not ServiceVisit.objects.filter(
+        beneficiary__beneficiary_code__startswith="BEN-DEMO-", enrollment__isnull=True
+    ).exists()

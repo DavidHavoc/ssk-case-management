@@ -623,7 +623,7 @@ The platform shall not be accepted for real beneficiary data until all of the fo
 - Full automated tests, Ruff lint and formatting, Django checks, deployment checks, and migration drift checks pass on the release candidate.
 - PostgreSQL integration, concurrency, capacity, migration, backup, and restore rehearsals pass.
 - External security review and threat model findings are resolved or formally accepted.
-- Approved MFA or compensating access control, TLS, trusted proxy, SMTP, monitoring, alerting, audit review, malware handling, dependency scanning, patching, and incident response are operational.
+- Approved MFA or compensating access control, TLS, trusted proxy, secure temporary-code delivery, monitoring, alerting, audit review, malware handling, dependency scanning, patching, and incident response are operational.
 - Retention, correction, export, erasure, deletion, legal hold, backup reconciliation, and privacy-request procedures are approved.
 - Encrypted off-host backup ownership, retention, RPO, RTO, key custody, and observed restore evidence are recorded.
 - Real-data migration scope, reconciliation thresholds, cutover, rollback, temporary-data disposal, and final approval are signed by named owners.

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.core import mail
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
@@ -17,9 +17,11 @@ from apps.casework import private_attachments
 from apps.casework.models import (
     AttachmentParentType,
     Beneficiary,
+    CenterServiceOffering,
     PrivateAttachment,
     ServiceVisit,
 )
+from apps.casework.services import transfer_enrollment
 
 from .factories import make_assessment, make_coordinator, make_plan, make_visit, set_active_center
 
@@ -393,6 +395,68 @@ def test_cross_center_attachment_download_is_denied(
     )
 
 
+def test_transferred_beneficiary_attachments_remain_scoped_to_active_center(
+    client, center_a, center_b, coordinator_a, beneficiary_a
+):
+    coordinator_b = make_coordinator(center_b, "attachment-transfer-b")
+    prior_attachment = _attachment(
+        parent=beneficiary_a,
+        parent_type=AttachmentParentType.BENEFICIARY,
+        user=coordinator_a,
+        filename="synthetic-prior-center.pdf",
+    )
+    enrollment = beneficiary_a.enrollments.get(service__code="LEGACY-OTHER")
+    destination = CenterServiceOffering.objects.get(
+        center=center_b,
+        service=enrollment.service,
+    )
+    transfer_enrollment(
+        enrollment,
+        destination_offering=destination,
+        effective_date=date(2026, 4, 1),
+        reason="Synthetic attachment scope transfer",
+        actor=coordinator_a,
+    )
+
+    client.force_login(coordinator_b)
+    set_active_center(client, center_b)
+    detail = client.get(reverse("beneficiary_detail", kwargs={"pk": beneficiary_a.pk}))
+    assert detail.status_code == 200
+    assert prior_attachment.original_filename not in detail.content.decode()
+    assert (
+        client.get(reverse("attachment_download", kwargs={"pk": prior_attachment.pk})).status_code
+        == 404
+    )
+
+    response = client.post(
+        reverse(
+            "attachment_upload",
+            kwargs={
+                "parent_type": AttachmentParentType.BENEFICIARY,
+                "parent_id": beneficiary_a.pk,
+            },
+        ),
+        {
+            "file": SimpleUploadedFile(
+                "synthetic-destination.txt",
+                b"Synthetic destination-center document.",
+                content_type="text/plain",
+            )
+        },
+    )
+    assert response.status_code == 302
+    destination_attachment = PrivateAttachment.objects.get(
+        original_filename="synthetic-destination.txt"
+    )
+    assert destination_attachment.center == center_b
+    assert (
+        client.get(
+            reverse("attachment_download", kwargs={"pk": destination_attachment.pk})
+        ).status_code
+        == 200
+    )
+
+
 def test_manager_attachment_download_is_scoped_to_active_center(
     client, manager, center_a, center_b, beneficiary_b
 ):
@@ -624,6 +688,15 @@ def test_security_headers_are_present(client):
     assert response["Cross-Origin-Resource-Policy"] == "same-origin"
 
 
+def test_login_uses_admin_access_code_recovery_instead_of_email_reset(client):
+    response = client.get(reverse("login"))
+    body = response.content.decode()
+
+    assert "authorized administrator" in body
+    assert "Forgot your password?" not in body
+    assert client.get("/en/accounts/password-reset/").status_code == 404
+
+
 @override_settings(LOGIN_RATE_LIMIT_ATTEMPTS=2, LOGIN_RATE_LIMIT_WINDOW_SECONDS=900)
 def test_login_rate_limit_blocks_repeated_failures(client, coordinator_a):
     url = reverse("login")
@@ -648,7 +721,7 @@ def test_login_rate_limit_blocks_repeated_failures(client, coordinator_a):
     assert "Unable to sign in" in blocked.content.decode()
 
 
-def test_user_email_is_unique_case_insensitively_for_password_reset(manager):
+def test_user_email_is_unique_case_insensitively(manager):
     with pytest.raises(IntegrityError):
         with transaction.atomic():
             User.objects.create_user(
@@ -656,36 +729,3 @@ def test_user_email_is_unique_case_insensitively_for_password_reset(manager):
                 email=manager.email.upper(),
                 password="Synthetic-Test-Password-42!",
             )
-
-
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-def test_password_reset_sends_token_without_disclosing_unknown_accounts(client, manager):
-    response = client.post(reverse("password_reset"), {"email": manager.email})
-    assert response.status_code == 302
-    assert response.url == reverse("password_reset_done")
-    assert len(mail.outbox) == 1
-    assert "/accounts/reset/" in mail.outbox[0].body
-
-    response = client.post(
-        reverse("password_reset"), {"email": "unknown.synthetic@example.invalid"}
-    )
-    assert response.status_code == 302
-    assert response.url == reverse("password_reset_done")
-    assert len(mail.outbox) == 1
-
-
-@override_settings(
-    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
-    LOGIN_RATE_LIMIT_ATTEMPTS=1,
-    LOGIN_RATE_LIMIT_WINDOW_SECONDS=900,
-)
-def test_password_reset_rate_limit_keeps_generic_response_and_stops_email_flood(client, manager):
-    url = reverse("password_reset")
-    first = client.post(url, {"email": manager.email}, REMOTE_ADDR="203.0.113.20")
-    second = client.post(url, {"email": manager.email}, REMOTE_ADDR="203.0.113.20")
-
-    assert first.status_code == 302
-    assert second.status_code == 302
-    assert first.url == second.url == reverse("password_reset_done")
-    assert len(mail.outbox) == 1
-    assert LoginThrottle.objects.filter(failure_count=1).count() == 2

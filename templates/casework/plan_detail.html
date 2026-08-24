@@ -1,1 +1,95 @@
-{% extends "base.html" %}{% load i18n %}{% block title %}{% translate "Individual plan" %}{% endblock %}{% block content %}<header class="page-header"><div><div class="eyebrow">{{ plan.get_status_display }}</div><h1>{% translate "Individual plan" %}</h1><p>{{ plan.beneficiary.full_name }} · {{ plan.plan_start_date|date:"SHORT_DATE_FORMAT" }}</p></div><div class="actions"><a class="button button-secondary" href="{% url 'plan_update' plan.pk %}">{% translate "Edit" %}</a>{% if can_delete %}<a class="button button-danger" href="{% url 'plan_delete' plan.pk %}">{% translate "Delete" %}</a>{% endif %}<a class="button button-quiet" href="{% url 'plan_list' %}">{% translate "Back to list" %}</a></div></header><dl class="detail-grid"><div class="detail-item"><dt>{% translate "Beneficiary" %}</dt><dd><a href="{% url 'beneficiary_detail' plan.beneficiary.pk %}">{{ plan.beneficiary.full_name }}</a></dd></div><div class="detail-item"><dt>{% translate "Specialist" %}</dt><dd>{{ plan.specialist }}</dd></div><div class="detail-item"><dt>{% translate "Status" %}</dt><dd><span class="status status-{{ plan.status }}">{{ plan.get_status_display }}</span></dd></div><div class="detail-item"><dt>{% translate "Start date" %}</dt><dd>{{ plan.plan_start_date|date:"SHORT_DATE_FORMAT" }}</dd></div><div class="detail-item"><dt>{% translate "End date" %}</dt><dd>{{ plan.plan_end_date|date:"SHORT_DATE_FORMAT"|default:_('Open') }}</dd></div><div class="detail-item"><dt>{% translate "Review frequency" %}</dt><dd>{{ plan.get_review_frequency_display|default:_('Not set') }}</dd></div><div class="detail-item wide"><dt>{% translate "Notes" %}</dt><dd>{{ plan.notes|default:_('No notes')|linebreaksbr }}</dd></div></dl><section class="section-block"><h2 id="goals-heading">{% translate "Goals" %}</h2>{% if plan.goals.all %}<div class="table-wrap" tabindex="0" role="region" aria-labelledby="goals-heading"><table><thead><tr><th>{% translate "Goal" %}</th><th>{% translate "Target date" %}</th><th>{% translate "Status" %}</th><th>{% translate "Progress notes" %}</th></tr></thead><tbody>{% for goal in plan.goals.all %}<tr><td>{{ goal.goal }}</td><td>{{ goal.target_date|date:"SHORT_DATE_FORMAT"|default:_('Not set') }}</td><td><span class="status status-{{ goal.status }}">{{ goal.get_status_display }}</span></td><td>{{ goal.progress_notes|default:_('No notes') }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state compact">{% translate "This draft plan has no goals yet." %}</div>{% endif %}</section>{% include "includes/attachments.html" with object_id=plan.pk %}{% endblock %}
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Individual plan" %}{% endblock %}
+{% block content %}
+  {% get_current_language as LANGUAGE_CODE %}
+  <header class="page-header">
+    <div>
+      <div class="eyebrow">{{ plan.get_status_display }} · {% blocktranslate with version=plan.version_number %}Version {{ version }}{% endblocktranslate %}</div>
+      <h1>{% translate "Individual plan" %}</h1>
+      <p>{{ plan.beneficiary.full_name }} · {{ plan.plan_start_date|date:"SHORT_DATE_FORMAT" }}</p>
+    </div>
+    <div class="actions">
+      {% if can_change_parent %}
+        <a class="button button-secondary" href="{% url 'plan_update' plan.pk %}">{% translate "Edit" %}</a>
+      {% endif %}
+      {% if can_add_plan_progress %}<a class="button button-secondary" href="{% url 'plan_review_create' plan.pk %}">{% translate "Record review" %}</a>{% endif %}
+      {% if can_delete %}<a class="button button-danger" href="{% url 'plan_delete' plan.pk %}">{% translate "Delete" %}</a>{% endif %}
+      <a class="button button-quiet" href="{% url 'plan_list' %}">{% translate "Back to list" %}</a>
+    </div>
+  </header>
+
+  <dl class="detail-grid">
+    <div class="detail-item"><dt>{% translate "Beneficiary" %}</dt><dd><a href="{% url 'beneficiary_detail' plan.beneficiary.pk %}?enrollment={{ plan.enrollment.pk }}">{{ plan.beneficiary.full_name }}</a></dd></div>
+    <div class="detail-item"><dt>{% translate "Enrollment" %}</dt><dd>{{ plan.enrollment.episode_code }} · {{ plan.enrollment.service }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Responsible specialist" %}</dt><dd>{{ plan.specialist }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Status" %}</dt><dd><span class="status status-{{ plan.status }}">{{ plan.get_status_display }}</span></dd></div>
+    <div class="detail-item"><dt>{% translate "Plan version" %}</dt><dd>{{ plan.version_number }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Previous period" %}</dt><dd>{% if plan.previous_plan %}<a href="{% url 'plan_detail' plan.previous_plan.pk %}">{% blocktranslate with version=plan.previous_plan.version_number %}Version {{ version }}{% endblocktranslate %}</a>{% else %}{% translate "First period" %}{% endif %}</dd></div>
+    <div class="detail-item"><dt>{% translate "Start date" %}</dt><dd>{{ plan.plan_start_date|date:"SHORT_DATE_FORMAT" }}</dd></div>
+    <div class="detail-item"><dt>{% translate "End date" %}</dt><dd>{{ plan.plan_end_date|date:"SHORT_DATE_FORMAT"|default:_('Open') }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Review frequency" %}</dt><dd>{{ plan.get_review_frequency_display|default:_('Not set') }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Review due date" %}</dt><dd>{{ plan.review_due_date|date:"SHORT_DATE_FORMAT"|default:_('Not set') }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Latest child condition outcome" %}</dt><dd>{% if plan.latest_review %}{{ plan.latest_review.get_condition_outcome_display }}{% else %}{% translate "Not yet assessed" %}{% endif %}</dd></div>
+    <div class="detail-item wide"><dt>{% translate "Notes" %}</dt><dd>{{ plan.notes|default:_('No notes')|linebreaksbr }}</dd></div>
+  </dl>
+
+  <section class="section-block" aria-labelledby="goal-totals-heading">
+    <div class="section-heading"><div><h2 id="goal-totals-heading">{% translate "Calculated goal totals" %}</h2><p>{% translate "These totals are derived from goal records and cannot be edited." %}</p></div></div>
+    <div class="table-wrap" tabindex="0" role="region" aria-labelledby="goal-totals-heading">
+      <table>
+        <thead><tr><th>{% translate "Category" %}</th><th>{% translate "Total" %}</th><th>{% translate "Planned" %}</th><th>{% translate "In progress" %}</th><th>{% translate "Achieved" %}</th><th>{% translate "Deferred" %}</th><th>{% translate "Cancelled" %}</th></tr></thead>
+        <tbody>
+          {% for row in category_totals %}
+            <tr><td>{% if LANGUAGE_CODE == 'ka' %}{{ row.category__name_ka }}{% else %}{{ row.category__name_en }}{% endif %}</td><td>{{ row.total }}</td><td>{{ row.planned }}</td><td>{{ row.in_progress }}</td><td>{{ row.achieved }}</td><td>{{ row.deferred }}</td><td>{{ row.cancelled }}</td></tr>
+          {% endfor %}
+          <tr><th>{% translate "Overall" %}</th><th>{{ overall_totals.total }}</th><th>{{ overall_totals.planned }}</th><th>{{ overall_totals.in_progress }}</th><th>{{ overall_totals.achieved }}</th><th>{{ overall_totals.deferred }}</th><th>{{ overall_totals.cancelled }}</th></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section-block" aria-labelledby="goals-heading">
+    <div class="section-heading">
+      <div><h2 id="goals-heading">{% translate "Measurable goals" %}</h2></div>
+      {% if can_change_parent %}<a class="button button-secondary button-small" href="{% url 'plan_goal_create' plan.pk %}"><svg aria-hidden="true"><use href="#icon-plus"></use></svg>{% translate "Add goal" %}</a>{% endif %}
+    </div>
+    {% if goals %}
+      {% for goal in goals %}
+        <article class="form-card">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow">{{ goal.category }} · <span class="status status-{{ goal.status }}">{{ goal.get_status_display }}</span>{% if goal.requires_review %} · {% translate "Legacy details require review" %}{% endif %}</div>
+              <h3>{{ goal.goal }}</h3>
+            </div>
+            <div class="actions">{% if can_change_parent %}<a class="button button-quiet button-small" href="{% url 'plan_goal_update' plan.pk goal.pk %}">{% translate "Edit" %}</a>{% endif %}{% if can_add_plan_progress %}<a class="button button-secondary button-small" href="{% url 'plan_goal_measurement_create' plan.pk goal.pk %}">{% translate "Record progress" %}</a>{% endif %}</div>
+          </div>
+          <dl class="detail-grid">
+            <div class="detail-item"><dt>{% translate "Baseline" %}</dt><dd>{{ goal.baseline|default:_('Review required')|linebreaksbr }}</dd></div>
+            <div class="detail-item"><dt>{% translate "Measurable target" %}</dt><dd>{{ goal.measurable_target|default:_('Review required')|linebreaksbr }}</dd></div>
+            <div class="detail-item"><dt>{% translate "Measurement" %}</dt><dd>{{ goal.get_measurement_type_display }}{% if goal.measurement_unit_or_scale %} · {{ goal.measurement_unit_or_scale }}{% endif %}</dd></div>
+            <div class="detail-item"><dt>{% translate "Responsible specialist" %}</dt><dd>{{ goal.responsible_specialist }}</dd></div>
+            <div class="detail-item"><dt>{% translate "Target date" %}</dt><dd>{{ goal.target_date|date:"SHORT_DATE_FORMAT"|default:_('Review required') }}</dd></div>
+            <div class="detail-item"><dt>{% translate "Achieved date" %}</dt><dd>{{ goal.achieved_date|date:"SHORT_DATE_FORMAT"|default:_('Not achieved') }}</dd></div>
+            <div class="detail-item wide"><dt>{% translate "Evidence" %}</dt><dd>{{ goal.evidence|default:_('No evidence recorded')|linebreaksbr }}</dd></div>
+            <div class="detail-item wide"><dt>{% translate "Progress notes" %}</dt><dd>{{ goal.progress_notes|default:_('No notes')|linebreaksbr }}</dd></div>
+          </dl>
+          {% if goal.assessment_findings.all %}<h4>{% translate "Linked assessment findings" %}</h4><ul>{% for assessment in goal.assessment_findings.all %}<li><a href="{% url 'assessment_detail' assessment.pk %}">{{ assessment.assessment_date|date:"SHORT_DATE_FORMAT" }} · {{ assessment.template_version.instrument.name }} · {{ assessment.derived_classification|default:_('Not classified') }}</a></li>{% endfor %}</ul>{% endif %}
+          {% if goal.service_visits.all %}<h4>{% translate "Visits that worked on this goal" %}</h4><ul>{% for visit in goal.service_visits.all %}<li><a href="{% url 'visit_detail' visit.pk %}">{{ visit.visit_date|date:"SHORT_DATE_FORMAT" }} · {{ visit.activity }}</a></li>{% endfor %}</ul>{% endif %}
+          <h4>{% translate "Progress history" %}</h4>
+          {% if goal.measurements.all %}<div class="table-wrap" tabindex="0"><table><thead><tr><th>{% translate "Date" %}</th><th>{% translate "Value or rating" %}</th><th>{% translate "Scale" %}</th><th>{% translate "Interpretation" %}</th><th>{% translate "Notes" %}</th></tr></thead><tbody>{% for measurement in goal.measurements.all %}<tr><td>{{ measurement.measurement_date|date:"SHORT_DATE_FORMAT" }}</td><td>{% if measurement.numeric_value != None %}{{ measurement.numeric_value }}{% else %}{{ measurement.rating }}{% endif %}</td><td>{{ measurement.unit_or_scale }}</td><td>{{ measurement.interpretation }}</td><td>{{ measurement.notes }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p>{% translate "No progress measurements recorded." %}</p>{% endif %}
+          {% if goal.status_history.all %}<h4>{% translate "Status history" %}</h4><ul>{% for transition in goal.status_history.all %}<li>{{ transition.transition_date|date:"SHORT_DATE_FORMAT" }} · {{ transition.get_to_status_display }}{% if transition.reason %} · {{ transition.reason }}{% endif %}</li>{% endfor %}</ul>{% endif %}
+        </article>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state compact">{% translate "This draft plan has no goals yet." %}</div>
+    {% endif %}
+  </section>
+
+  <section class="section-block" aria-labelledby="reviews-heading">
+    <div class="section-heading"><div><h2 id="reviews-heading">{% translate "Review history" %}</h2><p>{% translate "New conclusions are added without overwriting prior reviews." %}</p></div>{% if can_add_plan_progress %}<a class="button button-secondary button-small" href="{% url 'plan_review_create' plan.pk %}">{% translate "Record review" %}</a>{% endif %}</div>
+    {% if reviews %}<div class="table-wrap" tabindex="0"><table><thead><tr><th>{% translate "Review date" %}</th><th>{% translate "Child condition outcome" %}</th><th>{% translate "Rationale" %}</th><th>{% translate "Recorded by" %}</th><th>{% translate "Source assessment" %}</th></tr></thead><tbody>{% for review in reviews %}<tr><td>{{ review.review_date|date:"SHORT_DATE_FORMAT" }}</td><td>{{ review.get_condition_outcome_display }}</td><td>{{ review.rationale }}</td><td>{{ review.recorded_by.get_full_name|default:review.recorded_by.username }}</td><td>{% if review.source_assessment %}<a href="{% url 'assessment_detail' review.source_assessment.pk %}">{{ review.source_assessment.assessment_date|date:"SHORT_DATE_FORMAT" }}</a>{% else %}{% translate "None" %}{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state compact">{% translate "No plan reviews recorded." %}</div>{% endif %}
+  </section>
+
+  {% include "includes/attachments.html" with object_id=plan.pk %}
+{% endblock %}

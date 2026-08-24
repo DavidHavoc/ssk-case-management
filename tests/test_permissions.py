@@ -1,7 +1,6 @@
 from datetime import date
 
 import pytest
-from django.contrib.auth.models import Permission
 from django.urls import reverse
 
 from apps.audit.models import AuditEvent
@@ -60,35 +59,20 @@ def test_manager_can_view_all_employee_profiles_and_details(
     ).exists()
 
 
-def test_staff_directory_requires_manager_role_or_explicit_permission(
+def test_coordinator_staff_directory_is_limited_to_authorized_centers(
     client, coordinator_a, specialist_a, specialist_b
 ):
     client.force_login(coordinator_a)
-    assert not can_view_staff_directory(coordinator_a)
-    assert client.get(reverse("staff_list")).status_code == 403
-    assert (
-        client.get(
-            reverse("staff_detail", kwargs={"pk": specialist_a.staff_profile.pk})
-        ).status_code
-        == 403
-    )
-
-    permission = Permission.objects.get(
-        codename="view_staffprofile", content_type__app_label="centers"
-    )
-    coordinator_a.user_permissions.add(permission)
-    coordinator_a = coordinator_a.__class__.objects.get(pk=coordinator_a.pk)
     assert can_view_staff_directory(coordinator_a)
 
     response = client.get(reverse("staff_list"))
     body = response.content.decode()
     assert response.status_code == 200
     assert specialist_a.staff_profile.display_name in body
-    assert specialist_b.staff_profile.display_name in body
+    assert specialist_b.staff_profile.display_name not in body
 
     response = client.get(reverse("staff_detail", kwargs={"pk": specialist_b.staff_profile.pk}))
-    assert response.status_code == 200
-    assert specialist_b.staff_profile.user.email in response.content.decode()
+    assert response.status_code == 404
 
 
 def test_staff_directory_center_filter_and_invalid_center_are_safe(

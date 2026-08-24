@@ -8,6 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils.translation import override
 
+from apps.accounts.services import issue_temporary_access_code
 from apps.audit.models import AuditEvent
 from apps.casework.models import AttachmentParentType, PrivateAttachment
 from apps.centers.forms import StaffProfileForm
@@ -126,8 +127,11 @@ def test_specialist_creation_collects_complete_employee_fields(client, manager, 
 
     staff = StaffProfile.objects.get(employee_number="EMP-SYNTHETIC-NEW")
     specialist = SpecialistProfile.objects.get(staff_profile=staff)
-    assert response.status_code == 302
-    assert response.url == reverse("staff_detail", kwargs={"pk": staff.pk})
+    assert response.status_code == 200
+    temporary_code = response.context["temporary_code"]
+    assert temporary_code in response.content.decode()
+    assert "no-store" in response["Cache-Control"]
+    assert temporary_code not in str(dict(client.session))
     assert staff.project_program == "Synthetic Family Program"
     assert staff.job_title == "Program Specialist"
     assert staff.status == StaffProfile.Status.INACTIVE
@@ -137,6 +141,86 @@ def test_specialist_creation_collects_complete_employee_fields(client, manager, 
     assert staff.description == specialist.description
     assert staff.notes == "Synthetic creation workflow notes."
     assert staff.primary_center == center_a
+    assert staff.user.must_change_password
+    assert staff.user.check_password(temporary_code)
+
+
+def test_temporary_code_forces_password_change_before_application_access(client, specialist_a):
+    user = specialist_a.staff_profile.user
+    temporary_code = issue_temporary_access_code(user)
+
+    response = client.post(
+        reverse("login"),
+        {"username": user.username, "password": temporary_code},
+    )
+    assert response.status_code == 302
+
+    response = client.get(reverse("dashboard"))
+    assert response.status_code == 302
+    assert response.url == reverse("password_change_required")
+
+    replacement_password = "Synthetic-Replacement-Password-84!"
+    response = client.post(
+        reverse("password_change_required"),
+        {
+            "old_password": temporary_code,
+            "new_password1": replacement_password,
+            "new_password2": replacement_password,
+        },
+    )
+    assert response.status_code == 302
+    assert response.url == reverse("dashboard")
+
+    user.refresh_from_db()
+    assert not user.must_change_password
+    assert user.check_password(replacement_password)
+    assert client.get(reverse("dashboard")).status_code == 200
+
+
+def test_manager_generates_new_code_from_employee_record(client, manager, specialist_a):
+    staff = specialist_a.staff_profile
+    user = staff.user
+    old_password_hash = user.password
+    client.force_login(manager)
+
+    url = reverse("staff_reset_access", kwargs={"pk": staff.pk})
+    assert client.get(url).status_code == 404
+
+    response = client.post(url)
+    assert response.status_code == 200
+    temporary_code = response.context["temporary_code"]
+    assert temporary_code in response.content.decode()
+
+    user.refresh_from_db()
+    assert user.password != old_password_hash
+    assert user.check_password(temporary_code)
+    assert not user.check_password("Synthetic-Test-Password-42!")
+    assert user.must_change_password
+    assert "no-store" in response["Cache-Control"]
+    assert temporary_code not in str(dict(client.session))
+    event = AuditEvent.objects.get(
+        actor=manager,
+        event_type=AuditEvent.EventType.UPDATE,
+        target_type="StaffProfile",
+        target_id=staff.pk,
+        metadata__result="temporary_access_code_issued",
+    )
+    assert temporary_code not in str(event.metadata)
+
+
+def test_employee_without_change_permission_cannot_generate_access_code(
+    client, coordinator_a, specialist_a
+):
+    original_password_hash = specialist_a.staff_profile.user.password
+    client.force_login(coordinator_a)
+
+    response = client.post(
+        reverse("staff_reset_access", kwargs={"pk": specialist_a.staff_profile.pk})
+    )
+    assert response.status_code == 403
+
+    specialist_a.staff_profile.user.refresh_from_db()
+    assert specialist_a.staff_profile.user.password == original_password_hash
 
 
 def test_view_permission_does_not_allow_staff_changes(client, coordinator_a, specialist_a):
@@ -252,8 +336,8 @@ def test_staff_contract_upload_download_and_pdf_requirement(
     assert response.status_code == 200
 
 
-def test_staff_download_denial_is_audited(client, coordinator_a, manager, specialist_a):
-    staff = specialist_a.staff_profile
+def test_staff_download_denial_is_audited(client, coordinator_a, manager, specialist_b):
+    staff = specialist_b.staff_profile
     attachment = PrivateAttachment.objects.create(
         parent_type=AttachmentParentType.STAFF_PROFILE,
         parent_id=staff.pk,
@@ -271,7 +355,7 @@ def test_staff_download_denial_is_audited(client, coordinator_a, manager, specia
 
     response = client.get(reverse("staff_attachment_download", kwargs={"pk": attachment.pk}))
 
-    assert response.status_code == 403
+    assert response.status_code == 404
     assert AuditEvent.objects.filter(
         event_type=AuditEvent.EventType.DOWNLOAD,
         target_id=attachment.pk,

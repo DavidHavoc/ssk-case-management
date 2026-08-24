@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div>
+      <div class="eyebrow">{{ plan.beneficiary.full_name }} · {% blocktranslate with version=plan.version_number %}Plan version {{ version }}{% endblocktranslate %}</div>
+      <h1>{{ title }}</h1>
+      {% if goal %}<p>{{ goal.goal }}</p>{% endif %}
+    </div>
+  </header>
+  <form class="form-card" method="post" novalidate>
+    {% csrf_token %}
+    {% include "includes/form_error_summary.html" %}
+    <div class="form-grid">{% include "includes/form_fields.html" %}</div>
+    <div class="form-actions form-actions-sticky">
+      <button class="button button-primary" type="submit">{% translate "Save record" %}</button>
+      <a class="button button-quiet" href="{% url 'plan_detail' plan.pk %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+{% endblock %}

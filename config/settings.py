@@ -26,8 +26,6 @@ def validate_production_environment() -> None:
         "DJANGO_SECRET_KEY",
         "DJANGO_ALLOWED_HOSTS",
         "DATABASE_URL",
-        "DJANGO_EMAIL_BACKEND",
-        "DJANGO_DEFAULT_FROM_EMAIL",
     )
     missing = [name for name in required if not os.getenv(name, "").strip()]
     if missing:
@@ -41,19 +39,6 @@ def validate_production_environment() -> None:
         raise RuntimeError("DJANGO_ALLOWED_HOSTS must list explicit production hosts.")
     if env_bool("SSK_USE_SQLITE"):
         raise RuntimeError("SSK_USE_SQLITE cannot be enabled when DJANGO_DEBUG is disabled.")
-    unsafe_email_backends = {
-        "django.core.mail.backends.console.EmailBackend",
-        "django.core.mail.backends.dummy.EmailBackend",
-        "django.core.mail.backends.locmem.EmailBackend",
-    }
-    email_backend = os.environ["DJANGO_EMAIL_BACKEND"]
-    if email_backend in unsafe_email_backends:
-        raise RuntimeError("DJANGO_EMAIL_BACKEND must deliver password reset email in production.")
-    if email_backend == "django.core.mail.backends.smtp.EmailBackend":
-        if not os.getenv("EMAIL_HOST", "").strip():
-            raise RuntimeError("EMAIL_HOST is required for the production SMTP backend.")
-        if not (env_bool("EMAIL_USE_TLS") or env_bool("EMAIL_USE_SSL")):
-            raise RuntimeError("Production SMTP must enable EMAIL_USE_TLS or EMAIL_USE_SSL.")
 
 
 validate_production_environment()
@@ -83,6 +68,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.core.middleware.RequiredPasswordChangeMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -144,6 +130,7 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = "en"
 LANGUAGES = [("en", "English"), ("ka", "ქართული")]
 LOCALE_PATHS = [BASE_DIR / "locale"]
+FORMAT_MODULE_PATH = "config.formats"
 TIME_ZONE = os.getenv("DJANGO_TIME_ZONE", "Asia/Tbilisi")
 USE_I18N = True
 USE_TZ = True
@@ -176,20 +163,6 @@ LOGIN_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("LOGIN_RATE_LIMIT_WINDOW_SECONDS
 if LOGIN_RATE_LIMIT_ATTEMPTS <= 0 or LOGIN_RATE_LIMIT_WINDOW_SECONDS <= 0:
     raise RuntimeError("Login rate limit values must be greater than zero.")
 TRUST_X_FORWARDED_FOR = env_bool("DJANGO_TRUST_X_FORWARDED_FOR", False)
-
-EMAIL_BACKEND = os.getenv("DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
-DEFAULT_FROM_EMAIL = os.getenv("DJANGO_DEFAULT_FROM_EMAIL", "noreply@example.invalid")
-EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", "25"))
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS")
-EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL")
-EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
-if EMAIL_USE_TLS and EMAIL_USE_SSL:
-    raise RuntimeError("EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled.")
-if EMAIL_PORT <= 0 or EMAIL_TIMEOUT <= 0:
-    raise RuntimeError("EMAIL_PORT and EMAIL_TIMEOUT must be greater than zero.")
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"

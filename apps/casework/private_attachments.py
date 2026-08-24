@@ -55,7 +55,7 @@ def _beneficiary_parent_adapter(parent_type: str, parent_id, user, center, actio
     if center is None:
         raise Http404
     parent = get_authorized_object(beneficiaries_for_user(user, center), parent_id)
-    if not can_view_restricted_beneficiary_fields(user, parent):
+    if not can_view_restricted_beneficiary_fields(user, parent, center):
         raise Http404
     return parent
 
@@ -65,7 +65,9 @@ def _visit_parent_adapter(parent_type: str, parent_id, user, center, action: str
 
     if center is None:
         raise Http404
-    return get_authorized_object(visits_for_user(user, center), parent_id)
+    return get_authorized_object(
+        visits_for_user(user, center, for_change=action == "change"), parent_id
+    )
 
 
 def _assessment_parent_adapter(parent_type: str, parent_id, user, center, action: str):
@@ -73,7 +75,9 @@ def _assessment_parent_adapter(parent_type: str, parent_id, user, center, action
 
     if center is None:
         raise Http404
-    return get_authorized_object(assessments_for_user(user, center), parent_id)
+    return get_authorized_object(
+        assessments_for_user(user, center, for_change=action == "change"), parent_id
+    )
 
 
 def _plan_parent_adapter(parent_type: str, parent_id, user, center, action: str):
@@ -81,23 +85,27 @@ def _plan_parent_adapter(parent_type: str, parent_id, user, center, action: str)
 
     if center is None:
         raise Http404
-    return get_authorized_object(plans_for_user(user, center), parent_id)
+    return get_authorized_object(
+        plans_for_user(user, center, for_change=action == "change"), parent_id
+    )
 
 
 def _staff_parent_adapter(parent_type: str, parent_id, user, center, action: str):
     from apps.core.authorization import (
         can_change_staff_directory,
-        can_view_staff_directory,
+        can_view_staff_hr_fields,
         get_authorized_object,
         staff_profiles_for_user,
     )
 
-    allowed = (
-        can_change_staff_directory(user) if action == "change" else can_view_staff_directory(user)
-    )
-    if not allowed:
+    parent = get_authorized_object(staff_profiles_for_user(user), parent_id)
+    if action == "change" and not can_change_staff_directory(user):
         raise PermissionDenied
-    return get_authorized_object(staff_profiles_for_user(user), parent_id)
+    if action == "view" and not can_view_staff_hr_fields(user):
+        raise PermissionDenied
+    if action == "change":
+        return get_authorized_object(staff_profiles_for_user(user, change=True), parent_id)
+    return parent
 
 
 def _case_center(parent):
@@ -215,16 +223,22 @@ def _attachments_for_parent(
         allowed_parent_types=allowed_parent_types,
     )
     filters = {"parent_type": parent_type, "parent_id": parent.pk}
-    if _parent_policy(parent_type).requires_active_center:
+    if parent_type == AttachmentParentType.BENEFICIARY:
+        filters["center"] = center
+    elif parent_type in {
+        AttachmentParentType.SERVICE_VISIT,
+        AttachmentParentType.ASSESSMENT,
+        AttachmentParentType.INDIVIDUAL_PLAN,
+    }:
         filters["center"] = _center_for_parent(parent_type, parent)
     return PrivateAttachment.objects.filter(**filters).select_related("uploaded_by", "center")
 
 
-def _timeline_attachments_for_beneficiary(beneficiary, user, *, center):
+def _timeline_attachments_for_beneficiary(beneficiary, enrollment, user, *, center):
     from apps.core.authorization import (
         assessments_for_user,
         beneficiaries_for_user,
-        can_view_restricted_beneficiary_fields,
+        enrollments_for_user,
         get_authorized_object,
         plans_for_user,
         visits_for_user,
@@ -233,9 +247,12 @@ def _timeline_attachments_for_beneficiary(beneficiary, user, *, center):
     if center is None:
         raise Http404
     beneficiary = get_authorized_object(beneficiaries_for_user(user, center), beneficiary.pk)
-    visits = visits_for_user(user, center).filter(beneficiary=beneficiary).order_by()
-    assessments = assessments_for_user(user, center).filter(beneficiary=beneficiary).order_by()
-    plans = plans_for_user(user, center).filter(beneficiary=beneficiary).order_by()
+    enrollment = get_authorized_object(
+        enrollments_for_user(user, center).filter(beneficiary=beneficiary), enrollment.pk
+    )
+    visits = visits_for_user(user, center).filter(enrollment=enrollment).order_by()
+    assessments = assessments_for_user(user, center).filter(enrollment=enrollment).order_by()
+    plans = plans_for_user(user, center).filter(enrollment=enrollment).order_by()
 
     parent_scope = (
         Q(
@@ -251,13 +268,7 @@ def _timeline_attachments_for_beneficiary(beneficiary, user, *, center):
             parent_id__in=Subquery(plans.values("pk")),
         )
     )
-    if can_view_restricted_beneficiary_fields(user, beneficiary):
-        parent_scope |= Q(
-            parent_type=AttachmentParentType.BENEFICIARY,
-            parent_id=beneficiary.pk,
-        )
-
-    return PrivateAttachment.objects.filter(center=center).filter(parent_scope)
+    return PrivateAttachment.objects.filter(parent_scope)
 
 
 def _parent_detail_url(parent_type: str, parent_id) -> str:
@@ -302,20 +313,30 @@ class _OptionalPrivateAttachmentForm(StyledForm):
         self.apply_styles()
 
 
-def _attachment_draft(*, parent_type: str, parent, actor) -> PrivateAttachment:
-    center = _center_for_parent(parent_type, parent)
-    if center is None:
+def _attachment_draft(*, parent_type: str, parent, actor, center=None) -> PrivateAttachment:
+    _parent_policy(parent_type)
+    attachment_center = (
+        center
+        if parent_type == AttachmentParentType.BENEFICIARY
+        else _center_for_parent(parent_type, parent)
+    )
+    if attachment_center is None:
         raise AttachmentParentCenterRequired
     return PrivateAttachment(
         parent_type=parent_type,
         parent_id=parent.pk,
-        center=center,
+        center=attachment_center,
         uploaded_by=actor,
     )
 
 
-def _upload_form(*, parent_type: str, parent, actor, data=None, files=None):
-    attachment = _attachment_draft(parent_type=parent_type, parent=parent, actor=actor)
+def _upload_form(*, parent_type: str, parent, actor, center=None, data=None, files=None):
+    attachment = _attachment_draft(
+        parent_type=parent_type,
+        parent=parent,
+        actor=actor,
+        center=center,
+    )
     upload = files.get("file") if files else None
     if upload:
         attachment.original_filename = Path(upload.name.replace("\\", "/")).name
@@ -364,11 +385,17 @@ class _AttachmentUploader:
         parent,
         upload,
         actor,
+        center=None,
         document_type: str = "",
     ) -> PrivateAttachment | None:
         if not upload:
             return None
-        attachment = _attachment_draft(parent_type=parent_type, parent=parent, actor=actor)
+        attachment = _attachment_draft(
+            parent_type=parent_type,
+            parent=parent,
+            actor=actor,
+            center=center,
+        )
         attachment.file = upload
         attachment.original_filename = Path(upload.name.replace("\\", "/")).name
         attachment.document_type = document_type
@@ -406,7 +433,12 @@ def _authorized_attachment(
         raise Http404
     policy = _parent_policy(attachment.parent_type)
     if policy.requires_active_center:
-        if center is None or attachment.center_id != center.id:
+        if center is None:
+            raise Http404
+        if (
+            attachment.parent_type == AttachmentParentType.BENEFICIARY
+            and attachment.center_id != center.id
+        ):
             raise Http404
         authorization_center = center
     else:
@@ -471,13 +503,23 @@ def _delete_attachment(
     center=None,
     allowed_parent_types=None,
 ) -> str:
-    attachment = _authorized_attachment(
-        pk,
-        user,
-        center=center,
-        action="change",
-        allowed_parent_types=allowed_parent_types,
-    )
+    try:
+        attachment = _authorized_attachment(
+            pk,
+            user,
+            center=center,
+            action="change",
+            allowed_parent_types=allowed_parent_types,
+        )
+    except (Http404, PermissionDenied):
+        record_event(
+            actor=user,
+            event_type=AuditEvent.EventType.DELETE,
+            target_type="PrivateAttachment",
+            target_id=pk,
+            outcome=AuditEvent.Outcome.DENIED,
+        )
+        raise
     redirect_url = _parent_detail_url(attachment.parent_type, attachment.parent_id)
     attachment_id = attachment.pk
     attachment_center = attachment.center
@@ -529,6 +571,7 @@ class _BoundAttachmentUploader:
             parent=authorized_parent,
             upload=upload,
             actor=self._workflow._actor,
+            center=self._workflow._center,
             document_type=document_type,
         )
 
@@ -548,9 +591,10 @@ class _AttachmentWorkflow:
             allowed_parent_types=self._allowed_parent_types,
         )
 
-    def timeline_for_beneficiary(self, beneficiary):
+    def timeline_for_beneficiary(self, beneficiary, enrollment):
         return _timeline_attachments_for_beneficiary(
             beneficiary,
+            enrollment,
             self._actor,
             center=self._center,
         )
@@ -564,18 +608,30 @@ class _AttachmentWorkflow:
             yield _BoundAttachmentUploader(self, uploader)
 
     def upload(self, parent_type: str, parent_id, *, data=None, files=None):
-        parent = _authorize_parent(
-            parent_type,
-            parent_id,
-            self._actor,
-            center=self._center,
-            action="change",
-            allowed_parent_types=self._allowed_parent_types,
-        )
+        try:
+            parent = _authorize_parent(
+                parent_type,
+                parent_id,
+                self._actor,
+                center=self._center,
+                action="change",
+                allowed_parent_types=self._allowed_parent_types,
+            )
+        except (Http404, PermissionDenied):
+            record_event(
+                actor=self._actor,
+                event_type=AuditEvent.EventType.CREATE,
+                target_type="PrivateAttachment",
+                target_id=parent_id,
+                outcome=AuditEvent.Outcome.DENIED,
+                metadata={"parent_type": parent_type},
+            )
+            raise
         form = _upload_form(
             parent_type=parent_type,
             parent=parent,
             actor=self._actor,
+            center=self._center,
             data=data,
             files=files,
         )

@@ -1,1 +1,28 @@
-{% extends "base.html" %}{% load i18n %}{% block title %}{% translate "Service visit" %}{% endblock %}{% block content %}<header class="page-header"><div><div class="eyebrow">{{ visit.visit_date|date:"SHORT_DATE_FORMAT" }}</div><h1>{% translate "Service visit" %}</h1><p>{{ visit.beneficiary.full_name }} · {{ visit.specialist }}</p></div><div class="actions"><a class="button button-secondary" href="{% url 'visit_update' visit.pk %}">{% translate "Edit" %}</a>{% if can_delete %}<a class="button button-danger" href="{% url 'visit_delete' visit.pk %}">{% translate "Delete" %}</a>{% endif %}<a class="button button-quiet" href="{% url 'visit_list' %}">{% translate "Back to list" %}</a></div></header><dl class="detail-grid"><div class="detail-item"><dt>{% translate "Beneficiary" %}</dt><dd><a href="{% url 'beneficiary_detail' visit.beneficiary.pk %}">{{ visit.beneficiary.full_name }}</a></dd></div><div class="detail-item"><dt>{% translate "Specialist" %}</dt><dd>{{ visit.specialist }}</dd></div><div class="detail-item"><dt>{% translate "Status" %}</dt><dd><span class="status status-{{ visit.status }}">{{ visit.get_status_display }}</span></dd></div><div class="detail-item"><dt>{% translate "Visit type" %}</dt><dd>{{ visit.get_visit_type_display }}</dd></div><div class="detail-item"><dt>{% translate "Service units" %}</dt><dd>{{ visit.service_units }}</dd></div><div class="detail-item"><dt>{% translate "Duration" %}</dt><dd>{% blocktranslate with minutes=visit.duration_minutes %}{{ minutes }} minutes{% endblocktranslate %}</dd></div><div class="detail-item wide"><dt>{% translate "Notes" %}</dt><dd>{{ visit.notes|default:_('No notes')|linebreaksbr }}</dd></div></dl>{% include "includes/attachments.html" with object_id=visit.pk %}{% endblock %}
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Service visit" %}{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div><div class="eyebrow">{{ visit.visit_date|date:"SHORT_DATE_FORMAT" }}</div><h1>{% translate "Service visit" %}</h1><p>{{ visit.beneficiary.full_name }} · {{ visit.enrollment.service }} · {{ visit.specialist }}</p></div>
+    <div class="actions">{% if can_change_parent %}<a class="button button-secondary" href="{% url 'visit_update' visit.pk %}">{% translate "Correct" %}</a>{% endif %}{% if can_delete %}<a class="button button-danger" href="{% url 'visit_delete' visit.pk %}">{% translate "Delete" %}</a>{% endif %}<a class="button button-quiet" href="{% url 'visit_list' %}">{% translate "Back to list" %}</a></div>
+  </header>
+  <dl class="detail-grid">
+    <div class="detail-item"><dt>{% translate "Beneficiary" %}</dt><dd><a href="{% url 'beneficiary_detail' visit.beneficiary.pk %}?enrollment={{ visit.enrollment.pk }}">{{ visit.beneficiary.full_name }}</a></dd></div>
+    <div class="detail-item"><dt>{% translate "Enrollment" %}</dt><dd>{{ visit.enrollment.episode_code }} · {{ visit.enrollment.service }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Specialist" %}</dt><dd>{{ visit.specialist }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Status" %}</dt><dd><span class="status status-{{ visit.status }}">{{ visit.get_status_display }}</span></dd></div>
+    <div class="detail-item"><dt>{% translate "Activity" %}</dt><dd>{{ visit.activity }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Delivery location" %}</dt><dd>{{ visit.delivery_location }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Format" %}</dt><dd>{{ visit.get_participation_format_display }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Participants" %}</dt><dd>{{ visit.participants }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Service units" %}</dt><dd>{{ visit.service_units }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Duration" %}</dt><dd>{% blocktranslate with minutes=visit.duration_minutes %}{{ minutes }} minutes{% endblocktranslate %}</dd></div>
+    {% if visit.cancellation_reason %}<div class="detail-item wide"><dt>{% translate "Cancellation reason" %}</dt><dd>{{ visit.cancellation_reason }}</dd></div>{% endif %}
+    <div class="detail-item wide"><dt>{% translate "Notes" %}</dt><dd>{{ visit.notes|default:_('No notes')|linebreaksbr }}</dd></div>
+  </dl>
+  {% if visit.goals_worked_on.all %}<section class="section-block"><h2>{% translate "Goals worked on" %}</h2><ul>{% for goal in visit.goals_worked_on.all %}<li><a href="{% url 'plan_detail' goal.plan.pk %}">{{ goal.category }} · {{ goal.goal }}</a></li>{% endfor %}</ul></section>{% endif %}
+  {% if corrections %}
+    <section class="section-block"><h2>{% translate "Correction history" %}</h2><div class="table-wrap" tabindex="0"><table><thead><tr><th>{% translate "Corrected at" %}</th><th>{% translate "Corrected by" %}</th><th>{% translate "Reason" %}</th></tr></thead><tbody>{% for correction in corrections %}<tr><td>{{ correction.created_at|date:"SHORT_DATETIME_FORMAT" }}</td><td>{{ correction.corrected_by.get_full_name|default:correction.corrected_by.username }}</td><td>{{ correction.reason }}</td></tr>{% endfor %}</tbody></table></div></section>
+  {% endif %}
+  {% include "includes/attachments.html" with object_id=visit.pk %}
+{% endblock %}

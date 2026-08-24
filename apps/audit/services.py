@@ -11,6 +11,8 @@ SAFE_METADATA_KEYS = {
     "parent_type",
     "file_extension",
     "result",
+    "instrument_code",
+    "template_version_id",
 }
 
 

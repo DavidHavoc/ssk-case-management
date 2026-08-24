@@ -9,6 +9,11 @@ urlpatterns = [
     path("staff/<uuid:pk>/", views.staff_detail, name="staff_detail"),
     path("staff/<uuid:pk>/update/", views.staff_update, name="staff_update"),
     path(
+        "staff/<uuid:pk>/reset-access/",
+        views.staff_reset_access,
+        name="staff_reset_access",
+    ),
+    path(
         "staff/<uuid:pk>/documents/upload/",
         views.staff_attachment_upload,
         name="staff_attachment_upload",

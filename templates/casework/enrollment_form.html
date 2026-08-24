@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+  <header class="page-header"><div><div class="eyebrow">{{ beneficiary.beneficiary_code }}</div><h1>{{ title }}</h1><p>{{ beneficiary.full_name }}</p></div></header>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "includes/form_error_summary.html" %}
+    <section class="form-card"><div class="form-section-heading"><h2>{% translate "Service enrollment" %}</h2></div><div class="form-grid">{% include "includes/form_fields.html" %}</div></section>
+    {% if formset %}<section class="section-block"><div class="form-section-heading"><h2>{% translate "Enrollment specialists" %}</h2></div>{{ formset.management_form }}{% if formset.non_form_errors %}<div class="alert alert-error" role="alert">{{ formset.non_form_errors }}</div>{% endif %}{% for assignment_form in formset %}<div class="formset-card">{% include "includes/form_error_summary.html" with form=assignment_form %}<div class="form-grid">{% include "includes/form_fields.html" with form=assignment_form %}</div></div>{% endfor %}</section>{% endif %}
+    <div class="form-actions form-actions-sticky"><button class="button button-primary" type="submit">{% translate "Save enrollment" %}</button><a class="button button-quiet" href="{% url 'beneficiary_detail' beneficiary.pk %}">{% translate "Cancel" %}</a></div>
+  </form>
+{% endblock %}

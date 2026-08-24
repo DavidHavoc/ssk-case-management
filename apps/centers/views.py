@@ -14,8 +14,10 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext as _
+from django.views.decorators.cache import never_cache
 
 from apps.accounts.roles import is_system_manager
+from apps.accounts.services import issue_temporary_access_code
 from apps.audit.models import AuditEvent
 from apps.audit.services import record_event
 from apps.casework.models import AttachmentParentType
@@ -29,7 +31,9 @@ from apps.core.authorization import (
     can_change_staff_directory,
     can_manage_center,
     can_view_staff_directory,
+    can_view_staff_hr_fields,
     get_authorized_object,
+    staff_directory_centers_for_user,
     staff_profiles_for_user,
 )
 from apps.core.decorators import active_center_required
@@ -41,7 +45,7 @@ from .forms import (
     SpecialistProfileForm,
     StaffProfileForm,
 )
-from .models import Center, SpecialistCenterAssignment, SpecialistProfile, StaffProfile
+from .models import SpecialistCenterAssignment, SpecialistProfile, StaffProfile
 
 
 def _safe_next(request) -> str:
@@ -86,21 +90,29 @@ def center_list(request):
 @login_required
 def staff_list(request):
     if not can_view_staff_directory(request.user):
+        record_event(
+            actor=request.user,
+            event_type=AuditEvent.EventType.SENSITIVE_READ,
+            target_type="StaffDirectory",
+            outcome=AuditEvent.Outcome.DENIED,
+        )
         raise PermissionDenied
     queryset = staff_profiles_for_user(request.user)
+    show_hr_fields = can_view_staff_hr_fields(request.user)
     query = request.GET.get("q", "").strip()
     status = request.GET.get("status", "").strip()
     center_id = request.GET.get("center", "").strip()
     if query:
-        queryset = queryset.filter(
+        search = (
             Q(user__first_name__icontains=query)
             | Q(user__last_name__icontains=query)
-            | Q(user__email__icontains=query)
             | Q(employee_number__icontains=query)
             | Q(project_program__icontains=query)
             | Q(job_title__icontains=query)
-            | Q(contact_number__icontains=query)
         )
+        if show_hr_fields:
+            search |= Q(user__email__icontains=query) | Q(contact_number__icontains=query)
+        queryset = queryset.filter(search)
     if status in StaffProfile.Status.values:
         queryset = queryset.filter(status=status)
     if center_id:
@@ -125,7 +137,8 @@ def staff_list(request):
             "selected_status": status,
             "selected_center": center_id,
             "status_choices": StaffProfile.Status.choices,
-            "centers": Center.objects.order_by("name"),
+            "centers": staff_directory_centers_for_user(request.user),
+            "show_hr_fields": show_hr_fields,
         },
     )
 
@@ -133,8 +146,25 @@ def staff_list(request):
 @login_required
 def staff_detail(request, pk):
     if not can_view_staff_directory(request.user):
+        record_event(
+            actor=request.user,
+            event_type=AuditEvent.EventType.SENSITIVE_READ,
+            target_type="StaffProfile",
+            target_id=pk,
+            outcome=AuditEvent.Outcome.DENIED,
+        )
         raise PermissionDenied
-    staff = get_authorized_object(staff_profiles_for_user(request.user), pk)
+    try:
+        staff = get_authorized_object(staff_profiles_for_user(request.user), pk)
+    except Http404:
+        record_event(
+            actor=request.user,
+            event_type=AuditEvent.EventType.SENSITIVE_READ,
+            target_type="StaffProfile",
+            target_id=pk,
+            outcome=AuditEvent.Outcome.DENIED,
+        )
+        raise
     record_event(
         actor=request.user,
         event_type=AuditEvent.EventType.SENSITIVE_READ,
@@ -142,14 +172,22 @@ def staff_detail(request, pk):
         target_id=staff.pk,
         center=staff.primary_center,
     )
-    attachments = staff_attachments(request.user).list(AttachmentParentType.STAFF_PROFILE, staff.pk)
+    show_hr_fields = can_view_staff_hr_fields(request.user)
+    attachments = (
+        staff_attachments(request.user).list(AttachmentParentType.STAFF_PROFILE, staff.pk)
+        if show_hr_fields
+        else ()
+    )
     return render(
         request,
         "centers/staff_detail.html",
         {
             "staff": staff,
             "attachments": attachments,
-            "can_change_staff": can_change_staff_directory(request.user),
+            "can_change_staff": staff_profiles_for_user(request.user, change=True)
+            .filter(pk=staff.pk)
+            .exists(),
+            "show_hr_fields": show_hr_fields,
         },
     )
 
@@ -157,8 +195,25 @@ def staff_detail(request, pk):
 @login_required
 def staff_update(request, pk):
     if not can_change_staff_directory(request.user):
+        record_event(
+            actor=request.user,
+            event_type=AuditEvent.EventType.UPDATE,
+            target_type="StaffProfile",
+            target_id=pk,
+            outcome=AuditEvent.Outcome.DENIED,
+        )
         raise PermissionDenied
-    staff = get_authorized_object(staff_profiles_for_user(request.user), pk)
+    try:
+        staff = get_authorized_object(staff_profiles_for_user(request.user, change=True), pk)
+    except Http404:
+        record_event(
+            actor=request.user,
+            event_type=AuditEvent.EventType.UPDATE,
+            target_type="StaffProfile",
+            target_id=pk,
+            outcome=AuditEvent.Outcome.DENIED,
+        )
+        raise
     form = StaffProfileForm(request.POST or None, instance=staff)
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
@@ -176,6 +231,56 @@ def staff_update(request, pk):
         request,
         "centers/staff_form.html",
         {"form": form, "staff": staff, "title": _("Update employee")},
+    )
+
+
+@never_cache
+@login_required
+def staff_reset_access(request, pk):
+    if request.method != "POST":
+        raise Http404
+    if not can_change_staff_directory(request.user):
+        record_event(
+            actor=request.user,
+            event_type=AuditEvent.EventType.UPDATE,
+            target_type="StaffProfile",
+            target_id=pk,
+            outcome=AuditEvent.Outcome.DENIED,
+        )
+        raise PermissionDenied
+    try:
+        staff = get_authorized_object(staff_profiles_for_user(request.user, change=True), pk)
+    except Http404:
+        record_event(
+            actor=request.user,
+            event_type=AuditEvent.EventType.UPDATE,
+            target_type="StaffProfile",
+            target_id=pk,
+            outcome=AuditEvent.Outcome.DENIED,
+        )
+        raise
+    if staff.user_id == request.user.pk:
+        messages.error(request, _("You cannot reset your own access code here."))
+        return redirect("staff_detail", pk=staff.pk)
+    with transaction.atomic():
+        temporary_code = issue_temporary_access_code(staff.user)
+        record_event(
+            actor=request.user,
+            event_type=AuditEvent.EventType.UPDATE,
+            target_type="StaffProfile",
+            target_id=staff.pk,
+            center=staff.primary_center,
+            metadata={"result": "temporary_access_code_issued"},
+        )
+    return render(
+        request,
+        "centers/access_code_issued.html",
+        {
+            "staff": staff,
+            "temporary_code": temporary_code,
+            "access_code_action": _("New access code generated"),
+            "can_view_staff": True,
+        },
     )
 
 
@@ -343,6 +448,7 @@ def specialist_assign(request):
     )
 
 
+@never_cache
 @active_center_required
 def specialist_create(request):
     center = request.ssk_center
@@ -350,7 +456,7 @@ def specialist_create(request):
         raise PermissionDenied
     form = NewSpecialistForm(request.POST or None, center=center)
     if request.method == "POST" and form.is_valid():
-        profile = form.save()
+        profile, temporary_code = form.save()
         record_event(
             actor=request.user,
             event_type=AuditEvent.EventType.CREATE,
@@ -358,16 +464,16 @@ def specialist_create(request):
             target_id=profile.pk,
             center=center,
         )
-        messages.success(
+        return render(
             request,
-            _(
-                "Specialist and employee record created. Use password reset to establish "
-                "the first password."
-            ),
+            "centers/access_code_issued.html",
+            {
+                "staff": profile.staff_profile,
+                "temporary_code": temporary_code,
+                "access_code_action": _("Employee account created"),
+                "can_view_staff": can_view_staff_directory(request.user),
+            },
         )
-        if can_view_staff_directory(request.user):
-            return redirect("staff_detail", pk=profile.staff_profile_id)
-        return redirect("center_detail")
     return render(
         request,
         "centers/specialist_form.html",

@@ -5,7 +5,7 @@
       <h2 id="attachments-heading">{% translate "Private attachments" %}</h2>
       <p>{% translate "PDFs and other allowed files are stored privately. Every download is authorized." %}</p>
     </div>
-    <a class="button button-secondary" href="{% url 'attachment_upload' attachment_parent_type object_id %}">{% translate "Upload PDF or file" %}</a>
+    {% if can_change_parent %}<a class="button button-secondary" href="{% url 'attachment_upload' attachment_parent_type object_id %}">{% translate "Upload PDF or file" %}</a>{% endif %}
   </div>
   {% if attachments %}
     <ul class="file-list">
@@ -14,10 +14,10 @@
           <div><strong>{{ attachment.original_filename }}</strong><br><small>{{ attachment.size|filesizeformat }} · {{ attachment.created_at|date:"SHORT_DATETIME_FORMAT" }}</small></div>
           <div class="actions">
             <a class="button button-quiet" href="{% url 'attachment_download' attachment.pk %}">{% translate "Download" %}</a>
-            <form action="{% url 'attachment_delete' attachment.pk %}" method="post">
+            {% if can_change_parent %}<form action="{% url 'attachment_delete' attachment.pk %}" method="post">
               {% csrf_token %}
               <button class="button button-danger" type="submit" data-confirm="{% translate 'Delete this private attachment? This action cannot be undone.' %}">{% translate "Delete" %}</button>
-            </form>
+            </form>{% endif %}
           </div>
         </li>
       {% endfor %}

@@ -35,12 +35,12 @@
     <div class="app-layout">
       <aside class="sidebar" id="primary-sidebar" aria-label="{% translate 'Main navigation' %}">
         <div class="sidebar-brand">
-          <a class="brand" href="{% url 'dashboard' %}" aria-label="{% translate 'SSK Case Management home' %}">
+          <a class="brand" href="{% url navigation_home_route %}" aria-label="{% translate 'SSK Case Management home' %}">
             <img class="brand-logo" src="{% static 'img/ssk-logo.png' %}" width="816" height="273" alt="" aria-hidden="true">
           </a>
         </div>
         <nav class="sidebar-nav">
-          <div class="nav-section">
+          {% if has_casework_access %}<div class="nav-section">
             <span class="nav-section-label">{% translate "Workspace" %}</span>
             <a class="nav-item{% if route == 'dashboard' %} is-active{% endif %}" href="{% url 'dashboard' %}"{% if route == 'dashboard' %} aria-current="page"{% endif %}>
               <svg aria-hidden="true"><use href="#icon-dashboard"></use></svg><span>{% translate "Dashboard" %}</span>
@@ -51,6 +51,9 @@
             <a class="nav-item{% if 'visit' in route %} is-active{% endif %}" href="{% url 'visit_list' %}"{% if 'visit' in route %} aria-current="page"{% endif %}>
               <svg aria-hidden="true"><use href="#icon-visit"></use></svg><span>{% translate "Visits" %}</span>
             </a>
+            <a class="nav-item{% if 'schedule' in route %} is-active{% endif %}" href="{% url 'schedule_list' %}"{% if 'schedule' in route %} aria-current="page"{% endif %}>
+              <svg aria-hidden="true"><use href="#icon-summary"></use></svg><span>{% translate "Service schedules" %}</span>
+            </a>
             <a class="nav-item{% if 'assessment' in route %} is-active{% endif %}" href="{% url 'assessment_list' %}"{% if 'assessment' in route %} aria-current="page"{% endif %}>
               <svg aria-hidden="true"><use href="#icon-assessment"></use></svg><span>{% translate "Assessments" %}</span>
             </a>
@@ -60,15 +63,17 @@
             <a class="nav-item{% if route == 'summary_list' %} is-active{% endif %}" href="{% url 'summary_list' %}"{% if route == 'summary_list' %} aria-current="page"{% endif %}>
               <svg aria-hidden="true"><use href="#icon-summary"></use></svg><span>{% translate "Summaries" %}</span>
             </a>
-          </div>
+          </div>{% endif %}
           <div class="nav-section">
             <span class="nav-section-label">{% translate "Operations" %}</span>
+            {% if has_casework_access %}
             <a class="nav-item{% if 'report' in route %} is-active{% endif %}" href="{% url 'reports' %}"{% if 'report' in route %} aria-current="page"{% endif %}>
               <svg aria-hidden="true"><use href="#icon-report"></use></svg><span>{% translate "Reports" %}</span>
             </a>
             <a class="nav-item{% if route == 'center_detail' or 'specialist' in route %} is-active{% endif %}" href="{% url 'center_detail' %}"{% if route == 'center_detail' or 'specialist' in route %} aria-current="page"{% endif %}>
               <svg aria-hidden="true"><use href="#icon-center"></use></svg><span>{% translate "Center roster" %}</span>
             </a>
+            {% endif %}
             {% if can_view_staff_directory %}
               <a class="nav-item{% if 'staff' in route %} is-active{% endif %}" href="{% url 'staff_list' %}"{% if 'staff' in route %} aria-current="page"{% endif %}>
                 <svg aria-hidden="true"><use href="#icon-people"></use></svg><span>{% translate "Employees" %}</span>
@@ -105,7 +110,7 @@
             <details class="user-menu">
               <summary>
                 <span class="user-avatar" aria-hidden="true"><svg><use href="#icon-user"></use></svg></span>
-                <span class="user-summary"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{% if is_system_manager %}{% translate "System Manager" %}{% elif is_coordinator %}{% translate "Center Coordinator" %}{% else %}{% translate "Specialist" %}{% endif %}</small></span>
+                <span class="user-summary"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{% if is_system_manager %}{% translate "System Manager" %}{% elif is_central_hr %}{% translate "Central HR" %}{% elif is_coordinator %}{% translate "Center Coordinator" %}{% else %}{% translate "Specialist" %}{% endif %}</small></span>
                 <svg class="chevron" aria-hidden="true"><use href="#icon-chevron"></use></svg>
               </summary>
               <div class="user-menu-panel">

@@ -4,13 +4,14 @@ from django.contrib.auth.models import Group
 from django.db.models import QuerySet
 
 SYSTEM_MANAGER = "System Manager"
+CENTRAL_HR = "SSK Central HR"
 COORDINATOR = "SSK Center Coordinator"
 SPECIALIST = "SSK Specialist"
-APPLICATION_ROLES = (SYSTEM_MANAGER, COORDINATOR, SPECIALIST)
+APPLICATION_ROLES = (SYSTEM_MANAGER, CENTRAL_HR, COORDINATOR, SPECIALIST)
 
 
 def has_role(user, role: str) -> bool:
-    if not getattr(user, "is_authenticated", False):
+    if not getattr(user, "is_authenticated", False) or not getattr(user, "is_active", False):
         return False
     if user.is_superuser and role == SYSTEM_MANAGER:
         return True
@@ -23,6 +24,10 @@ def has_role(user, role: str) -> bool:
 
 def is_system_manager(user) -> bool:
     return has_role(user, SYSTEM_MANAGER)
+
+
+def is_central_hr(user) -> bool:
+    return has_role(user, CENTRAL_HR)
 
 
 def is_coordinator(user) -> bool:

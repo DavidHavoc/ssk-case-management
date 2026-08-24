@@ -25,7 +25,7 @@ Use this runbook with:
 - PostgreSQL in a private Docker network;
 - Django and Gunicorn in a private Docker network;
 - Nginx as the only public application container;
-- an approved SMTP service for password resets;
+- an approved secure process for administrators to deliver temporary access codes directly to employees;
 - encrypted, automated, off-host backups; and
 - an external uptime monitor and an operational alert recipient.
 
@@ -79,15 +79,14 @@ the service. Store the following in the organization's approved password manager
 - VPS provider account and recovery codes;
 - domain registrar and DNS account;
 - SSH emergency access procedure;
-- SMTP account;
 - backup repository credentials;
 - backup encryption password;
 - Django secret key;
 - database password; and
 - current administrator contact list.
 
-Require multi-factor authentication on the VPS provider, registrar, source host, SMTP provider,
-monitoring service, and backup provider accounts.
+Require multi-factor authentication on the VPS provider, registrar, source host, monitoring
+service, and backup provider accounts.
 
 ## 3. Production readiness gate
 
@@ -156,7 +155,6 @@ Create the firewall before placing production data on the server.
 | Inbound | TCP 443 | Anywhere | HTTPS application access |
 | Outbound | TCP 53 and UDP 53 | Provider or approved DNS | DNS resolution |
 | Outbound | TCP 80 and 443 | Anywhere | Package, image, and certificate updates |
-| Outbound | TCP 587 or approved SMTP port | SMTP provider | Password-reset email |
 | Outbound | Backup protocol port | Backup provider | Off-host backups |
 | Outbound | UDP 123 | Approved time source | Time synchronization |
 
@@ -507,15 +505,6 @@ DJANGO_SECURE_HSTS_SECONDS=31536000
 DJANGO_TRUST_X_FORWARDED_FOR=1
 DJANGO_TIME_ZONE=Asia/Tbilisi
 
-DJANGO_DEFAULT_FROM_EMAIL=noreply@example.org
-DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-EMAIL_HOST=REPLACE_WITH_APPROVED_SMTP_HOST
-EMAIL_PORT=587
-EMAIL_HOST_USER=REPLACE_WITH_SMTP_USERNAME
-EMAIL_HOST_PASSWORD=REPLACE_WITH_SMTP_PASSWORD
-EMAIL_USE_TLS=1
-EMAIL_TIMEOUT=10
-
 PRIVATE_MEDIA_ROOT=/app/media/private
 MAX_UPLOAD_SIZE=10485760
 LOGIN_RATE_LIMIT_ATTEMPTS=5
@@ -762,7 +751,8 @@ Confirm:
 - the login page loads without mixed content;
 - debug error pages are disabled;
 - cookies are Secure, HttpOnly, and use the expected SameSite policy;
-- password reset email arrives through the approved SMTP service;
+- temporary-code login requires the employee to choose a private password before application access;
+- an authorized administrator can generate a replacement code from the employee record;
 - the health check returns successfully;
 - unauthorized users cannot access records or private files;
 - direct cross-center and unassigned URLs fail;
@@ -973,9 +963,8 @@ Never test a restore over the running production database.
 1. Create a new temporary VPS on an isolated firewall or private network.
 2. Install the same major Docker and Compose versions.
 3. Deploy the exact application revision recorded with the backup.
-4. Block all employee access and outbound SMTP delivery.
-5. Use synthetic recipient addresses or a non-delivering mail sink.
-6. Create an empty production-shaped Compose environment with new temporary secrets.
+4. Block all employee access.
+5. Create an empty production-shaped Compose environment with new temporary secrets.
 
 ### 15.2 Retrieve one recovery point
 
@@ -1119,7 +1108,7 @@ collection.
 - [ ] Apply reviewed operating-system and Docker updates in a maintenance window.
 - [ ] Pull and rebuild approved base images.
 - [ ] Run application tests and security scans before deploying dependency changes.
-- [ ] Test password-reset email delivery.
+- [ ] Test temporary access-code creation, required password change, and administrator reset.
 - [ ] Review application administrator accounts and provider account access.
 - [ ] Review storage growth and forecast capacity.
 - [ ] Test monitoring alerts and escalation contacts.
@@ -1220,9 +1209,9 @@ curl --fail --silent --show-error https://cases.example.org/en/health/
 sudo docker compose -p ssk -f docker-compose.prod.yml logs --tail=100 web proxy
 ```
 
-Complete role-specific smoke tests using approved test records. Confirm login, password reset,
-center selection, cross-center denial, private downloads, reports, CSV safeguards, and audit
-events.
+Complete role-specific smoke tests using approved test records. Confirm temporary-code login,
+required password change, administrator access-code reset, center selection, cross-center denial,
+private downloads, reports, CSV safeguards, and audit events.
 
 ### 18.3 Rollback
 
@@ -1299,7 +1288,7 @@ downloads.
 
 1. Disable the application account at the agreed effective time.
 2. Remove active sessions according to the approved procedure.
-3. Remove provider, source, monitoring, SMTP, and backup access if applicable.
+3. Remove provider, source, monitoring, and backup access if applicable.
 4. Remove or rotate SSH and deploy keys.
 5. Rotate shared secrets if the person knew them.
 6. Preserve required audit evidence.
@@ -1319,7 +1308,7 @@ For suspected unauthorized access, malware, credential exposure, or data loss:
 1. Notify the named security or privacy contact immediately.
 2. Restrict access using the provider firewall or stop the proxy container.
 3. Do not destroy the server, logs, volumes, or snapshots before evidence decisions are made.
-4. Revoke exposed sessions, SSH keys, API tokens, SMTP credentials, and passwords as directed.
+4. Revoke exposed sessions, SSH keys, API tokens, and passwords as directed.
 5. Identify affected users, records, files, integrations, backups, and time range.
 6. Keep beneficiary information out of ordinary tickets, email, and chat.
 7. Preserve authorized evidence with timestamps and access controls.
@@ -1371,7 +1360,7 @@ Decommission only with written approval from the service owner and privacy or se
 3. Record the final application revision, migration state, and backup snapshot ID.
 4. Apply the approved data-retention decision to the final backup.
 5. Export only approved records through authorized workflows.
-6. Revoke SMTP, backup, source, DNS, monitoring, and infrastructure credentials.
+6. Revoke backup, source, DNS, monitoring, and infrastructure credentials.
 7. Remove DNS records after the approved notice period.
 8. Delete the VPS and attached volumes through the provider's documented process.
 9. Delete unneeded provider snapshots and backups after retention approval.
@@ -1439,7 +1428,6 @@ Production hostname:
 VPS provider and account owner:
 Server ID and approved region:
 Domain registrar and account owner:
-SMTP provider and account owner:
 Monitoring provider and alert recipients:
 Backup provider, bucket or path, and region:
 Password manager record locations:

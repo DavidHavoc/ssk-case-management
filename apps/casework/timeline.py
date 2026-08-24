@@ -15,6 +15,7 @@ from django.db.models import (
 from django.db.models.functions import Coalesce, TruncDate
 from django.urls import reverse
 from django.utils.encoding import force_str
+from django.utils.translation import get_language
 from django.utils.translation import gettext as _
 
 from apps.core.authorization import assessments_for_user, plans_for_user, visits_for_user
@@ -25,6 +26,7 @@ from .models import (
     Beneficiary,
     IndividualPlan,
     IndividualPlanGoal,
+    ServiceEnrollment,
     ServiceVisit,
 )
 from .private_attachments import case_attachments
@@ -107,12 +109,16 @@ def _index_values(
     )
 
 
-def _timeline_scopes(*, user, center, beneficiary: Beneficiary) -> _TimelineScopes:
-    visits = visits_for_user(user, center).filter(beneficiary=beneficiary)
-    assessments = assessments_for_user(user, center).filter(beneficiary=beneficiary)
-    plans = plans_for_user(user, center).filter(beneficiary=beneficiary)
+def _timeline_scopes(
+    *, user, center, beneficiary: Beneficiary, enrollment: ServiceEnrollment
+) -> _TimelineScopes:
+    visits = visits_for_user(user, center).filter(beneficiary=beneficiary, enrollment=enrollment)
+    assessments = assessments_for_user(user, center).filter(
+        beneficiary=beneficiary, enrollment=enrollment
+    )
+    plans = plans_for_user(user, center).filter(beneficiary=beneficiary, enrollment=enrollment)
     goals = IndividualPlanGoal.objects.filter(plan__in=plans.order_by())
-    attachments = case_attachments(user, center).timeline_for_beneficiary(beneficiary)
+    attachments = case_attachments(user, center).timeline_for_beneficiary(beneficiary, enrollment)
     return _TimelineScopes(
         visits=visits,
         assessments=assessments,
@@ -170,15 +176,21 @@ def _timeline_index(scopes: _TimelineScopes):
 def _visit_entries(queryset: QuerySet, ids) -> dict[str, TimelineEntry]:
     entries = {}
     rows = queryset.filter(pk__in=ids).values(
-        "pk", "visit_date", "visit_type", "status", "duration_minutes"
+        "pk",
+        "visit_date",
+        "activity__name_en",
+        "activity__name_ka",
+        "status",
+        "duration_minutes",
     )
     for row in rows:
-        visit_type = _choice_label(ServiceVisit.VisitType.choices, row["visit_type"])
+        language = (get_language() or "en").split("-", maxsplit=1)[0]
+        activity = row["activity__name_ka"] if language == "ka" else row["activity__name_en"]
         entries[str(row["pk"])] = TimelineEntry(
             entry_type=SERVICE_VISIT,
             type_label=force_str(_("Service Visit")),
             display_date=row["visit_date"],
-            title=visit_type,
+            title=activity,
             summary=force_str(_("%(minutes)s minutes")) % {"minutes": row["duration_minutes"]},
             status=_choice_label(ServiceVisit.Status.choices, row["status"]),
             status_key=row["status"],
@@ -192,7 +204,11 @@ def _visit_entries(queryset: QuerySet, ids) -> dict[str, TimelineEntry]:
 def _assessment_entries(queryset: QuerySet, ids) -> dict[str, TimelineEntry]:
     entries = {}
     rows = queryset.filter(pk__in=ids).values(
-        "pk", "assessment_date", "assessment_type", "scoring_tool"
+        "pk",
+        "assessment_date",
+        "assessment_type",
+        "template_version__instrument__name",
+        "template_version__version",
     )
     for row in rows:
         entries[str(row["pk"])] = TimelineEntry(
@@ -200,8 +216,11 @@ def _assessment_entries(queryset: QuerySet, ids) -> dict[str, TimelineEntry]:
             type_label=force_str(_("Assessment")),
             display_date=row["assessment_date"],
             title=_choice_label(Assessment.AssessmentType.choices, row["assessment_type"]),
-            summary=force_str(_("Scoring tool: %(tool)s"))
-            % {"tool": _choice_label(Assessment.ScoringTool.choices, row["scoring_tool"])},
+            summary=force_str(_("Instrument: %(instrument)s, version %(version)s"))
+            % {
+                "instrument": row["template_version__instrument__name"],
+                "version": row["template_version__version"],
+            },
             status="",
             status_key="",
             detail_url=reverse("assessment_detail", kwargs={"pk": row["pk"]}),
@@ -324,10 +343,16 @@ def beneficiary_timeline_page(
     user,
     center,
     beneficiary: Beneficiary,
+    enrollment: ServiceEnrollment,
     page_number,
     per_page: int = TIMELINE_PAGE_SIZE,
 ) -> Page:
-    scopes = _timeline_scopes(user=user, center=center, beneficiary=beneficiary)
+    scopes = _timeline_scopes(
+        user=user,
+        center=center,
+        beneficiary=beneficiary,
+        enrollment=enrollment,
+    )
     paginator = Paginator(
         _timeline_index(scopes),
         per_page,

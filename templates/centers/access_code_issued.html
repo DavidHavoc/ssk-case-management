@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ access_code_action }}{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div>
+      <div class="eyebrow">{% translate "Account access" %}</div>
+      <h1>{{ access_code_action }}</h1>
+      <p>{% translate "Give these sign-in details directly to the employee through an approved secure channel." %}</p>
+    </div>
+  </header>
+  <section class="section-block access-code-panel" aria-labelledby="access-code-heading">
+    <div class="alert alert-info">{% translate "This code is shown only on this page. It is not stored in readable form and cannot be displayed again." %}</div>
+    <dl class="detail-grid">
+      <div class="detail-item"><dt>{% translate "Employee" %}</dt><dd>{{ staff.display_name }}</dd></div>
+      <div class="detail-item"><dt>{% translate "Username" %}</dt><dd><code>{{ staff.user.username }}</code></dd></div>
+      <div class="detail-item"><dt id="access-code-heading">{% translate "Temporary access code" %}</dt><dd><code class="access-code">{{ temporary_code }}</code></dd></div>
+    </dl>
+    <p>{% translate "The employee must sign in with this code and will be required to choose a new password immediately. Generating another code invalidates this one." %}</p>
+    <div class="form-actions">
+      {% if can_view_staff %}<a class="button button-primary" href="{% url 'staff_detail' staff.pk %}">{% translate "Open employee record" %}</a>{% else %}<a class="button button-primary" href="{% url 'center_detail' %}">{% translate "Return to center roster" %}</a>{% endif %}
+    </div>
+  </section>
+{% endblock %}

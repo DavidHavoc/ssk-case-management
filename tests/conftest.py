@@ -1,8 +1,10 @@
 import pytest
 
 from .factories import (
+    ensure_center_offerings,
     make_beneficiary,
     make_center,
+    make_central_hr,
     make_coordinator,
     make_manager,
     make_specialist,
@@ -11,17 +13,26 @@ from .factories import (
 
 @pytest.fixture
 def center_a(db):
-    return make_center("Synthetic Center A")
+    center = make_center("Synthetic Center A")
+    ensure_center_offerings(center)
+    return center
 
 
 @pytest.fixture
 def center_b(db):
-    return make_center("Synthetic Center B")
+    center = make_center("Synthetic Center B")
+    ensure_center_offerings(center)
+    return center
 
 
 @pytest.fixture
 def manager(db):
     return make_manager()
+
+
+@pytest.fixture
+def central_hr(db):
+    return make_central_hr()
 
 
 @pytest.fixture

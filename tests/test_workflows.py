@@ -18,6 +18,7 @@ from apps.casework.models import (
 
 from .factories import (
     add_specialist_center,
+    ensure_visit_catalogs,
     make_assessment,
     make_beneficiary,
     make_plan,
@@ -107,6 +108,7 @@ def test_service_visit_normalizes_month_cancelled_units_and_rebuilds_summary(
     assert summary.total_duration_minutes == 60
 
     visit.status = ServiceVisit.Status.CANCELLED
+    visit.cancellation_reason = "Synthetic schedule change."
     visit.save()
     visit.refresh_from_db()
     summary.refresh_from_db()
@@ -131,12 +133,14 @@ def test_database_constraints_reject_invalid_derived_visit_values(beneficiary_a,
 
 
 def test_visit_rejects_unassigned_specialist(beneficiary_a, specialist_b):
+    activity, location = ensure_visit_catalogs()
     visit = ServiceVisit(
         beneficiary=beneficiary_a,
         center=beneficiary_a.center,
         specialist=specialist_b,
         visit_date=date(2026, 1, 1),
-        visit_type=ServiceVisit.VisitType.CENTER,
+        activity=activity,
+        delivery_location=location,
         status=ServiceVisit.Status.COMPLETED,
         service_units=1,
     )
@@ -217,13 +221,15 @@ def test_concurrent_visit_creation_keeps_monthly_summary_complete(
                     specialist_id=specialist_id,
                 ).beneficiary
                 specialist = beneficiary.specialists.get(pk=specialist_id)
+                activity, location = ensure_visit_catalogs()
                 barrier.wait(timeout=10)
                 ServiceVisit.objects.create(
                     beneficiary=beneficiary,
                     center=beneficiary.center,
                     specialist=specialist,
                     visit_date=date(2026, 7, day),
-                    visit_type=ServiceVisit.VisitType.CENTER,
+                    activity=activity,
+                    delivery_location=location,
                     status=ServiceVisit.Status.COMPLETED,
                     service_units=1,
                     duration_minutes=30,

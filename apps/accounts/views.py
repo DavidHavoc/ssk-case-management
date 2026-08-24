@@ -1,11 +1,15 @@
-from django.contrib.auth.views import LoginView, PasswordResetView
-from django.http import HttpResponseRedirect
+from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.views import LoginView, PasswordChangeView
+from django.db import transaction
+from django.shortcuts import redirect
+from django.urls import reverse_lazy
+from django.utils.translation import gettext as _
 
 from apps.audit.models import AuditEvent
 from apps.audit.services import record_event
 
-from .forms import RateLimitedAuthenticationForm, request_ip
-from .models import LoginThrottle
+from .forms import RateLimitedAuthenticationForm, StyledPasswordChangeForm
 
 
 class RateLimitedLoginView(LoginView):
@@ -32,14 +36,22 @@ class RateLimitedLoginView(LoginView):
         return super().form_invalid(form)
 
 
-class RateLimitedPasswordResetView(PasswordResetView):
+class RequiredPasswordChangeView(PasswordChangeView):
+    form_class = StyledPasswordChangeForm
+    template_name = "registration/password_change_required.html"
+    success_url = reverse_lazy("dashboard")
+
     def form_valid(self, form):
-        email = str(form.cleaned_data.get("email", ""))[:254]
-        keys = [
-            LoginThrottle.hash_key("password-reset-email", email),
-            LoginThrottle.hash_key("password-reset-ip", request_ip(self.request)),
-        ]
-        if LoginThrottle.is_blocked(keys):
-            return HttpResponseRedirect(self.get_success_url())
-        LoginThrottle.register_failure(keys)
-        return super().form_valid(form)
+        with transaction.atomic():
+            user = form.save()
+            user.must_change_password = False
+            user.save(update_fields=["must_change_password"])
+            update_session_auth_hash(self.request, user)
+            record_event(
+                actor=user,
+                event_type=AuditEvent.EventType.UPDATE,
+                target_type="Authentication",
+                metadata={"result": "required_password_changed"},
+            )
+        messages.success(self.request, _("Your password has been changed."))
+        return redirect(self.get_success_url())

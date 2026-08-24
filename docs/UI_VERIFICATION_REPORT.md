@@ -41,7 +41,7 @@ Rendered HTML from each major page family was scanned with axe-core 4.10.3 again
 ## Browser review
 
 - Reviewed English and Georgian at 320, 768, 1024, and 1440 pixels.
-- Dashboard, lists, detail pages, create and edit forms, delete confirmations, center selector, specialist roster, summaries, reports, CSV controls, audit events, attachment uploads, authentication, password reset, validation, access denied, and not-found behavior were navigated.
+- Dashboard, lists, detail pages, create and edit forms, delete confirmations, center selector, specialist roster, summaries, reports, CSV controls, audit events, attachment uploads, authentication, validation, access denied, and not-found behavior were navigated. Temporary access-code screens require a new verification pass.
 - No page-level horizontal overflow or clipped headings and labels were found. Wide tables scroll only inside focusable labeled regions.
 - The mobile drawer updates `aria-expanded`, keeps the closed drawer out of the tab order, closes with Escape, and returns focus to the trigger.
 - Forms expose persistent labels, linked summaries, inline error alerts, and stable save and cancel actions.

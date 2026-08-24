@@ -251,7 +251,7 @@ def test_timeline_order_is_newest_first_and_deterministic_for_ties(
     ]
 
 
-def test_goal_without_target_date_falls_back_to_plan_start_date(
+def test_legacy_goal_without_target_date_falls_back_to_plan_start_date(
     client,
     coordinator_a,
     center_a,
@@ -260,6 +260,7 @@ def test_goal_without_target_date_falls_back_to_plan_start_date(
 ):
     plan = make_plan(beneficiary_a, specialist_a)
     goal = plan.goals.get()
+    goal.requires_review = True
     goal.target_date = None
     goal.save()
     client.force_login(coordinator_a)
@@ -339,7 +340,7 @@ def test_timeline_html_exposes_display_name_but_not_private_file_metadata(
 def test_timeline_query_count_does_not_grow_per_entry(
     client, coordinator_a, center_a, specialist_a, beneficiary_a
 ):
-    make_visit(beneficiary_a, specialist_a, visit_date=date(2026, 8, 1))
+    make_visit(beneficiary_a, specialist_a, visit_date=date(2026, 7, 1))
     client.force_login(coordinator_a)
     set_active_center(client, center_a)
     detail_url = reverse("beneficiary_detail", kwargs={"pk": beneficiary_a.pk})
@@ -347,7 +348,7 @@ def test_timeline_query_count_does_not_grow_per_entry(
         assert client.get(detail_url).status_code == 200
 
     for day in range(2, 29):
-        make_visit(beneficiary_a, specialist_a, visit_date=date(2026, 8, day))
+        make_visit(beneficiary_a, specialist_a, visit_date=date(2026, 7, day))
     with CaptureQueriesContext(connection) as expanded:
         assert client.get(detail_url).status_code == 200
 

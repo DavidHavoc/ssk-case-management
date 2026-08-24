@@ -24,6 +24,7 @@
 
   <section class="metrics" aria-label="{% translate 'Center metrics' %}">
     <div class="metric"><strong>{{ beneficiary_count }}</strong><span>{% translate "Authorized beneficiaries" %}</span></div>
+    <div class="metric"><strong>{{ enrollment_count }}</strong><span>{% translate "Authorized service enrollments" %}</span></div>
     <div class="metric"><strong>{{ visits_this_month }}</strong><span>{% translate "Completed visits this month" %}</span></div>
     <div class="metric"><strong>{{ assessment_count }}</strong><span>{% translate "Assessments" %}</span></div>
     <div class="metric"><strong>{{ active_plan_count }}</strong><span>{% translate "Active plans" %}</span></div>
@@ -66,6 +67,7 @@
       <h2 id="quick-actions-heading">{% translate "Quick actions" %}</h2>
       <nav class="quick-actions" aria-label="{% translate 'Quick actions' %}">
         <a href="{% url 'visit_create' %}">{% translate "Record service visit" %}</a>
+        <a href="{% url 'schedule_list' %}">{% translate "Service schedules" %}</a>
         <a href="{% url 'assessment_create' %}">{% translate "Create assessment" %}</a>
         <a href="{% url 'plan_create' %}">{% translate "Create individual plan" %}</a>
         {% if is_coordinator or is_system_manager %}

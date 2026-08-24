@@ -9,11 +9,14 @@ The repository includes:
 - PostgreSQL-backed Django models and migrations
 - System Manager, SSK Center Coordinator, and SSK Specialist roles
 - multi-center staff and specialist assignments with an explicit active-center selector
-- beneficiaries with server-enforced restricted fields and specialist assignments
-- service visits, assessments with domain scores, individual plans with goals, and monthly summaries
+- beneficiaries as durable person records with server-enforced restricted fields
+- configurable service catalogs and effective-dated enrollment episodes, center placements, specialist assignments, transfers, exits, and re-enrollment history
+- controlled Georgian geography, effective-dated diagnosis and social-status classifications, and SSK age bands
+- governed service activities and locations, monthly enrollment schedules, planned and delivered service visits, correction history, and variance reporting
+- versioned assessments and measurable service-plan periods with bilingual goal categories, progress history, child-condition reviews, and derived outcome reports
 - private attachments with randomized storage names and authorized downloads
 - audit events for sensitive reads, changes, downloads, and exports
-- login throttling, Django password reset, CSRF protection, and production cookie settings
+- login throttling, administrator-issued temporary access codes, required first-login password changes, CSRF protection, and production cookie settings
 - authorized reports and spreadsheet-safe CSV export
 - responsive templates and English plus Georgian localization setup
 - Docker Compose development and production examples
@@ -52,6 +55,9 @@ SQLite is an explicit test-only convenience. Development, staging, and productio
 - [Implementation plan](docs/IMPLEMENTATION_PLAN.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Data model](docs/DATA_MODEL.md)
+- [Beneficiary and service enrollment foundation](docs/BENEFICIARY_ENROLLMENT_FOUNDATION.md)
+- [Service visits and schedules](docs/SERVICE_VISITS_AND_SCHEDULES.md)
+- [Service plans and outcomes](docs/SERVICE_PLANS_AND_OUTCOMES.md)
 - [Permission matrix](docs/PERMISSION_MATRIX.md)
 - [Local setup](docs/LOCAL_SETUP.md)
 - [Production deployment](docs/PRODUCTION_DEPLOYMENT.md)

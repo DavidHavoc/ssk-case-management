@@ -21,6 +21,7 @@ class User(AbstractUser):
     preferred_language = models.CharField(
         max_length=2, choices=Language.choices, default=Language.ENGLISH
     )
+    must_change_password = models.BooleanField(default=False)
 
     class Meta(AbstractUser.Meta):
         constraints = [

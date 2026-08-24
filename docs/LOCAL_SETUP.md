@@ -73,4 +73,4 @@ Create the first Django superuser only on an approved local or staging environme
 .venv/bin/python manage.py createsuperuser
 ```
 
-A superuser is treated as System Manager. Application-created specialists receive a random unknown password so the password reset flow can establish their first password securely.
+A superuser is treated as System Manager. When an administrator creates a specialist, the application displays a one-time temporary access code. The employee signs in with that code and must immediately choose a private password. An authorized administrator can generate a replacement code from the employee record when needed.

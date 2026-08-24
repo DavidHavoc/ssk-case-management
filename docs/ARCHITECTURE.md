@@ -20,7 +20,7 @@ There is no separate browser application, API gateway, worker requirement, Redis
 
 | App | Responsibility |
 |---|---|
-| `accounts` | Custom User, Django Group roles, login throttling |
+| `accounts` | Custom User, Django Group roles, login throttling, temporary access-code issuance, required password changes |
 | `centers` | Center, Staff Profile, Specialist Profile, roster assignments |
 | `casework` | Beneficiaries, visits, assessments, plans, summaries, the derived timeline, and the private attachment module |
 | `audit` | Append-only application audit events and safe event writer |

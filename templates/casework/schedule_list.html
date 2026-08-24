@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Monthly service schedules" %}{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div><div class="eyebrow">{{ active_center.name }}</div><h1 id="page-title">{% translate "Monthly service schedules" %}</h1><p>{% translate "Planned service by beneficiary and enrollment, kept separate from delivered visits." %}</p></div>
+    {% if can_create %}<a class="button button-primary" href="{% url 'schedule_create' %}">{% translate "Add schedule" %}</a>{% endif %}
+  </header>
+  <form class="filter-bar" method="get">
+    <div class="form-group"><label for="q">{% translate "Beneficiary or enrollment" %}</label><input class="form-control" id="q" name="q" value="{{ query }}"></div>
+    <div class="form-group"><label for="month">{% translate "Month" %}</label><input class="form-control" id="month" name="month" type="month" value="{{ selected_month }}"></div>
+    <button class="button button-secondary" type="submit">{% translate "Filter" %}</button>
+  </form>
+  {% if page_obj %}
+    <div class="table-wrap" tabindex="0" role="region" aria-labelledby="page-title">
+      <table>
+        <thead><tr><th>{% translate "Month" %}</th><th>{% translate "Beneficiary and enrollment" %}</th><th>{% translate "Activity" %}</th><th>{% translate "Location" %}</th><th>{% translate "Format" %}</th><th>{% translate "Planned visits" %}</th><th>{% translate "Planned units" %}</th><th></th></tr></thead>
+        <tbody>{% for schedule in page_obj %}<tr><td>{{ schedule.schedule_month|date:"Y-m" }}</td><td>{{ schedule.enrollment.beneficiary.full_name }}<br><small>{{ schedule.enrollment.episode_code }} · {{ schedule.enrollment.service }}</small></td><td>{{ schedule.activity }}</td><td>{{ schedule.delivery_location }}</td><td>{{ schedule.get_participation_format_display }}</td><td>{{ schedule.planned_visits }}</td><td>{{ schedule.planned_units }}</td><td>{% if schedule.pk in changeable_schedule_ids %}<a class="button button-quiet button-small" href="{% url 'schedule_update' schedule.pk %}">{% translate "Edit" %}</a>{% endif %}</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+    {% include "includes/pagination.html" %}
+  {% else %}
+    <div class="empty-state"><h2>{% translate "No schedules found" %}</h2><p>{% translate "Add a monthly schedule to compare planned and delivered service." %}</p></div>
+  {% endif %}
+{% endblock %}

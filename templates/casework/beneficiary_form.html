@@ -1,2 +1,25 @@
-{% extends "base.html" %}{% load i18n %}{% block title %}{{ title }}{% endblock %}
-{% block content %}<header class="page-header"><div><h1>{{ title }}</h1><p>{% translate "Fields shown here are limited by your role." %}</p></div></header><form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}{% include "includes/form_error_summary.html" %}<section class="form-card"><div class="form-section-heading"><h2>{% translate "Case information" %}</h2></div><div class="form-grid">{% include "includes/form_fields.html" %}</div></section>{% if formset %}<section class="section-block"><div class="form-section-heading"><h2>{% translate "Responsible specialists" %}</h2></div>{{ formset.management_form }}{% if formset.non_form_errors %}<div class="alert alert-error" role="alert">{{ formset.non_form_errors }}</div>{% endif %}{% for assignment_form in formset %}<div class="formset-card">{% include "includes/form_error_summary.html" with form=assignment_form %}<div class="form-grid">{% include "includes/form_fields.html" with form=assignment_form %}</div></div>{% endfor %}</section>{% endif %}{% if attachment_form %}<section class="form-card"><div class="form-section-heading"><h2>{% translate "Supporting document" %}</h2></div>{% include "includes/form_error_summary.html" with form=attachment_form %}<div class="form-grid">{% include "includes/form_fields.html" with form=attachment_form %}</div></section>{% endif %}<div class="form-actions form-actions-sticky"><button class="button button-primary" type="submit">{% translate "Save beneficiary" %}</button><a class="button button-quiet" href="{% url 'beneficiary_list' %}">{% translate "Cancel" %}</a></div></form>{% endblock %}
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+  <header class="page-header"><div><h1>{{ title }}</h1><p>{% translate "Person, enrollment, diagnosis, and social-status fields are kept separate and limited by role." %}</p></div></header>
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% include "includes/form_error_summary.html" %}
+    <section class="form-card"><div class="form-section-heading"><h2>{% translate "Person information" %}</h2></div><div class="form-grid">{% include "includes/form_fields.html" %}</div></section>
+    {% if enrollment_form %}
+      <section class="form-card"><div class="form-section-heading"><h2>{% translate "Initial service enrollment" %}</h2></div>{% include "includes/form_error_summary.html" with form=enrollment_form %}<div class="form-grid">{% include "includes/form_fields.html" with form=enrollment_form %}</div></section>
+    {% endif %}
+    {% if formset %}
+      <section class="section-block"><div class="form-section-heading"><h2>{% translate "Enrollment specialists" %}</h2></div>{{ formset.management_form }}{% if formset.non_form_errors %}<div class="alert alert-error" role="alert">{{ formset.non_form_errors }}</div>{% endif %}{% for assignment_form in formset %}<div class="formset-card">{% include "includes/form_error_summary.html" with form=assignment_form %}<div class="form-grid">{% include "includes/form_fields.html" with form=assignment_form %}</div></div>{% endfor %}</section>
+    {% endif %}
+    {% if diagnosis_formset %}
+      <section class="section-block"><div class="form-section-heading"><h2>{% translate "Coded diagnoses" %}</h2><p>{% translate "Legacy diagnosis narrative is preserved separately and is not converted into a code." %}</p></div>{{ diagnosis_formset.management_form }}{% for classification_form in diagnosis_formset %}<div class="formset-card">{% include "includes/form_error_summary.html" with form=classification_form %}<div class="form-grid">{% include "includes/form_fields.html" with form=classification_form %}</div></div>{% endfor %}</section>
+    {% endif %}
+    {% if social_status_formset %}
+      <section class="section-block"><div class="form-section-heading"><h2>{% translate "Social-status classifications" %}</h2></div>{{ social_status_formset.management_form }}{% for classification_form in social_status_formset %}<div class="formset-card">{% include "includes/form_error_summary.html" with form=classification_form %}<div class="form-grid">{% include "includes/form_fields.html" with form=classification_form %}</div></div>{% endfor %}</section>
+    {% endif %}
+    {% if attachment_form %}<section class="form-card"><div class="form-section-heading"><h2>{% translate "Supporting document" %}</h2></div>{% include "includes/form_error_summary.html" with form=attachment_form %}<div class="form-grid">{% include "includes/form_fields.html" with form=attachment_form %}</div></section>{% endif %}
+    <div class="form-actions form-actions-sticky"><button class="button button-primary" type="submit">{% translate "Save beneficiary" %}</button><a class="button button-quiet" href="{% url 'beneficiary_list' %}">{% translate "Cancel" %}</a></div>
+  </form>
+{% endblock %}

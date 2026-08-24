@@ -6,11 +6,11 @@
     <div>
       <div class="eyebrow">{% translate "Organization" %}</div>
       <h1 id="page-title">{% translate "Employees" %}</h1>
-      <p>{% translate "View employee project, contract, contact, role, status, and center information." %}</p>
+      {% if show_hr_fields %}<p>{% translate "View employee project, contract, contact, role, status, and center information." %}</p>{% else %}<p>{% translate "View the staff roster for your authorized centers." %}</p>{% endif %}
     </div>
   </header>
   <form class="filter-bar" method="get" role="search">
-    <div class="form-group"><label for="q">{% translate "Search" %}</label><input class="form-control" id="q" name="q" type="search" value="{{ query }}" placeholder="{% translate 'Name, email, employee number, or job title' %}"></div>
+    <div class="form-group"><label for="q">{% translate "Search" %}</label><input class="form-control" id="q" name="q" type="search" value="{{ query }}" placeholder="{% if show_hr_fields %}{% translate 'Name, email, employee number, or job title' %}{% else %}{% translate 'Name, employee number, or job title' %}{% endif %}"></div>
     <div class="form-group"><label for="status">{% translate "Status" %}</label><select class="form-select" id="status" name="status"><option value="">{% translate "All statuses" %}</option>{% for value,label in status_choices %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
     <div class="form-group"><label for="center">{% translate "Center station" %}</label><select class="form-select" id="center" name="center"><option value="">{% translate "All centers" %}</option>{% for center in centers %}<option value="{{ center.pk }}" {% if selected_center == center.pk|stringformat:'s' %}selected{% endif %}>{{ center.name }}</option>{% endfor %}</select></div>
     <button class="button button-secondary" type="submit">{% translate "Filter" %}</button>
@@ -18,16 +18,16 @@
   {% if page_obj %}
     <div class="table-wrap" tabindex="0" role="region" aria-labelledby="page-title">
       <table>
-        <thead><tr><th>{% translate "Employee" %}</th><th>{% translate "Project or program" %}</th><th>{% translate "Position" %}</th><th>{% translate "Status" %}</th><th>{% translate "Contact" %}</th><th>{% translate "Contract valid until" %}</th><th>{% translate "Stationed at" %}</th></tr></thead>
+        <thead><tr><th>{% translate "Employee" %}</th><th>{% translate "Project or program" %}</th><th>{% translate "Position" %}</th><th>{% translate "Status" %}</th>{% if show_hr_fields %}<th>{% translate "Contact" %}</th><th>{% translate "Contract valid until" %}</th>{% endif %}<th>{% translate "Stationed at" %}</th></tr></thead>
         <tbody>
           {% for staff in page_obj %}
             <tr>
-              <td><a href="{% url 'staff_detail' staff.pk %}"><strong>{{ staff.display_name }}</strong></a><br><small>{{ staff.employee_number }}{% if staff.user.email %} · {{ staff.user.email }}{% endif %}</small></td>
+              <td><a href="{% url 'staff_detail' staff.pk %}"><strong>{{ staff.display_name }}</strong></a><br><small>{{ staff.employee_number }}{% if show_hr_fields and staff.user.email %} · {{ staff.user.email }}{% endif %}</small></td>
               <td>{{ staff.project_program|default:_('Not provided') }}</td>
               <td>{{ staff.job_title|default:_('Not provided') }}</td>
               <td><span class="status status-{{ staff.status }}">{{ staff.get_status_display }}</span></td>
-              <td>{{ staff.contact_number|default:_('Not provided') }}{% if staff.user.email %}<br><small>{{ staff.user.email }}</small>{% endif %}</td>
-              <td>{{ staff.contract_valid_until|date:"SHORT_DATE_FORMAT"|default:_('Not provided') }}</td>
+              {% if show_hr_fields %}<td>{{ staff.contact_number|default:_('Not provided') }}{% if staff.user.email %}<br><small>{{ staff.user.email }}</small>{% endif %}</td>
+              <td>{{ staff.contract_valid_until|date:"SHORT_DATE_FORMAT"|default:_('Not provided') }}</td>{% endif %}
               <td>{% for center in staff.centers.all %}{{ center.name }}{% if center.pk == staff.primary_center_id %} ({% translate "Primary" %}){% endif %}{% if not forloop.last %}<br>{% endif %}{% empty %}{% translate "Not stationed" %}{% endfor %}</td>
             </tr>
           {% endfor %}

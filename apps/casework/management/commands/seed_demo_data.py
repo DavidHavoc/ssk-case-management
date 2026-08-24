@@ -10,14 +10,31 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from apps.accounts.roles import COORDINATOR, SPECIALIST, SYSTEM_MANAGER, ensure_application_groups
+from apps.casework.assessment_engine import complete_assessment, replace_draft_responses
 from apps.casework.models import (
     Assessment,
-    AssessmentDomainScore,
+    AssessmentInstrument,
+    AssessmentTemplateField,
+    AssessmentTemplateSection,
+    AssessmentTemplateVersion,
     Beneficiary,
     BeneficiarySpecialistAssignment,
+    CenterServiceOffering,
+    EnrollmentCenterPlacement,
+    EnrollmentServiceSchedule,
+    EnrollmentSpecialistAssignment,
+    EnrollmentStateEvent,
+    GoalCategory,
+    GoalOutcomeMeasurement,
+    GoalStatusTransition,
     IndividualPlan,
     IndividualPlanGoal,
+    IndividualPlanReview,
+    ServiceActivityDefinition,
+    ServiceDefinition,
+    ServiceEnrollment,
     ServiceVisit,
+    VisitLocationDefinition,
 )
 from apps.centers.models import (
     Center,
@@ -57,6 +74,7 @@ class Command(BaseCommand):
                     "address": "Synthetic Beta Address",
                 },
             )
+            offerings = self._offerings(alpha, beta)
 
             self._user("synthetic.manager@example.invalid", "Synthetic", "Manager", SYSTEM_MANAGER)
             self._staff_user(
@@ -100,18 +118,36 @@ class Command(BaseCommand):
                 "Provides synthetic social support services.",
             )
 
-            beneficiary_a = self._beneficiary(
-                "BEN-DEMO-0001", "Synthetic Beneficiary Alpha", alpha, specialist_a
+            beneficiary_a, enrollment_a = self._beneficiary(
+                "BEN-DEMO-0001",
+                "Synthetic Beneficiary Alpha",
+                alpha,
+                specialist_a,
+                offerings[(alpha.pk, "HOME-CARE")],
             )
-            beneficiary_multi = self._beneficiary(
-                "BEN-DEMO-0002", "Synthetic Beneficiary Multi", alpha, specialist_multi
+            beneficiary_multi, enrollment_multi = self._beneficiary(
+                "BEN-DEMO-0002",
+                "Synthetic Beneficiary Multi",
+                alpha,
+                specialist_multi,
+                offerings[(alpha.pk, "EARLY-INTERVENTION")],
             )
-            beneficiary_b = self._beneficiary(
-                "BEN-DEMO-0003", "Synthetic Beneficiary Beta", beta, specialist_b
+            self._enrollment(
+                beneficiary_multi,
+                specialist_multi,
+                offerings[(alpha.pk, "FOOD-DELIVERY")],
+                "BEN-DEMO-0002-E02",
             )
-            self._workflows(beneficiary_a, specialist_a)
-            self._workflows(beneficiary_multi, specialist_multi)
-            self._workflows(beneficiary_b, specialist_b)
+            beneficiary_b, enrollment_b = self._beneficiary(
+                "BEN-DEMO-0003",
+                "Synthetic Beneficiary Beta",
+                beta,
+                specialist_b,
+                offerings[(beta.pk, "HOME-CARE")],
+            )
+            self._workflows(beneficiary_a, specialist_a, enrollment_a)
+            self._workflows(beneficiary_multi, specialist_multi, enrollment_multi)
+            self._workflows(beneficiary_b, specialist_b, enrollment_b)
 
         self.stdout.write(self.style.SUCCESS("Synthetic demo data is ready."))
         if not os.getenv("SSK_DEMO_PASSWORD"):
@@ -136,6 +172,20 @@ class Command(BaseCommand):
         user.save()
         user.groups.add(Group.objects.get(name=role))
         return user
+
+    def _offerings(self, alpha: Center, beta: Center):
+        offerings = {}
+        for center in (alpha, beta):
+            for service in ServiceDefinition.objects.filter(
+                code__in=("HOME-CARE", "FOOD-DELIVERY", "EARLY-INTERVENTION")
+            ):
+                offering, _ = CenterServiceOffering.objects.get_or_create(
+                    center=center,
+                    service=service,
+                    valid_from=date(2026, 1, 1),
+                )
+                offerings[(center.pk, service.code)] = offering
+        return offerings
 
     def _staff_user(
         self,
@@ -188,8 +238,13 @@ class Command(BaseCommand):
         return profile
 
     def _beneficiary(
-        self, code: str, name: str, center: Center, specialist: SpecialistProfile
-    ) -> Beneficiary:
+        self,
+        code: str,
+        name: str,
+        center: Center,
+        specialist: SpecialistProfile,
+        offering: CenterServiceOffering,
+    ) -> tuple[Beneficiary, ServiceEnrollment]:
         beneficiary, _ = Beneficiary.objects.update_or_create(
             beneficiary_code=code,
             defaults={
@@ -217,44 +272,153 @@ class Command(BaseCommand):
                 "from_date": beneficiary.enrollment_date,
             },
         )
-        return beneficiary
+        enrollment = self._enrollment(
+            beneficiary,
+            specialist,
+            offering,
+            f"{code}-E01",
+        )
+        return beneficiary, enrollment
 
-    def _workflows(self, beneficiary: Beneficiary, specialist: SpecialistProfile) -> None:
+    def _enrollment(
+        self,
+        beneficiary: Beneficiary,
+        specialist: SpecialistProfile,
+        offering: CenterServiceOffering,
+        episode_code: str,
+    ) -> ServiceEnrollment:
+        start_date = date.today() - timedelta(days=60)
+        enrollment, _ = ServiceEnrollment.objects.update_or_create(
+            episode_code=episode_code,
+            defaults={
+                "beneficiary": beneficiary,
+                "service": offering.service,
+                "status": ServiceEnrollment.Status.ACTIVE,
+                "start_date": start_date,
+                "notes": "Synthetic service enrollment.",
+            },
+        )
+        EnrollmentCenterPlacement.objects.get_or_create(
+            enrollment=enrollment,
+            defaults={
+                "center": offering.center,
+                "offering": offering,
+                "valid_from": start_date,
+            },
+        )
+        EnrollmentSpecialistAssignment.objects.get_or_create(
+            enrollment=enrollment,
+            specialist=specialist,
+            valid_from=start_date,
+            defaults={"assignment_role": EnrollmentSpecialistAssignment.Role.PRIMARY},
+        )
+        EnrollmentStateEvent.objects.get_or_create(
+            enrollment=enrollment,
+            kind=EnrollmentStateEvent.Kind.ADMISSION,
+            effective_date=start_date,
+            defaults={
+                "previous_state": "",
+                "new_state": ServiceEnrollment.Status.ACTIVE,
+                "actor": specialist.staff_profile.user,
+            },
+        )
+        return enrollment
+
+    def _workflows(
+        self,
+        beneficiary: Beneficiary,
+        specialist: SpecialistProfile,
+        enrollment: ServiceEnrollment,
+    ) -> None:
+        activity = ServiceActivityDefinition.objects.get(code="INDIVIDUAL-MEETING")
+        location = VisitLocationDefinition.objects.get(code="CENTER")
         visit, _ = ServiceVisit.objects.update_or_create(
             beneficiary=beneficiary,
             specialist=specialist,
             visit_date=date.today() - timedelta(days=2),
             defaults={
+                "enrollment": enrollment,
                 "center": beneficiary.center,
-                "visit_type": ServiceVisit.VisitType.CENTER,
+                "activity": activity,
+                "delivery_location": location,
+                "participation_format": "individual",
                 "status": ServiceVisit.Status.COMPLETED,
                 "service_units": 1,
                 "duration_minutes": 60,
                 "notes": "Synthetic completed visit.",
             },
         )
+        EnrollmentServiceSchedule.objects.update_or_create(
+            enrollment=enrollment,
+            schedule_month=date.today().replace(day=1),
+            activity=activity,
+            delivery_location=location,
+            participation_format="individual",
+            defaults={
+                "planned_visits": 4,
+                "planned_units": 4,
+                "expected_participants": 1,
+                "notes": "Synthetic monthly service schedule.",
+            },
+        )
+        instrument = AssessmentInstrument.objects.get(code="OTHER")
+        template = AssessmentTemplateVersion.objects.filter(
+            instrument=instrument,
+            version="synthetic-demo-1",
+        ).first()
+        if template is None:
+            template = AssessmentTemplateVersion.objects.create(
+                instrument=instrument,
+                version="synthetic-demo-1",
+                name="Synthetic demonstration assessment",
+                comparison_group="SYNTHETIC-DEMO",
+                publication_notes="Synthetic structural example with no licensed questions.",
+            )
+            section = AssessmentTemplateSection.objects.create(
+                template_version=template,
+                code="SYNTHETIC",
+                name="Synthetic structure",
+            )
+            AssessmentTemplateField.objects.create(
+                section=section,
+                code="SYNTHETIC_SCORE",
+                label="Synthetic score",
+                response_type=AssessmentTemplateField.ResponseType.NUMERIC_SCORE,
+                minimum_value=0,
+                maximum_value=100,
+                include_in_total=True,
+            )
+            template.publish()
         assessment, _ = Assessment.objects.update_or_create(
             beneficiary=beneficiary,
             specialist=specialist,
             assessment_date=date.today() - timedelta(days=30),
             assessment_type=Assessment.AssessmentType.INITIAL,
             defaults={
+                "enrollment": enrollment,
                 "center": beneficiary.center,
-                "scoring_tool": Assessment.ScoringTool.OTHER,
-                "total_score": 10,
+                "scoring_tool": template.instrument.identifier,
+                "template_version": template,
                 "progress_summary": "Synthetic baseline summary.",
             },
         )
-        AssessmentDomainScore.objects.update_or_create(
-            assessment=assessment,
-            domain="Synthetic daily living domain",
-            defaults={"baseline_score": 4, "current_score": 6},
-        )
+        if assessment.status == Assessment.Status.DRAFT:
+            replace_draft_responses(
+                assessment,
+                [
+                    {
+                        "template_field": template.fields.get(code="SYNTHETIC_SCORE"),
+                        "numeric_value": 10,
+                    }
+                ],
+            )
+            assessment = complete_assessment(assessment)
         plan, _ = IndividualPlan.objects.update_or_create(
             beneficiary=beneficiary,
             specialist=specialist,
             plan_start_date=date.today() - timedelta(days=20),
             defaults={
+                "enrollment": enrollment,
                 "center": beneficiary.center,
                 "status": IndividualPlan.Status.ACTIVE,
                 "plan_end_date": date.today() + timedelta(days=70),
@@ -262,11 +426,53 @@ class Command(BaseCommand):
                 "notes": "Synthetic active plan.",
             },
         )
-        IndividualPlanGoal.objects.update_or_create(
+        goal, _ = IndividualPlanGoal.objects.update_or_create(
             plan=plan,
             goal="Complete a synthetic daily living activity independently.",
             defaults={
+                "category": GoalCategory.objects.get(code="LEGACY-UNCLASSIFIED"),
+                "baseline": "Requires specialist prompting for the synthetic activity.",
+                "measurable_target": "Completes the synthetic activity without prompting.",
+                "measurement_type": IndividualPlanGoal.MeasurementType.RATING_SCALE,
+                "measurement_unit_or_scale": "Independent, prompted, not completed",
+                "responsible_specialist": specialist,
                 "target_date": date.today() + timedelta(days=30),
                 "status": IndividualPlanGoal.Status.IN_PROGRESS,
+                "progress_notes": "Synthetic progress is recorded for demonstration only.",
+                "requires_review": False,
+            },
+        )
+        goal.assessment_findings.add(assessment)
+        visit.goals_worked_on.add(goal)
+        GoalStatusTransition.objects.get_or_create(
+            goal=goal,
+            from_status="",
+            to_status=IndividualPlanGoal.Status.IN_PROGRESS,
+            defaults={
+                "transition_date": plan.plan_start_date,
+                "actor": specialist.staff_profile.user,
+                "reason": "Synthetic initial goal state.",
+            },
+        )
+        GoalOutcomeMeasurement.objects.get_or_create(
+            goal=goal,
+            measurement_date=date.today() - timedelta(days=2),
+            defaults={
+                "rating": "Prompted",
+                "unit_or_scale": goal.measurement_unit_or_scale,
+                "interpretation": "Synthetic improvement from the baseline.",
+                "notes": "Synthetic measurement for local demonstration.",
+                "recorded_by": specialist.staff_profile.user,
+                "source_assessment": assessment,
+            },
+        )
+        IndividualPlanReview.objects.get_or_create(
+            plan=plan,
+            review_date=date.today() - timedelta(days=1),
+            defaults={
+                "condition_outcome": IndividualPlanReview.ConditionOutcome.IMPROVED,
+                "rationale": "Synthetic review based on recorded goal progress.",
+                "recorded_by": specialist.staff_profile.user,
+                "source_assessment": assessment,
             },
         )

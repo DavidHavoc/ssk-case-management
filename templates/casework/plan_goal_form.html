@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div>
+      <div class="eyebrow">{{ plan.beneficiary.full_name }}</div>
+      <h1>{{ title }}</h1>
+      {% if goal %}
+        <p>{% translate "Update this goal without changing the other goals saved in this plan." %}</p>
+      {% else %}
+        <p>{% translate "Add another goal without changing the goals already saved in this plan." %}</p>
+      {% endif %}
+    </div>
+  </header>
+
+  <form class="form-card" method="post" novalidate>
+    {% csrf_token %}
+    {% include "includes/form_error_summary.html" %}
+    <div class="form-grid">
+      {% include "includes/form_fields.html" %}
+    </div>
+    <div class="form-actions form-actions-sticky">
+      <button class="button button-primary" type="submit">
+        {% if goal %}{% translate "Save goal" %}{% else %}{% translate "Add goal" %}{% endif %}
+      </button>
+      <a class="button button-quiet" href="{% url 'plan_detail' plan.pk %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+
+  <section class="section-block" aria-labelledby="existing-goals-heading">
+    <div class="section-heading">
+      <div>
+        <h2 id="existing-goals-heading">{% translate "Existing goals" %}</h2>
+        <p>{% translate "These goals will stay in the plan when you add a new one." %}</p>
+      </div>
+    </div>
+    {% with existing_goals=plan.goals.all %}
+      {% if existing_goals %}
+        <div class="table-wrap" tabindex="0" role="region" aria-labelledby="existing-goals-heading">
+          <table>
+            <thead>
+              <tr>
+                <th>{% translate "Goal" %}</th>
+                <th>{% translate "Target date" %}</th>
+                <th>{% translate "Status" %}</th>
+                <th>{% translate "Progress notes" %}</th>
+                <th><span class="visually-hidden">{% translate "Actions" %}</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for existing_goal in existing_goals %}
+                <tr>
+                  <td>{{ existing_goal.goal }}</td>
+                  <td>{{ existing_goal.target_date|date:"SHORT_DATE_FORMAT"|default:_('Not set') }}</td>
+                  <td><span class="status status-{{ existing_goal.status }}">{{ existing_goal.get_status_display }}</span></td>
+                  <td>{{ existing_goal.progress_notes|default:_('No notes') }}</td>
+                  <td><a class="button button-quiet button-small" href="{% url 'plan_goal_update' plan.pk existing_goal.pk %}">{% translate "Edit" %}</a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state compact">{% translate "This plan has no goals yet." %}</div>
+      {% endif %}
+    {% endwith %}
+  </section>
+{% endblock %}

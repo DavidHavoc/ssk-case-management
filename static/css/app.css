@@ -242,6 +242,10 @@ td a { font-weight: 680; }
 .auth-panel > p { margin: 0.5rem 0 1.5rem; color: var(--color-muted); }
 .auth-panel .form-group { margin-bottom: 1rem; }
 .auth-link { display: inline-block; margin-top: 1rem; font-size: 0.86rem; font-weight: 650; }
+.auth-help { margin-top: 1rem; font-size: 0.86rem; }
+.access-code-panel { max-width: 52rem; }
+.access-code-panel > p { color: var(--color-muted); }
+.access-code { font-size: 1.05rem; font-weight: 760; letter-spacing: 0.08em; user-select: all; }
 
 @media (max-width: 64rem) {
   .app-layout { display: block; }

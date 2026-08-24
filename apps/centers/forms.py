@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import secrets
-
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -9,6 +7,7 @@ from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
 from apps.accounts.roles import SPECIALIST, ensure_application_groups
+from apps.accounts.services import issue_temporary_access_code
 from apps.core.forms import StyledForm, StyledModelForm
 from apps.core.validators import phone_number_validator
 
@@ -196,7 +195,7 @@ class NewSpecialistForm(StyledForm):
         return cleaned_data
 
     @transaction.atomic
-    def save(self) -> SpecialistProfile:
+    def save(self) -> tuple[SpecialistProfile, str]:
         ensure_application_groups()
         user = User.objects.create(
             username=self.cleaned_data["username"],
@@ -204,8 +203,7 @@ class NewSpecialistForm(StyledForm):
             first_name=self.cleaned_data["first_name"].strip(),
             last_name=self.cleaned_data["last_name"].strip(),
         )
-        user.set_password(secrets.token_urlsafe(32))
-        user.save(update_fields=["password"])
+        temporary_code = issue_temporary_access_code(user)
         user.groups.add(user.groups.model.objects.get(name=SPECIALIST))
         staff = StaffProfile.objects.create(
             user=user,
@@ -229,4 +227,4 @@ class NewSpecialistForm(StyledForm):
             center=self.center,
             is_primary=self.cleaned_data["is_primary"],
         )
-        return profile
+        return profile, temporary_code

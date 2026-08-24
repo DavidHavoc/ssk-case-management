@@ -14,7 +14,7 @@
       <input type="hidden" name="next" value="{{ next }}">
       <button class="button button-primary button-block" type="submit">{% translate "Sign in" %}</button>
     </form>
-    <a class="auth-link" href="{% url 'password_reset' %}">{% translate "Forgot your password?" %}</a>
+    <p class="auth-help">{% translate "If you cannot sign in, ask an authorized administrator to generate a new access code from your employee record." %}</p>
   </section>
 </div>
 {% endblock %}

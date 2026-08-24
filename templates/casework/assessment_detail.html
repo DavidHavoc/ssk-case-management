@@ -1,1 +1,76 @@
-{% extends "base.html" %}{% load i18n %}{% block title %}{% translate "Assessment" %}{% endblock %}{% block content %}<header class="page-header"><div><div class="eyebrow">{% blocktranslate with cycle=assessment.assessment_cycle_number %}Cycle {{ cycle }}{% endblocktranslate %}</div><h1>{{ assessment.get_assessment_type_display }} {% translate "assessment" %}</h1><p>{{ assessment.beneficiary.full_name }} · {{ assessment.assessment_date|date:"SHORT_DATE_FORMAT" }}</p></div><div class="actions"><a class="button button-secondary" href="{% url 'assessment_update' assessment.pk %}">{% translate "Edit" %}</a>{% if can_delete %}<a class="button button-danger" href="{% url 'assessment_delete' assessment.pk %}">{% translate "Delete" %}</a>{% endif %}<a class="button button-quiet" href="{% url 'assessment_list' %}">{% translate "Back to list" %}</a></div></header><dl class="detail-grid"><div class="detail-item"><dt>{% translate "Beneficiary" %}</dt><dd><a href="{% url 'beneficiary_detail' assessment.beneficiary.pk %}">{{ assessment.beneficiary.full_name }}</a></dd></div><div class="detail-item"><dt>{% translate "Specialist" %}</dt><dd>{{ assessment.specialist }}</dd></div><div class="detail-item"><dt>{% translate "Scoring tool" %}</dt><dd>{{ assessment.get_scoring_tool_display }}</dd></div><div class="detail-item"><dt>{% translate "Total score" %}</dt><dd>{{ assessment.total_score }}</dd></div><div class="detail-item"><dt>{% translate "Next review" %}</dt><dd>{{ assessment.next_review_date|date:"SHORT_DATE_FORMAT"|default:_('Not scheduled') }}</dd></div><div class="detail-item"><dt>{% translate "Previous assessment" %}</dt><dd>{% if assessment.previous_assessment %}<a href="{% url 'assessment_detail' assessment.previous_assessment.pk %}">{{ assessment.previous_assessment.assessment_date|date:"SHORT_DATE_FORMAT" }}</a>{% else %}{% translate "None" %}{% endif %}</dd></div><div class="detail-item wide"><dt>{% translate "Progress summary" %}</dt><dd>{{ assessment.progress_summary|default:_('Not provided')|linebreaksbr }}</dd></div><div class="detail-item wide"><dt>{% translate "Recommendations" %}</dt><dd>{{ assessment.recommendations|default:_('Not provided')|linebreaksbr }}</dd></div></dl><section class="section-block"><h2>{% translate "Domain scores" %}</h2><div class="table-wrap"><table><thead><tr><th>{% translate "Domain" %}</th><th>{% translate "Baseline" %}</th><th>{% translate "Current" %}</th><th>{% translate "Progress notes" %}</th></tr></thead><tbody>{% for score in assessment.domain_scores.all %}<tr><td>{{ score.domain }}</td><td>{{ score.baseline_score }}</td><td>{{ score.current_score }}</td><td>{{ score.progress_notes|default:_('No notes') }}</td></tr>{% endfor %}</tbody></table></div></section>{% include "includes/attachments.html" with object_id=assessment.pk %}{% endblock %}
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Assessment" %}{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="eyebrow">{% blocktranslate with chain=assessment.chain_number cycle=assessment.assessment_cycle_number %}Chain {{ chain }}, cycle {{ cycle }}{% endblocktranslate %}</div>
+    <h1>{{ assessment.get_assessment_type_display }} {% translate "assessment" %}</h1>
+    <p>{{ assessment.beneficiary.full_name }} · {{ assessment.assessment_date|date:"SHORT_DATE_FORMAT" }}</p>
+  </div>
+  <div class="actions">
+    {% if can_change_parent %}<a class="button button-secondary" href="{% url 'assessment_update' assessment.pk %}">{% translate "Edit notes and review details" %}</a>{% endif %}
+    {% if can_delete %}<a class="button button-danger" href="{% url 'assessment_delete' assessment.pk %}">{% translate "Delete draft" %}</a>{% endif %}
+    <a class="button button-quiet" href="{% url 'assessment_list' %}">{% translate "Back to list" %}</a>
+  </div>
+</header>
+
+<dl class="detail-grid">
+  <div class="detail-item"><dt>{% translate "Beneficiary" %}</dt><dd><a href="{% url 'beneficiary_detail' assessment.beneficiary.pk %}">{{ assessment.beneficiary.full_name }}</a></dd></div>
+  <div class="detail-item"><dt>{% translate "Instrument" %}</dt><dd>{{ assessment.template_version.instrument.name }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Template version" %}</dt><dd>{{ assessment.template_version.version }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Status" %}</dt><dd>{{ assessment.get_status_display }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Primary specialist" %}</dt><dd>{{ assessment.specialist }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Responsible specialists" %}</dt><dd>{% for specialist in assessment.responsible_specialists.all %}{{ specialist }}{% if not forloop.last %}, {% endif %}{% empty %}{% translate "None recorded" %}{% endfor %}</dd></div>
+  <div class="detail-item"><dt>{% translate "Calculated total" %}</dt><dd>{{ assessment.total_score }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Derived classification" %}</dt><dd>{{ assessment.derived_classification|default:_('Not classified') }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Delayed domains" %}</dt><dd>{{ assessment.delayed_domain_count }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Next review" %}</dt><dd>{{ assessment.next_review_date|date:"SHORT_DATE_FORMAT"|default:_('Not scheduled') }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Previous assessment" %}</dt><dd>{% if assessment.previous_assessment %}<a href="{% url 'assessment_detail' assessment.previous_assessment.pk %}">{{ assessment.previous_assessment.assessment_date|date:"SHORT_DATE_FORMAT" }}</a>{% else %}{% translate "None" %}{% endif %}</dd></div>
+  <div class="detail-item wide"><dt>{% translate "Progress summary" %}</dt><dd>{{ assessment.progress_summary|default:_('Not provided')|linebreaksbr }}</dd></div>
+  <div class="detail-item wide"><dt>{% translate "Recommendations" %}</dt><dd>{{ assessment.recommendations|default:_('Not provided')|linebreaksbr }}</dd></div>
+  <div class="detail-item wide"><dt>{% translate "Notes" %}</dt><dd>{{ assessment.notes|default:_('Not provided')|linebreaksbr }}</dd></div>
+</dl>
+
+<section class="section-block">
+  <h2>{% translate "Responses" %}</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>{% translate "Section" %}</th><th>{% translate "Field" %}</th><th>{% translate "State" %}</th><th>{% translate "Response" %}</th><th>{% translate "Notes" %}</th></tr></thead>
+    <tbody>
+      {% for response in assessment.responses.all %}
+        <tr>
+          <td>{{ response.template_field.section.name }}</td>
+          <td>{{ response.template_field.label }}</td>
+          <td>{{ response.get_state_display }}</td>
+          <td>{% if response.numeric_value != None %}{{ response.numeric_value }}{% elif response.choice_value %}{{ response.choice_value }}{% else %}{{ response.text_value|default:_('No value') }}{% endif %}</td>
+          <td>{{ response.notes|default:_('No notes') }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">{% translate "No structured responses recorded." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+{% if comparison %}
+<section class="section-block">
+  <h2>{% translate "Cycle comparison" %}</h2>
+  {% if comparison.comparable %}
+    <p>{% blocktranslate with total=comparison.total_change delayed=comparison.delayed_domain_change %}Total change: {{ total }}. Delayed-domain change: {{ delayed }}.{% endblocktranslate %}</p>
+    <div class="table-wrap"><table><thead><tr><th>{% translate "Field" %}</th><th>{% translate "Previous" %}</th><th>{% translate "Current" %}</th><th>{% translate "Change" %}</th></tr></thead><tbody>{% for row in comparison.responses %}<tr><td>{{ row.label }}</td><td>{{ row.previous }}</td><td>{{ row.current }}</td><td>{{ row.change }}</td></tr>{% empty %}<tr><td colspan="4">{% translate "No comparable numeric fields." %}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}
+    <div class="alert alert-info">{{ comparison.reason }}</div>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if assessment.domain_scores.exists %}
+<section class="section-block">
+  <h2>{% translate "Preserved legacy domain rows" %}</h2>
+  <p>{% translate "These raw historical values remain available for controlled mapping review." %}</p>
+  <div class="table-wrap"><table><thead><tr><th>{% translate "Domain" %}</th><th>{% translate "Baseline" %}</th><th>{% translate "Current" %}</th><th>{% translate "Mapping" %}</th><th>{% translate "Notes" %}</th></tr></thead><tbody>{% for score in assessment.domain_scores.all %}<tr><td>{{ score.domain }}</td><td>{{ score.baseline_score }}</td><td>{{ score.current_score }}</td><td>{{ score.get_mapping_status_display }}</td><td>{{ score.progress_notes|default:_('No notes') }}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endif %}
+
+{% include "includes/attachments.html" with object_id=assessment.pk %}
+{% endblock %}

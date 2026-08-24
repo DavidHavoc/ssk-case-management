@@ -18,17 +18,23 @@
     <div class="detail-item"><dt>{% translate "Position" %}</dt><dd>{{ staff.job_title|default:_('Not provided') }}</dd></div>
     <div class="detail-item"><dt>{% translate "Status" %}</dt><dd><span class="status status-{{ staff.status }}">{{ staff.get_status_display }}</span></dd></div>
     <div class="detail-item"><dt>{% translate "Employee number" %}</dt><dd>{{ staff.employee_number }}</dd></div>
-    <div class="detail-item"><dt>{% translate "Contact number" %}</dt><dd>{% if staff.contact_number %}<a href="tel:{{ staff.contact_number }}">{{ staff.contact_number }}</a>{% else %}{% translate "Not provided" %}{% endif %}</dd></div>
+    {% if show_hr_fields %}<div class="detail-item"><dt>{% translate "Contact number" %}</dt><dd>{% if staff.contact_number %}<a href="tel:{{ staff.contact_number }}">{{ staff.contact_number }}</a>{% else %}{% translate "Not provided" %}{% endif %}</dd></div>
     <div class="detail-item"><dt>{% translate "E-mail" %}</dt><dd>{% if staff.user.email %}<a href="mailto:{{ staff.user.email }}">{{ staff.user.email }}</a>{% else %}{% translate "Not provided" %}{% endif %}</dd></div>
     <div class="detail-item"><dt>{% translate "Contract signing date" %}</dt><dd>{{ staff.contract_signed_on|date:"SHORT_DATE_FORMAT"|default:_('Not provided') }}</dd></div>
-    <div class="detail-item"><dt>{% translate "Contract valid until" %}</dt><dd>{{ staff.contract_valid_until|date:"SHORT_DATE_FORMAT"|default:_('Not provided') }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Contract valid until" %}</dt><dd>{{ staff.contract_valid_until|date:"SHORT_DATE_FORMAT"|default:_('Not provided') }}</dd></div>{% endif %}
     <div class="detail-item"><dt>{% translate "Application role" %}</dt><dd>{% for group in staff.user.groups.all %}{{ group.name }}{% if not forloop.last %}, {% endif %}{% empty %}{% translate "No role assigned" %}{% endfor %}</dd></div>
     <div class="detail-item"><dt>{% translate "Primary center" %}</dt><dd>{{ staff.primary_center.name|default:_('Not provided') }}</dd></div>
     <div class="detail-item wide"><dt>{% translate "Center stations" %}</dt><dd>{% for center in staff.centers.all %}{{ center.name }}{% if center.pk == staff.primary_center_id %} ({% translate "Primary" %}){% endif %}{% if not forloop.last %}<br>{% endif %}{% empty %}{% translate "Not stationed" %}{% endfor %}</dd></div>
     <div class="detail-item"><dt>{% translate "Account status" %}</dt><dd>{% if staff.user.is_active %}{% translate "Active" %}{% else %}{% translate "Disabled" %}{% endif %}</dd></div>
     <div class="detail-item"><dt>{% translate "Last updated" %}</dt><dd>{{ staff.updated_at|date:"SHORT_DATETIME_FORMAT" }}</dd></div>
   </dl>
-  <section class="section-block">
+  {% if can_change_staff %}<section class="section-block">
+    <div class="section-heading">
+      <div><h2>{% translate "Account access" %}</h2><p>{% translate "Generate a temporary code if this employee cannot sign in. Their current password will stop working immediately." %}</p></div>
+      {% if staff.user_id != user.pk %}<form action="{% url 'staff_reset_access' staff.pk %}" method="post">{% csrf_token %}<button class="button button-secondary" type="submit" data-confirm="{% translate 'Generate a new access code and invalidate the current password?' %}">{% translate "Generate new access code" %}</button></form>{% endif %}
+    </div>
+  </section>{% endif %}
+  {% if show_hr_fields %}<section class="section-block">
     <div class="section-heading"><div><h2>{% translate "Description" %}</h2><p>{% translate "Professional profile information recorded for this employee." %}</p></div></div>
     {% if staff.description %}<p>{{ staff.description|linebreaksbr }}</p>{% else %}<div class="empty-state compact">{% translate "No description has been added." %}</div>{% endif %}
   </section>
@@ -56,5 +62,5 @@
     {% else %}
       <div class="empty-state compact">{% translate "No staff documents have been uploaded." %}</div>
     {% endif %}
-  </section>
+  </section>{% endif %}
 {% endblock %}

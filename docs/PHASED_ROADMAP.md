@@ -277,7 +277,7 @@ Feature completion does not satisfy this phase automatically.
 - External security review and threat model.
 - Native Georgian, accessibility, and role-specific UAT.
 - PostgreSQL integration, concurrency, capacity, and restore testing.
-- Monitoring, alerting, audit review, SMTP, TLS, trusted proxy, dependency scanning, patch ownership, and incident contacts.
+- Monitoring, alerting, audit review, secure temporary-code delivery, TLS, trusted proxy, dependency scanning, patch ownership, and incident contacts.
 - Encrypted off-host backups with approved RPO, RTO, retention, key custody, and observed restore evidence.
 - Approved real-data migration plan, reconciliation thresholds, cutover, rollback, and temporary-data disposal.
 

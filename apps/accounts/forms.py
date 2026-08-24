@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from django.conf import settings
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+
+from apps.core.forms import StyledFormMixin
 
 from .models import LoginThrottle
 
@@ -40,3 +42,9 @@ class RateLimitedAuthenticationForm(AuthenticationForm):
             raise ValidationError(self.error_message, code="invalid_login") from exc
         LoginThrottle.clear(keys)
         return cleaned_data
+
+
+class StyledPasswordChangeForm(StyledFormMixin, PasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_styles()
