@@ -3,44 +3,149 @@
 {% block title %}{% translate "Reports" %}{% endblock %}
 {% block content %}
   <header class="page-header">
-    <div><div class="eyebrow">{{ active_center.name }}</div><h1 id="page-title">{% translate "Reports" %}</h1><p>{% translate "Every report reuses the same server-side authorization as record lists and detail pages." %}</p></div>
-    {% if can_export %}<a class="button button-secondary" href="{% url 'report_export' %}?{{ request.GET.urlencode }}"><svg aria-hidden="true"><use href="#icon-report"></use></svg>{% translate "Export safe CSV" %}</a>{% endif %}
+    <div>
+      <div class="eyebrow">{{ active_center.name }}</div>
+      <h1 id="page-title">{% translate "Operational reports" %}</h1>
+      <p>{% translate "Every report starts with the same server-side authorization as record lists and detail pages." %}</p>
+    </div>
+    {% if can_export %}
+      <a class="button button-secondary" href="{% url 'report_export' %}?{{ request.GET.urlencode }}">
+        <svg aria-hidden="true"><use href="#icon-report"></use></svg>{% translate "Export safe CSV" %}
+      </a>
+    {% endif %}
   </header>
 
   <form class="form-card" method="get" aria-labelledby="report-filters-heading">
     <div class="form-section-heading"><h2 id="report-filters-heading">{% translate "Report filters" %}</h2></div>
     <div class="form-grid">
-      <div class="form-group"><label for="type">{% translate "Report" %}</label><select class="form-select" id="type" name="type">{% for value,label in report_types.items %}<option value="{{ value }}" {% if report_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-      <div class="form-group"><label for="q">{% translate "Beneficiary search" %}</label><input class="form-control" id="q" name="q" value="{{ request.GET.q }}"></div>
+      <div class="form-group">
+        <label for="type">{% translate "Report" %}</label>
+        <select class="form-select" id="type" name="type">
+          {% for value, label in report_types.items %}<option value="{{ value }}" {% if report_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group"><label for="q">{% translate "Search" %}</label><input class="form-control" id="q" name="q" value="{{ request.GET.q }}"></div>
       <div class="form-group"><label for="from_date">{% translate "From date" %}</label><input class="form-control" id="from_date" inputmode="numeric" name="from_date" placeholder="DD/MM/YYYY" type="text" value="{{ request.GET.from_date }}"></div>
-      <div class="form-group"><label for="to_date">{% translate "To date" %}</label><input class="form-control" id="to_date" inputmode="numeric" name="to_date" placeholder="DD/MM/YYYY" type="text" value="{{ request.GET.to_date }}"></div>
-      <div class="form-group"><label for="status">{% translate "Status or type" %}</label><select class="form-select" id="status" name="status"><option value="">{% translate "All" %}</option>{% for value,label in status_choices %}<option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-      {% if report_type != 'beneficiaries' and report_type != 'service_delivery' %}<div class="form-group"><label for="specialist">{% translate "Specialist" %}</label><select class="form-select" id="specialist" name="specialist"><option value="">{% translate "All authorized specialists" %}</option>{% for specialist in specialists %}<option value="{{ specialist.pk }}" {% if request.GET.specialist == specialist.pk|stringformat:'s' %}selected{% endif %}>{{ specialist }}</option>{% endfor %}</select></div>{% endif %}
-      {% if report_type == 'visits' or report_type == 'service_delivery' %}<div class="form-group"><label for="activity">{% translate "Activity" %}</label><select class="form-select" id="activity" name="activity"><option value="">{% translate "All activities" %}</option>{% for activity in activities %}<option value="{{ activity.pk }}" {% if request.GET.activity == activity.pk|stringformat:'s' %}selected{% endif %}>{{ activity }}</option>{% endfor %}</select></div><div class="form-group"><label for="location">{% translate "Location" %}</label><select class="form-select" id="location" name="location"><option value="">{% translate "All locations" %}</option>{% for location in locations %}<option value="{{ location.pk }}" {% if request.GET.location == location.pk|stringformat:'s' %}selected{% endif %}>{{ location }}</option>{% endfor %}</select></div>{% endif %}
+      <div class="form-group"><label for="to_date">{% translate "To date or reporting date" %}</label><input class="form-control" id="to_date" inputmode="numeric" name="to_date" placeholder="DD/MM/YYYY" type="text" value="{{ request.GET.to_date }}"></div>
+      <div class="form-group">
+        <label for="status">{% translate "Status, type, or exception" %}</label>
+        <select class="form-select" id="status" name="status">
+          <option value="">{% translate "All" %}</option>
+          {% for value, label in status_choices %}<option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      {% if show_specialist_filter %}
+        <div class="form-group">
+          <label for="specialist">{% translate "Specialist" %}</label>
+          <select class="form-select" id="specialist" name="specialist">
+            <option value="">{% translate "All authorized specialists" %}</option>
+            {% for specialist in specialists %}<option value="{{ specialist.pk }}" {% if request.GET.specialist == specialist.pk|stringformat:'s' %}selected{% endif %}>{{ specialist }}</option>{% endfor %}
+          </select>
+        </div>
+      {% endif %}
+      {% if show_service_filter %}
+        <div class="form-group">
+          <label for="service">{% translate "Service" %}</label>
+          <select class="form-select" id="service" name="service">
+            <option value="">{% translate "All services" %}</option>
+            {% for service in services %}<option value="{{ service.pk }}" {% if request.GET.service == service.pk|stringformat:'s' %}selected{% endif %}>{{ service }}</option>{% endfor %}
+          </select>
+        </div>
+      {% endif %}
+      {% if show_age_band_filter %}
+        <div class="form-group">
+          <label for="age_band">{% translate "SSK age band" %}</label>
+          <select class="form-select" id="age_band" name="age_band">
+            <option value="">{% translate "All age bands" %}</option>
+            {% for value, label in age_band_choices %}<option value="{{ value }}" {% if request.GET.age_band == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+      {% endif %}
+      {% if show_geography_filters %}
+        <div class="form-group">
+          <label for="region">{% translate "Region" %}</label>
+          <select class="form-select" id="region" name="region">
+            <option value="">{% translate "All regions" %}</option>
+            {% for region in regions %}<option value="{{ region.pk }}" {% if request.GET.region == region.pk|stringformat:'s' %}selected{% endif %}>{{ region }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="municipality">{% translate "Municipality" %}</label>
+          <select class="form-select" id="municipality" name="municipality">
+            <option value="">{% translate "All municipalities" %}</option>
+            {% for municipality in municipalities %}<option value="{{ municipality.pk }}" {% if request.GET.municipality == municipality.pk|stringformat:'s' %}selected{% endif %}>{{ municipality }}</option>{% endfor %}
+          </select>
+        </div>
+      {% endif %}
+      {% if show_activity_filters %}
+        <div class="form-group">
+          <label for="activity">{% translate "Activity" %}</label>
+          <select class="form-select" id="activity" name="activity">
+            <option value="">{% translate "All activities" %}</option>
+            {% for activity in activities %}<option value="{{ activity.pk }}" {% if request.GET.activity == activity.pk|stringformat:'s' %}selected{% endif %}>{{ activity }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="location">{% translate "Location" %}</label>
+          <select class="form-select" id="location" name="location">
+            <option value="">{% translate "All locations" %}</option>
+            {% for location in locations %}<option value="{{ location.pk }}" {% if request.GET.location == location.pk|stringformat:'s' %}selected{% endif %}>{{ location }}</option>{% endfor %}
+          </select>
+        </div>
+      {% endif %}
     </div>
     <div class="form-actions"><button class="button button-primary" type="submit">{% translate "Run report" %}</button></div>
   </form>
 
   <section class="section-block" aria-labelledby="report-results-heading">
-    <div class="section-heading"><div><h2 id="report-results-heading">{{ report_types|get_item:report_type }}</h2><p>{% blocktranslate with count=row_count %}{{ count }} authorized records. The page displays up to 500 rows.{% endblocktranslate %}</p></div></div>
+    <div class="section-heading">
+      <div>
+        <h2 id="report-results-heading">{{ report_types|get_item:report_type }}</h2>
+        <p>{% blocktranslate with count=row_count %}{{ count }} authorized rows. The page displays up to 500 rows.{% endblocktranslate %}</p>
+      </div>
+    </div>
     {% if rows %}
       <div class="table-wrap" tabindex="0" role="region" aria-labelledby="report-results-heading">
         <table>
-          {% if report_type == 'beneficiaries' %}
+          {% if report_type == 'beneficiary_breakdown' %}
+            <thead><tr><th>{% translate "Center" %}</th><th>{% translate "Service" %}</th><th>{% translate "Enrollment status" %}</th><th>{% translate "SSK age band" %}</th><th>{% translate "Region" %}</th><th>{% translate "Municipality" %}</th><th>{% translate "Beneficiaries" %}</th><th>{% translate "Enrollments" %}</th></tr></thead>
+            <tbody>{% for row in rows %}<tr><td>{{ row.center }}</td><td>{{ row.service }}</td><td>{{ row.enrollment_status }}</td><td>{{ row.age_band }}</td><td>{{ row.region }}</td><td>{{ row.municipality }}</td><td>{{ row.beneficiary_count }}</td><td>{{ row.enrollment_count }}</td></tr>{% endfor %}</tbody>
+          {% elif report_type == 'caseload' %}
+            <thead><tr><th>{% translate "Specialist" %}</th><th>{% translate "Beneficiaries" %}</th><th>{% translate "Enrollments" %}</th><th>{% translate "Active assignments" %}</th><th>{% translate "Pending" %}</th><th>{% translate "Active" %}</th><th>{% translate "Suspended" %}</th></tr></thead>
+            <tbody>{% for row in rows %}<tr><td>{{ row.specialist }}</td><td>{{ row.beneficiary_count }}</td><td>{{ row.enrollment_count }}</td><td>{{ row.active_assignment_count }}</td><td>{{ row.pending_count }}</td><td>{{ row.active_count }}</td><td>{{ row.suspended_count }}</td></tr>{% endfor %}</tbody>
+          {% elif report_type == 'service_delivery' %}
+            <thead><tr><th>{% translate "Month" %}</th><th>{% translate "Beneficiary and enrollment" %}</th><th>{% translate "Activity" %}</th><th>{% translate "Location and format" %}</th><th>{% translate "Planned visits" %}</th><th>{% translate "Delivered visits" %}</th><th>{% translate "Variance" %}</th><th>{% translate "Planned units" %}</th><th>{% translate "Delivered units" %}</th><th>{% translate "No show" %}</th><th>{% translate "Cancelled" %}</th></tr></thead>
+            <tbody>{% for row in rows %}<tr><td>{{ row.schedule_month|date:"Y-m" }}</td><td>{{ row.beneficiary.full_name }}<br><small>{{ row.enrollment.episode_code }} · {{ row.enrollment.service }}</small></td><td>{{ row.activity }}</td><td>{{ row.delivery_location }}<br><small>{{ row.participation_format }}</small></td><td>{{ row.planned_visits }}</td><td>{{ row.delivered_visits }}</td><td>{{ row.visit_variance }}</td><td>{{ row.planned_units }}</td><td>{{ row.delivered_units }}</td><td>{{ row.no_show_count }}</td><td>{{ row.cancelled_count }}</td></tr>{% endfor %}</tbody>
+          {% elif report_type == 'visit_exceptions' %}
+            <thead><tr><th>{% translate "Date" %}</th><th>{% translate "Beneficiary code" %}</th><th>{% translate "Enrollment" %}</th><th>{% translate "Activity" %}</th><th>{% translate "Location" %}</th><th>{% translate "Specialist" %}</th><th>{% translate "Exception" %}</th><th>{% translate "Days overdue" %}</th></tr></thead>
+            <tbody>{% for row in rows %}<tr><td><a href="{% url 'visit_detail' row.visit.pk %}">{{ row.visit.visit_date|date:"SHORT_DATE_FORMAT" }}</a></td><td>{{ row.visit.beneficiary.beneficiary_code }}</td><td>{{ row.visit.enrollment.episode_code }}</td><td>{{ row.visit.activity }}</td><td>{{ row.visit.delivery_location }}</td><td>{{ row.visit.specialist }}</td><td><span class="status status-warning">{{ row.exception_label }}</span></td><td>{{ row.days_overdue }}</td></tr>{% endfor %}</tbody>
+          {% elif report_type == 'assessments' %}
+            <thead><tr><th>{% translate "Date" %}</th><th>{% translate "Beneficiary" %}</th><th>{% translate "Enrollment" %}</th><th>{% translate "Service" %}</th><th>{% translate "Specialist" %}</th><th>{% translate "Type" %}</th><th>{% translate "Instrument" %}</th><th>{% translate "Version" %}</th><th>{% translate "Total" %}</th><th>{% translate "Classification" %}</th><th>{% translate "Delayed domains" %}</th></tr></thead>
+            <tbody>{% for row in rows %}<tr><td><a href="{% url 'assessment_detail' row.pk %}">{{ row.assessment_date|date:"SHORT_DATE_FORMAT" }}</a></td><td>{{ row.beneficiary.full_name }}</td><td>{{ row.enrollment.episode_code }}</td><td>{{ row.enrollment.service }}</td><td>{{ row.specialist }}</td><td><span class="status">{{ row.get_assessment_type_display }}</span></td><td>{{ row.template_version.instrument.name }}</td><td>{{ row.template_version.version }}</td><td>{{ row.total_score }}</td><td>{{ row.derived_classification|default:_('Not classified') }}</td><td>{{ row.delayed_domain_count }}</td></tr>{% endfor %}</tbody>
+          {% elif report_type == 'assessment_progress' %}
+            <thead><tr><th>{% translate "Date" %}</th><th>{% translate "Beneficiary code" %}</th><th>{% translate "Enrollment" %}</th><th>{% translate "Type" %}</th><th>{% translate "Instrument" %}</th><th>{% translate "Current total" %}</th><th>{% translate "Previous total" %}</th><th>{% translate "Total change" %}</th><th>{% translate "Delayed domains" %}</th><th>{% translate "Delayed-domain change" %}</th><th>{% translate "Comparison status" %}</th></tr></thead>
+            <tbody>{% for row in rows %}<tr><td><a href="{% url 'assessment_detail' row.assessment.pk %}">{{ row.assessment.assessment_date|date:"SHORT_DATE_FORMAT" }}</a></td><td>{{ row.assessment.beneficiary.beneficiary_code }}</td><td>{{ row.assessment.enrollment.episode_code }}</td><td>{{ row.assessment.get_assessment_type_display }}</td><td>{{ row.assessment.template_version.instrument.name }}</td><td>{{ row.assessment.total_score }}</td><td>{{ row.previous.total_score|default:_('Not applicable') }}</td><td>{{ row.total_change|default_if_none:_('Not applicable') }}</td><td>{{ row.assessment.delayed_domain_count }}</td><td>{{ row.delayed_domain_change|default_if_none:_('Not applicable') }}</td><td>{{ row.comparison_status }}</td></tr>{% endfor %}</tbody>
+          {% elif report_type == 'plan_goals' %}
+            <thead><tr><th>{% translate "Category" %}</th><th>{% translate "Goal status" %}</th><th>{% translate "Goals" %}</th><th>{% translate "Plans" %}</th><th>{% translate "Beneficiaries" %}</th><th>{% translate "Overdue goals" %}</th></tr></thead>
+            <tbody>{% for row in rows %}<tr><td>{{ row.category }}</td><td><span class="status status-{{ row.status }}">{{ row.status_label }}</span></td><td>{{ row.goal_count }}</td><td>{{ row.plan_count }}</td><td>{{ row.beneficiary_count }}</td><td>{{ row.overdue_count }}</td></tr>{% endfor %}</tbody>
+          {% elif report_type == 'beneficiary_outcomes' %}
+            <thead><tr><th>{% translate "Beneficiary and enrollment" %}</th><th>{% translate "Plan status" %}</th><th>{% translate "Child condition outcome" %}</th><th>{% translate "Total goals" %}</th><th>{% translate "Achieved goals" %}</th><th>{% translate "Active goals" %}</th><th>{% translate "Deferred goals" %}</th><th>{% translate "Achieved percent" %}</th></tr></thead>
+            <tbody>{% for row in rows %}<tr><td><a href="{% url 'plan_detail' row.plan.pk %}">{{ row.plan.beneficiary.full_name }}</a><br><small>{{ row.plan.enrollment.episode_code }} · {{ row.plan.enrollment.service }}</small></td><td><span class="status status-{{ row.plan.status }}">{{ row.plan.get_status_display }}</span></td><td>{{ row.condition_outcome }}</td><td>{{ row.total_goals }}</td><td>{{ row.achieved_goals }}</td><td>{{ row.active_goals }}</td><td>{{ row.deferred_goals }}</td><td>{{ row.achieved_percent }}%</td></tr>{% endfor %}</tbody>
+          {% elif report_type == 'enrollment_trends' %}
+            <thead><tr><th>{% translate "Month" %}</th><th>{% translate "Lifecycle event" %}</th><th>{% translate "Service" %}</th><th>{% translate "Events" %}</th><th>{% translate "Beneficiaries" %}</th></tr></thead>
+            <tbody>{% for row in rows %}<tr><td>{{ row.month|date:"Y-m"|default:_('Unknown') }}</td><td>{{ row.event_label }}</td><td>{{ row.service }}</td><td>{{ row.event_count }}</td><td>{{ row.beneficiary_count }}</td></tr>{% endfor %}</tbody>
+          {% elif report_type == 'data_quality' %}
+            <thead><tr><th>{% translate "Severity" %}</th><th>{% translate "Issue" %}</th><th>{% translate "Record type" %}</th><th>{% translate "Beneficiary code" %}</th><th>{% translate "Enrollment" %}</th><th>{% translate "Service" %}</th><th>{% translate "Due date" %}</th><th>{% translate "Action" %}</th></tr></thead>
+            <tbody>{% for row in rows %}<tr><td><span class="status status-{{ row.severity }}">{{ row.severity }}</span></td><td>{{ row.issue }}</td><td>{{ row.record_type }}</td><td>{{ row.beneficiary_code }}</td><td>{{ row.enrollment_code }}</td><td>{{ row.service }}</td><td>{{ row.due_date|date:"SHORT_DATE_FORMAT"|default:_('Review now') }}</td><td><a href="{{ row.url }}">{% translate "Open record" %}</a></td></tr>{% endfor %}</tbody>
+          {% elif report_type == 'beneficiaries' %}
             <thead><tr><th>{% translate "Person code" %}</th><th>{% translate "Name" %}</th><th>{% translate "Age" %}</th><th>{% translate "SSK age band" %}</th><th>{% translate "Region" %}</th><th>{% translate "Municipality" %}</th></tr></thead>
             <tbody>{% for row in rows %}<tr><td>{{ row.beneficiary_code }}</td><td><a href="{% url 'beneficiary_detail' row.pk %}">{{ row.full_name }}</a></td><td>{{ row.age_years_months|default:_('Unknown') }}</td><td>{{ row.ssk_age_band|default:_('Outside 0-7') }}</td><td>{% if row.region_ref %}{{ row.region_ref }}{% else %}{{ row.region }}{% endif %}</td><td>{% if row.municipality_ref %}{{ row.municipality_ref }}{% else %}{{ row.municipality }}{% endif %}</td></tr>{% endfor %}</tbody>
           {% elif report_type == 'enrollments' %}
             <thead><tr><th>{% translate "Enrollment code" %}</th><th>{% translate "Beneficiary" %}</th><th>{% translate "Service" %}</th><th>{% translate "Status" %}</th><th>{% translate "Start" %}</th><th>{% translate "End" %}</th></tr></thead>
             <tbody>{% for row in rows %}<tr><td>{{ row.episode_code }}</td><td><a href="{% url 'beneficiary_detail' row.beneficiary.pk %}?enrollment={{ row.pk }}">{{ row.beneficiary.full_name }}</a></td><td>{{ row.service }}</td><td><span class="status status-{{ row.status }}">{{ row.get_status_display }}</span></td><td>{{ row.start_date|date:"SHORT_DATE_FORMAT"|default:_('Unknown') }}</td><td>{{ row.end_date|date:"SHORT_DATE_FORMAT"|default:_('Open') }}</td></tr>{% endfor %}</tbody>
-          {% elif report_type == 'service_delivery' %}
-            <thead><tr><th>{% translate "Month" %}</th><th>{% translate "Beneficiary and enrollment" %}</th><th>{% translate "Activity" %}</th><th>{% translate "Location and format" %}</th><th>{% translate "Planned visits" %}</th><th>{% translate "Delivered visits" %}</th><th>{% translate "Variance" %}</th><th>{% translate "Planned units" %}</th><th>{% translate "Delivered units" %}</th><th>{% translate "No show" %}</th><th>{% translate "Cancelled" %}</th></tr></thead>
-            <tbody>{% for row in rows %}<tr><td>{{ row.schedule_month|date:"Y-m" }}</td><td>{{ row.beneficiary.full_name }}<br><small>{{ row.enrollment.episode_code }} · {{ row.enrollment.service }}</small></td><td>{{ row.activity }}</td><td>{{ row.delivery_location }}<br><small>{{ row.participation_format }}</small></td><td>{{ row.planned_visits }}</td><td>{{ row.delivered_visits }}</td><td>{{ row.visit_variance }}</td><td>{{ row.planned_units }}</td><td>{{ row.delivered_units }}</td><td>{{ row.no_show_count }}</td><td>{{ row.cancelled_count }}</td></tr>{% endfor %}</tbody>
           {% elif report_type == 'visits' %}
             <thead><tr><th>{% translate "Date" %}</th><th>{% translate "Beneficiary" %}</th><th>{% translate "Enrollment" %}</th><th>{% translate "Activity" %}</th><th>{% translate "Location and format" %}</th><th>{% translate "Specialist" %}</th><th>{% translate "Status" %}</th><th>{% translate "Units" %}</th></tr></thead>
             <tbody>{% for row in rows %}<tr><td><a href="{% url 'visit_detail' row.pk %}">{{ row.visit_date|date:"SHORT_DATE_FORMAT" }}</a></td><td>{{ row.beneficiary.full_name }}</td><td>{{ row.enrollment.episode_code }}</td><td>{{ row.activity }}</td><td>{{ row.delivery_location }} · {{ row.get_participation_format_display }}</td><td>{{ row.specialist }}</td><td><span class="status status-{{ row.status }}">{{ row.get_status_display }}</span></td><td>{{ row.service_units }}</td></tr>{% endfor %}</tbody>
-          {% elif report_type == 'assessments' %}
-            <thead><tr><th>{% translate "Date" %}</th><th>{% translate "Beneficiary" %}</th><th>{% translate "Enrollment" %}</th><th>{% translate "Service" %}</th><th>{% translate "Specialist" %}</th><th>{% translate "Type" %}</th><th>{% translate "Instrument" %}</th><th>{% translate "Version" %}</th><th>{% translate "Total" %}</th><th>{% translate "Classification" %}</th><th>{% translate "Delayed domains" %}</th></tr></thead>
-            <tbody>{% for row in rows %}<tr><td><a href="{% url 'assessment_detail' row.pk %}">{{ row.assessment_date|date:"SHORT_DATE_FORMAT" }}</a></td><td>{{ row.beneficiary.full_name }}</td><td>{{ row.enrollment.episode_code }}</td><td>{{ row.enrollment.service }}</td><td>{{ row.specialist }}</td><td><span class="status">{{ row.get_assessment_type_display }}</span></td><td>{{ row.template_version.instrument.name }}</td><td>{{ row.template_version.version }}</td><td>{{ row.total_score }}</td><td>{{ row.derived_classification|default:_('Not classified') }}</td><td>{{ row.delayed_domain_count }}</td></tr>{% endfor %}</tbody>
           {% elif report_type == 'plan_outcomes' %}
             <thead><tr><th>{% translate "Beneficiary and enrollment" %}</th><th>{% translate "Plan version" %}</th><th>{% translate "Plan status" %}</th><th>{% translate "Category" %}</th><th>{% translate "Total goals" %}</th><th>{% translate "Planned goals" %}</th><th>{% translate "In-progress goals" %}</th><th>{% translate "Achieved goals" %}</th><th>{% translate "Deferred goals" %}</th><th>{% translate "Cancelled goals" %}</th><th>{% translate "Child condition outcome" %}</th></tr></thead>
             <tbody>{% for row in rows %}<tr><td><a href="{% url 'plan_detail' row.plan.pk %}">{{ row.plan.beneficiary.full_name }}</a><br><small>{{ row.plan.enrollment.episode_code }} · {{ row.plan.enrollment.service }}</small></td><td>{{ row.plan.version_number }}</td><td><span class="status status-{{ row.plan.status }}">{{ row.plan.get_status_display }}</span></td><td>{{ row.category_label }}</td><td>{{ row.total_goals }}</td><td>{{ row.planned_goals }}</td><td>{{ row.in_progress_goals }}</td><td>{{ row.achieved_goals }}</td><td>{{ row.deferred_goals }}</td><td>{{ row.cancelled_goals }}</td><td>{{ row.condition_outcome }}</td></tr>{% endfor %}</tbody>

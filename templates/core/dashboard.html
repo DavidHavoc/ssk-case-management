@@ -13,6 +13,10 @@
         <svg aria-hidden="true"><use href="#icon-report"></use></svg>
         {% translate "Open reports" %}
       </a>
+      <a class="button button-quiet" href="{% url 'reminders' %}">
+        <svg aria-hidden="true"><use href="#icon-assessment"></use></svg>
+        {% translate "Open reminders" %}
+      </a>
       {% if is_coordinator or is_system_manager %}
         <a class="button button-primary" href="{% url 'beneficiary_create' %}">
           <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
@@ -70,6 +74,7 @@
         <a href="{% url 'schedule_list' %}">{% translate "Service schedules" %}</a>
         <a href="{% url 'assessment_create' %}">{% translate "Create assessment" %}</a>
         <a href="{% url 'plan_create' %}">{% translate "Create individual plan" %}</a>
+        <a href="{% url 'reminders' %}">{% translate "Review reminders" %}</a>
         {% if is_coordinator or is_system_manager %}
           <a href="{% url 'center_detail' %}">{% translate "Open center roster" %}</a>
         {% else %}

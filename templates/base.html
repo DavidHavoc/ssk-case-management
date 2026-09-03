@@ -42,12 +42,15 @@
         <nav class="sidebar-nav">
           {% if has_casework_access %}<div class="nav-section">
             <span class="nav-section-label">{% translate "Workspace" %}</span>
-            <a class="nav-item{% if route == 'dashboard' %} is-active{% endif %}" href="{% url 'dashboard' %}"{% if route == 'dashboard' %} aria-current="page"{% endif %}>
+            {% if not is_specialist_only %}<a class="nav-item{% if route == 'dashboard' %} is-active{% endif %}" href="{% url 'dashboard' %}"{% if route == 'dashboard' %} aria-current="page"{% endif %}>
               <svg aria-hidden="true"><use href="#icon-dashboard"></use></svg><span>{% translate "Dashboard" %}</span>
-            </a>
-            <a class="nav-item{% if 'beneficiary' in route %} is-active{% endif %}" href="{% url 'beneficiary_list' %}"{% if 'beneficiary' in route %} aria-current="page"{% endif %}>
+            </a>{% endif %}
+            {% if is_specialist %}<a class="nav-item{% if route == 'specialist_workspace' %} is-active{% endif %}" href="{% url 'specialist_workspace' %}"{% if route == 'specialist_workspace' %} aria-current="page"{% endif %}>
+              <svg aria-hidden="true"><use href="#icon-people"></use></svg><span>{% translate "My beneficiaries" %}</span>
+            </a>{% endif %}
+            {% if not is_specialist_only %}<a class="nav-item{% if 'beneficiary' in route %} is-active{% endif %}" href="{% url 'beneficiary_list' %}"{% if 'beneficiary' in route %} aria-current="page"{% endif %}>
               <svg aria-hidden="true"><use href="#icon-people"></use></svg><span>{% translate "Beneficiaries" %}</span>
-            </a>
+            </a>{% endif %}
             <a class="nav-item{% if 'visit' in route %} is-active{% endif %}" href="{% url 'visit_list' %}"{% if 'visit' in route %} aria-current="page"{% endif %}>
               <svg aria-hidden="true"><use href="#icon-visit"></use></svg><span>{% translate "Visits" %}</span>
             </a>
@@ -69,6 +72,9 @@
             {% if has_casework_access %}
             <a class="nav-item{% if 'report' in route %} is-active{% endif %}" href="{% url 'reports' %}"{% if 'report' in route %} aria-current="page"{% endif %}>
               <svg aria-hidden="true"><use href="#icon-report"></use></svg><span>{% translate "Reports" %}</span>
+            </a>
+            <a class="nav-item{% if route == 'reminders' %} is-active{% endif %}" href="{% url 'reminders' %}"{% if route == 'reminders' %} aria-current="page"{% endif %}>
+              <svg aria-hidden="true"><use href="#icon-assessment"></use></svg><span>{% translate "Reminders" %}</span>
             </a>
             <a class="nav-item{% if route == 'center_detail' or 'specialist' in route %} is-active{% endif %}" href="{% url 'center_detail' %}"{% if route == 'center_detail' or 'specialist' in route %} aria-current="page"{% endif %}>
               <svg aria-hidden="true"><use href="#icon-center"></use></svg><span>{% translate "Center roster" %}</span>

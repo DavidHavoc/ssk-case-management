@@ -17,6 +17,8 @@ from apps.casework.models import (
     BeneficiaryDiagnosis,
     BeneficiarySocialStatus,
     EnrollmentServiceSchedule,
+    EnrollmentSpecialistAssignment,
+    EnrollmentStateEvent,
     IndividualPlan,
     ServiceEnrollment,
     ServiceVisit,
@@ -29,6 +31,12 @@ ACTIVE_CENTER_SESSION_KEY = "ssk_active_center"
 
 class CenterSelectionRequired(PermissionDenied):
     pass
+
+
+def casework_home_route(user) -> str:
+    if is_specialist(user) and not (is_coordinator(user) or is_system_manager(user)):
+        return "specialist_workspace"
+    return "dashboard"
 
 
 def accessible_centers(user, *, active_only: bool = False) -> QuerySet[Center]:
@@ -163,6 +171,23 @@ def specialists_for_center(center: Center) -> QuerySet[SpecialistProfile]:
     )
 
 
+def staff_contracts_for_user(user, center: Center | None = None) -> QuerySet[StaffProfile]:
+    """Return staff contract dates that the user may receive in-app reminders about."""
+    queryset = StaffProfile.objects.select_related("user", "primary_center").prefetch_related(
+        "centers"
+    )
+    if center is None:
+        return queryset.none()
+    at_center = Q(primary_center=center) | Q(centers=center)
+    if is_system_manager(user):
+        return queryset.filter(at_center).distinct()
+    if is_coordinator(user) and accessible_centers(user).filter(pk=center.pk).exists():
+        return queryset.filter(at_center).distinct()
+    if is_specialist(user):
+        return queryset.filter(user=user).filter(at_center).distinct()
+    return queryset.none()
+
+
 def _effective_interval(prefix: str, on_date) -> Q:
     return Q(**{f"{prefix}valid_from__lte": on_date}) & (
         Q(**{f"{prefix}valid_to__isnull": True}) | Q(**{f"{prefix}valid_to__gt": on_date})
@@ -214,6 +239,115 @@ def enrollments_for_user(
                 .distinct()
             )
     return queryset.none()
+
+
+def assigned_enrollments_for_specialist(
+    user,
+    center: Center | None = None,
+    *,
+    as_of=None,
+) -> QuerySet[ServiceEnrollment]:
+    """Return the current enrollment assignments for the user's specialist profile.
+
+    This selector intentionally ignores any additional coordinator role so a mixed-role
+    user's specialist workspace remains a clearly bounded operational view.
+    """
+    on_date = as_of or timezone.localdate()
+    queryset = ServiceEnrollment.objects.select_related(
+        "beneficiary",
+        "service",
+        "prior_enrollment",
+    ).prefetch_related(
+        "center_placements__center",
+        "specialist_assignments__specialist__staff_profile__user",
+        "state_events",
+    )
+    if (
+        center is None
+        or not is_specialist(user)
+        or not accessible_centers(user).filter(pk=center.pk).exists()
+    ):
+        return queryset.none()
+    profile = specialist_profile_for_user(user)
+    if profile is None:
+        return queryset.none()
+    current_placement = Q(center_placements__center=center) & _effective_interval(
+        "center_placements__", on_date
+    )
+    assignment = Q(specialist_assignments__specialist=profile) & _effective_interval(
+        "specialist_assignments__", on_date
+    )
+    return (
+        queryset.exclude(status__in=ServiceEnrollment.TERMINAL_STATUSES)
+        .filter(current_placement & assignment)
+        .distinct()
+    )
+
+
+def assigned_beneficiaries_for_specialist(
+    user,
+    center: Center | None = None,
+    *,
+    as_of=None,
+) -> QuerySet[Beneficiary]:
+    authorized_enrollments = assigned_enrollments_for_specialist(
+        user,
+        center,
+        as_of=as_of,
+    )
+    return (
+        Beneficiary.objects.select_related("center", "region_ref", "municipality_ref")
+        .filter(enrollments__in=authorized_enrollments)
+        .distinct()
+        .prefetch_related(
+            Prefetch(
+                "enrollments",
+                queryset=authorized_enrollments,
+                to_attr="authorized_enrollments",
+            )
+        )
+    )
+
+
+def active_enrollment_assignments_for_user(
+    user,
+    center: Center | None = None,
+    *,
+    as_of=None,
+) -> QuerySet[EnrollmentSpecialistAssignment]:
+    """Return active assignments whose enrollments are already authorized for the user."""
+    on_date = as_of or timezone.localdate()
+    authorized_enrollments = enrollments_for_user(user, center, as_of=on_date)
+    queryset = (
+        EnrollmentSpecialistAssignment.objects.select_related(
+            "enrollment__beneficiary",
+            "enrollment__service",
+            "specialist__staff_profile__user",
+        )
+        .filter(
+            enrollment__in=authorized_enrollments,
+            valid_from__lte=on_date,
+        )
+        .filter(Q(valid_to__isnull=True) | Q(valid_to__gt=on_date))
+    )
+    if is_specialist(user) and not (is_coordinator(user) or is_system_manager(user)):
+        profile = specialist_profile_for_user(user)
+        if profile is None:
+            return queryset.none()
+        queryset = queryset.filter(specialist=profile)
+    return queryset.distinct()
+
+
+def enrollment_events_for_user(
+    user,
+    center: Center | None = None,
+) -> QuerySet[EnrollmentStateEvent]:
+    """Return lifecycle events only through an authorized enrollment queryset."""
+    authorized_enrollments = enrollments_for_user(user, center)
+    return EnrollmentStateEvent.objects.select_related(
+        "enrollment__beneficiary",
+        "enrollment__service",
+    ).filter(enrollment__in=authorized_enrollments)
 
 
 def beneficiaries_for_user(user, center: Center | None = None) -> QuerySet[Beneficiary]:
@@ -297,7 +431,21 @@ def case_records_changeable_by_user(model, user, center: Center | None = None):
     return queryset.filter(assignment_at_record_date).distinct()
 
 
-def can_create_case_record(user, center: Center, enrollment: ServiceEnrollment, on_date) -> bool:
+def can_create_case_record(
+    user,
+    center: Center,
+    enrollment: ServiceEnrollment,
+    on_date,
+    *,
+    allowed_statuses=None,
+) -> bool:
+    allowed_statuses = allowed_statuses or {ServiceEnrollment.Status.ACTIVE}
+    if (
+        enrollment is None
+        or on_date is None
+        or enrollment.status_on(on_date) not in allowed_statuses
+    ):
+        return False
     placement = enrollment.placement_on(on_date) if enrollment and on_date else None
     if placement is None or placement.center_id != center.pk:
         return False

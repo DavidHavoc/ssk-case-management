@@ -12,11 +12,13 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from apps.accounts.roles import is_coordinator, is_system_manager
+from apps.accounts.roles import is_coordinator, is_specialist, is_system_manager
 from apps.audit.models import AuditEvent
 from apps.audit.services import record_event
 from apps.core.authorization import (
     assessments_for_user,
+    assigned_beneficiaries_for_specialist,
+    assigned_enrollments_for_specialist,
     beneficiaries_for_user,
     can_create_case_record,
     can_view_restricted_beneficiary_fields,
@@ -83,6 +85,7 @@ from .services import (
     transition_enrollment,
 )
 from .timeline import beneficiary_timeline_page
+from .workspace import build_enrollment_workspace_rows, build_workspace_documents
 
 
 def _page(request, queryset, per_page: int = 30):
@@ -152,9 +155,18 @@ def _legacy_intake_post(request):
     return data
 
 
-@active_center_required
-def beneficiary_list(request):
-    queryset = beneficiaries_for_user(request.user, request.ssk_center)
+def _beneficiary_list(request, *, specialist_workspace=False):
+    if specialist_workspace:
+        if not is_specialist(request.user):
+            raise PermissionDenied
+        queryset = assigned_beneficiaries_for_specialist(request.user, request.ssk_center)
+        authorized_enrollments = assigned_enrollments_for_specialist(
+            request.user,
+            request.ssk_center,
+        )
+    else:
+        queryset = beneficiaries_for_user(request.user, request.ssk_center)
+        authorized_enrollments = enrollments_for_user(request.user, request.ssk_center)
     query = request.GET.get("q", "").strip()
     status = request.GET.get("status", "").strip()
     service_type = request.GET.get("service_type", "").strip()
@@ -163,23 +175,52 @@ def beneficiary_list(request):
             Q(full_name__icontains=query) | Q(beneficiary_code__icontains=query)
         )
     if status:
-        queryset = queryset.filter(enrollments__status=status)
+        queryset = queryset.filter(enrollments__in=authorized_enrollments.filter(status=status))
     if service_type:
-        queryset = queryset.filter(enrollments__service_id=service_type)
+        queryset = queryset.filter(
+            enrollments__in=authorized_enrollments.filter(service_id=service_type)
+        )
     queryset = queryset.distinct()
+    page_obj = _page(request, queryset)
+    page_enrollments = authorized_enrollments.filter(
+        beneficiary_id__in=[beneficiary.pk for beneficiary in page_obj.object_list]
+    )
+    workspace_rows = build_enrollment_workspace_rows(
+        page_enrollments,
+        visits=visits_for_user(request.user, request.ssk_center),
+        assessments=current_assessments_for_user(request.user, request.ssk_center),
+        plans=plans_for_user(request.user, request.ssk_center),
+        as_of=timezone.localdate(),
+    )
+    rows_by_beneficiary = {}
+    for row in workspace_rows:
+        rows_by_beneficiary.setdefault(row.enrollment.beneficiary_id, []).append(row)
+    for beneficiary in page_obj.object_list:
+        beneficiary.workspace_enrollments = rows_by_beneficiary.get(beneficiary.pk, [])
     return render(
         request,
         "casework/beneficiary_list.html",
         {
-            "page_obj": _page(request, queryset),
+            "page_obj": page_obj,
             "query": query,
             "selected_status": status,
             "selected_service_type": service_type,
             "status_choices": ServiceEnrollment.Status.choices,
             "service_type_choices": ServiceDefinition.objects.filter(is_active=True),
-            "can_create": _can_manage_restricted(request.user),
+            "can_create": _can_manage_restricted(request.user) and not specialist_workspace,
+            "specialist_workspace": specialist_workspace,
         },
     )
+
+
+@active_center_required
+def beneficiary_list(request):
+    return _beneficiary_list(request)
+
+
+@active_center_required
+def specialist_workspace(request):
+    return _beneficiary_list(request, specialist_workspace=True)
 
 
 @active_center_required
@@ -213,7 +254,7 @@ def beneficiary_detail(request, pk):
     restricted = can_view_restricted_beneficiary_fields(
         request.user, beneficiary, request.ssk_center
     )
-    attachments = (
+    beneficiary_attachments = (
         case_attachments(request.user, request.ssk_center).list(
             AttachmentParentType.BENEFICIARY, beneficiary.pk
         )
@@ -227,6 +268,41 @@ def beneficiary_detail(request, pk):
         beneficiary=beneficiary,
         enrollment=selected_enrollment,
         page_number=request.GET.get("timeline_page"),
+    )
+    authorized_visits = visits_for_user(request.user, request.ssk_center).filter(
+        enrollment=selected_enrollment
+    )
+    authorized_schedules = schedules_for_user(request.user, request.ssk_center).filter(
+        enrollment=selected_enrollment
+    )
+    authorized_assessments = current_assessments_for_user(
+        request.user,
+        request.ssk_center,
+    ).filter(enrollment=selected_enrollment)
+    authorized_plans = plans_for_user(request.user, request.ssk_center).filter(
+        enrollment=selected_enrollment
+    )
+    workspace_summary = build_enrollment_workspace_rows(
+        [selected_enrollment],
+        visits=authorized_visits,
+        assessments=authorized_assessments,
+        plans=authorized_plans,
+        as_of=timezone.localdate(),
+    )[0]
+    related_attachments = case_attachments(
+        request.user,
+        request.ssk_center,
+    ).timeline_for_beneficiary(beneficiary, selected_enrollment)
+    workspace_documents = build_workspace_documents(
+        related_attachments,
+        beneficiary_attachments=beneficiary_attachments,
+        beneficiary_id=beneficiary.pk,
+    )
+    can_add_case_record = can_create_case_record(
+        request.user,
+        request.ssk_center,
+        selected_enrollment,
+        timezone.localdate(),
     )
     return render(
         request,
@@ -246,15 +322,15 @@ def beneficiary_detail(request, pk):
                 enrollment=selected_enrollment,
             ),
             "show_restricted": restricted,
-            "attachments": attachments,
+            "workspace_summary": workspace_summary,
+            "workspace_visits": authorized_visits[:10],
+            "workspace_schedules": authorized_schedules[:10],
+            "workspace_assessments": authorized_assessments[:10],
+            "workspace_plans": authorized_plans.prefetch_related("goals")[:10],
+            "workspace_documents": workspace_documents,
             "attachment_parent_type": AttachmentParentType.BENEFICIARY,
             "can_delete": is_system_manager(request.user),
-            "can_add_case_record": can_create_case_record(
-                request.user,
-                request.ssk_center,
-                selected_enrollment,
-                timezone.localdate(),
-            ),
+            "can_add_case_record": can_add_case_record,
             "timeline_page": timeline_page,
         },
     )
@@ -441,6 +517,19 @@ def _authorized_enrollment(request, pk) -> ServiceEnrollment:
         enrollments_for_user(request.user, request.ssk_center),
         pk,
         "ServiceEnrollment",
+    )
+
+
+def _initial_enrollment_for_create(request) -> ServiceEnrollment | None:
+    enrollment_id = request.GET.get("enrollment", "").strip()
+    if not enrollment_id:
+        return None
+    return _authorized_request_object(
+        request,
+        enrollments_for_user(request.user, request.ssk_center),
+        enrollment_id,
+        "ServiceEnrollment",
+        event_type=AuditEvent.EventType.CREATE,
     )
 
 
@@ -766,6 +855,7 @@ def visit_create(request):
         title=_("New service visit"),
         detail_route="visit_detail",
         target_type="ServiceVisit",
+        initial_enrollment=_initial_enrollment_for_create(request),
     )
 
 
@@ -790,16 +880,28 @@ def visit_update(request, pk):
 
 
 def _simple_case_form(
-    request, *, model, form_class, title, detail_route, target_type, instance=None
+    request,
+    *,
+    model,
+    form_class,
+    title,
+    detail_route,
+    target_type,
+    instance=None,
+    initial_enrollment=None,
 ):
     before_values = (
         service_visit_snapshot(instance)
         if instance is not None and isinstance(instance, ServiceVisit)
         else None
     )
+    draft = model(center=request.ssk_center)
+    if initial_enrollment is not None:
+        draft.enrollment = initial_enrollment
+        draft.beneficiary = initial_enrollment.beneficiary
     form = form_class(
         request.POST or None,
-        instance=instance or model(center=request.ssk_center),
+        instance=instance or draft,
         user=request.user,
         center=request.ssk_center,
     )
@@ -1003,7 +1105,10 @@ def assessment_detail(request, pk):
 
 @active_center_required
 def assessment_create(request):
-    return _assessment_form(request)
+    return _assessment_form(
+        request,
+        initial_enrollment=_initial_enrollment_for_create(request),
+    )
 
 
 @active_center_required
@@ -1018,8 +1123,11 @@ def assessment_update(request, pk):
     return _assessment_form(request, assessment)
 
 
-def _assessment_form(request, instance=None):
+def _assessment_form(request, instance=None, initial_enrollment=None):
     assessment = instance or Assessment(center=request.ssk_center)
+    if initial_enrollment is not None:
+        assessment.enrollment = initial_enrollment
+        assessment.beneficiary = initial_enrollment.beneficiary
     if not instance and request.method == "GET" and request.GET.get("template_version"):
         try:
             assessment._meta.get_field("template_version").target_field.to_python(
@@ -1173,7 +1281,10 @@ def plan_detail(request, pk):
 
 @active_center_required
 def plan_create(request):
-    return _plan_form(request)
+    return _plan_form(
+        request,
+        initial_enrollment=_initial_enrollment_for_create(request),
+    )
 
 
 @active_center_required
@@ -1381,8 +1492,11 @@ def plan_review_create(request, plan_pk):
     )
 
 
-def _plan_form(request, instance=None):
+def _plan_form(request, instance=None, initial_enrollment=None):
     plan = instance or IndividualPlan(center=request.ssk_center)
+    if initial_enrollment is not None:
+        plan.enrollment = initial_enrollment
+        plan.beneficiary = initial_enrollment.beneficiary
     existing_goal_statuses = dict(plan.goals.values_list("pk", "status")) if plan.pk else {}
     form = IndividualPlanForm(
         request.POST or None,

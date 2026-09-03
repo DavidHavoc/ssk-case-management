@@ -32,6 +32,7 @@ from apps.core.authorization import (
     can_manage_center,
     can_view_staff_directory,
     can_view_staff_hr_fields,
+    casework_home_route,
     get_authorized_object,
     staff_directory_centers_for_user,
     staff_profiles_for_user,
@@ -49,10 +50,11 @@ from .models import SpecialistCenterAssignment, SpecialistProfile, StaffProfile
 
 
 def _safe_next(request) -> str:
-    value = request.POST.get("next") or request.GET.get("next") or reverse("dashboard")
+    default_route = casework_home_route(request.user)
+    value = request.POST.get("next") or request.GET.get("next") or reverse(default_route)
     parsed = urlparse(value)
     if parsed.netloc or parsed.scheme or not value.startswith("/"):
-        return reverse("dashboard")
+        return reverse(default_route)
     return value
 
 

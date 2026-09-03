@@ -325,7 +325,13 @@ def _apply_legacy_beneficiary_enrollment(form, enrollment_queryset) -> None:
         form.data = data
 
 
-def _validate_actor_assignment(form, cleaned_data, date_field: str):
+def _validate_actor_assignment(
+    form,
+    cleaned_data,
+    date_field: str,
+    *,
+    allowed_statuses=None,
+):
     enrollment = cleaned_data.get("enrollment")
     business_date = cleaned_data.get(date_field)
     if (
@@ -336,6 +342,7 @@ def _validate_actor_assignment(form, cleaned_data, date_field: str):
             form.center,
             enrollment,
             business_date,
+            allowed_statuses=allowed_statuses,
         )
     ):
         form.add_error(
@@ -535,7 +542,16 @@ class ServiceVisitForm(StyledModelForm):
             self.fields.pop("correction_reason")
 
     def clean(self):
-        cleaned = _validate_actor_assignment(self, super().clean(), "visit_date")
+        cleaned = super().clean()
+        allowed_statuses = {ServiceEnrollment.Status.ACTIVE}
+        if cleaned.get("status") == ServiceVisit.Status.PLANNED:
+            allowed_statuses.add(ServiceEnrollment.Status.PENDING)
+        cleaned = _validate_actor_assignment(
+            self,
+            cleaned,
+            "visit_date",
+            allowed_statuses=allowed_statuses,
+        )
         enrollment = cleaned.get("enrollment")
         goals = cleaned.get("goals_worked_on")
         if enrollment and goals and goals.exclude(plan__enrollment=enrollment).exists():

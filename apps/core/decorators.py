@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
+from django.urls import reverse
 
 from .authorization import CenterSelectionRequired, active_center_for_request
 
@@ -16,7 +17,7 @@ def active_center_required(view_func):
             request.ssk_center = active_center_for_request(request)
         except CenterSelectionRequired:
             query = urlencode({"next": request.get_full_path()})
-            return redirect(f"/centers/select/?{query}")
+            return redirect(f"{reverse('center_select')}?{query}")
         except PermissionDenied:
             raise
         return view_func(request, *args, **kwargs)

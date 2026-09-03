@@ -399,8 +399,8 @@ def test_current_assignment_cannot_create_records_after_exclusive_end(
 ):
     enrollment = _enrollment(beneficiary_a)
     user = specialist_a.staff_profile.user
-    assignment_end = date(2026, 9, 1)
-    _replace_assignments(enrollment, specialist_a, (date(2026, 1, 1), assignment_end))
+    assignment_end = TODAY + timedelta(days=1)
+    _replace_assignments(enrollment, specialist_a, (TODAY - timedelta(days=1), assignment_end))
     activity, location = ensure_visit_catalogs()
     common = {
         "enrollment": enrollment.pk,

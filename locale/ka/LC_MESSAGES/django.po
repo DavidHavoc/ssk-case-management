@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSK Case Management 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-24 17:30+0400\n"
+"POT-Creation-Date: 2026-08-24 20:16+0400\n"
 "PO-Revision-Date: 2026-08-14 14:30+0400\n"
 "Last-Translator: SSK Case Management Team\n"
 "Language-Team: Georgian\n"
@@ -29,7 +29,7 @@ msgstr "ინგლისური"
 msgid "Georgian"
 msgstr "ქართული"
 
-#: apps/accounts/views.py:56
+#: apps/accounts/views.py:65
 msgid "Your password has been changed."
 msgstr "თქვენი პაროლი შეიცვალა."
 
@@ -45,7 +45,7 @@ msgstr "შექმნა"
 msgid "Update"
 msgstr "განახლება"
 
-#: apps/audit/models.py:17 templates/casework/beneficiary_detail.html:14
+#: apps/audit/models.py:17 templates/casework/beneficiary_detail.html:19
 #: templates/casework/delete_confirm.html:12
 #: templates/casework/plan_detail.html:17
 #: templates/casework/visit_detail.html:7
@@ -59,7 +59,8 @@ msgstr "წაშლა"
 msgid "Export"
 msgstr "ექსპორტი"
 
-#: apps/audit/models.py:19 templates/centers/staff_detail.html:56
+#: apps/audit/models.py:19 templates/casework/beneficiary_detail.html:128
+#: templates/centers/staff_detail.html:56
 #: templates/includes/attachments.html:16
 msgid "Download"
 msgstr "ჩამოტვირთვა"
@@ -92,7 +93,7 @@ msgstr "შაბლონის თითოეულ ველს მხოლ
 msgid "Assessment contains responses from another template."
 msgstr "შეფასება სხვა შაბლონის პასუხებს შეიცავს."
 
-#: apps/casework/assessment_engine.py:80 apps/casework/forms.py:859
+#: apps/casework/assessment_engine.py:80 apps/casework/forms.py:875
 msgid "A response is required."
 msgstr "პასუხი სავალდებულოა."
 
@@ -149,14 +150,18 @@ msgstr "შაბლონის ვერსიებს შედარებ�
 msgid "Service and center offering"
 msgstr "სერვისი და ცენტრის შეთავაზება"
 
-#: apps/casework/forms.py:101 apps/core/forms.py:39 apps/core/reporting.py:116
-#: apps/core/reporting.py:127 apps/core/reporting.py:143
-#: apps/core/reporting.py:157 apps/core/reporting.py:168 apps/core/views.py:306
-#: templates/casework/beneficiary_detail.html:50 templates/core/reports.html:33
+#: apps/casework/forms.py:101 apps/core/forms.py:39 apps/core/reporting.py:713
+#: apps/core/reporting.py:730 apps/core/reporting.py:742
+#: apps/core/reporting.py:765 apps/core/reporting.py:787
+#: apps/core/reporting.py:800 apps/core/reporting.py:811
+#: apps/core/reporting.py:827 apps/core/reporting.py:841
+#: apps/core/reporting.py:852 templates/casework/beneficiary_detail.html:85
+#: templates/core/reports.html:144
 msgid "Enrollment code"
 msgstr "ჩარიცხვის კოდი"
 
 #: apps/casework/forms.py:104 apps/casework/models.py:403
+#: templates/core/reports.html:114
 msgid "Pending"
 msgstr "მოლოდინში"
 
@@ -164,7 +169,7 @@ msgstr "მოლოდინში"
 #: apps/casework/models.py:404 apps/casework/models.py:2580
 #: apps/centers/models.py:37 apps/core/forms.py:48
 #: templates/centers/center_detail.html:5 templates/centers/center_list.html:5
-#: templates/centers/staff_detail.html:28
+#: templates/centers/staff_detail.html:28 templates/core/reports.html:114
 msgid "Active"
 msgstr "აქტიური"
 
@@ -185,81 +190,81 @@ msgid "Access ends at the start of this date. Leave blank for an open assignment
 msgstr "წვდომა სრულდება ამ თარიღის დასაწყისში. ღია დანიშვნისთვის დატოვეთ ცარიელი."
 
 #: apps/casework/forms.py:289 apps/core/forms.py:34
-#: templates/casework/beneficiary_detail.html:72
+#: templates/casework/beneficiary_detail.html:104
 msgid "Effective from"
 msgstr "მოქმედებს თარიღიდან"
 
-#: apps/casework/forms.py:343 apps/casework/forms.py:1260
-#: apps/casework/forms.py:1295
+#: apps/casework/forms.py:350 apps/casework/forms.py:1276
+#: apps/casework/forms.py:1311
 msgid "Your assignment is not effective on the selected record date."
 msgstr "თქვენი დანიშვნა არჩეული ჩანაწერის თარიღისთვის მოქმედი არ არის."
 
-#: apps/casework/forms.py:399 apps/casework/models.py:1070
+#: apps/casework/forms.py:406 apps/casework/models.py:1070
 msgid "The enrollment has no specialist assignment effective on the selected date."
 msgstr "ჩარიცხვას არჩეულ თარიღზე მოქმედი სპეციალისტის დანიშვნა არ აქვს."
 
-#: apps/casework/forms.py:408
+#: apps/casework/forms.py:415
 msgid "Correction reason"
 msgstr "შესწორების მიზეზი"
 
-#: apps/casework/forms.py:409
+#: apps/casework/forms.py:416
 msgid "Required when changing an existing visit."
 msgstr "სავალდებულოა არსებული ვიზიტის შეცვლისას."
 
-#: apps/casework/forms.py:544
+#: apps/casework/forms.py:560
 msgid "Every selected goal must belong to the visit enrollment."
 msgstr "ყველა არჩეული მიზანი ვიზიტის ჩარიცხვას უნდა ეკუთვნოდეს."
 
-#: apps/casework/forms.py:553 apps/core/forms.py:84
+#: apps/casework/forms.py:569 apps/core/forms.py:84
 msgid "Schedule month"
 msgstr "გრაფიკის თვე"
 
-#: apps/casework/forms.py:771
+#: apps/casework/forms.py:787
 msgid "Select"
 msgstr "არჩევა"
 
-#: apps/casework/forms.py:792 apps/casework/models.py:2241
+#: apps/casework/forms.py:808 apps/casework/models.py:2241
 msgid "Assessed"
 msgstr "შეფასებული"
 
-#: apps/casework/forms.py:797 apps/casework/models.py:2242
+#: apps/casework/forms.py:813 apps/casework/models.py:2242
 msgid "Not assessed"
 msgstr "შეუფასებელი"
 
-#: apps/casework/forms.py:802 apps/casework/models.py:1659
-#: apps/casework/models.py:2243
+#: apps/casework/forms.py:818 apps/casework/models.py:1659
+#: apps/casework/models.py:2243 templates/core/reports.html:127
 msgid "Not applicable"
 msgstr "არ მიესადაგება"
 
-#: apps/casework/forms.py:936
+#: apps/casework/forms.py:952
 msgid "Responses must match the selected template fields."
 msgstr "პასუხები არჩეული შაბლონის ველებს უნდა შეესაბამებოდეს."
 
-#: apps/casework/forms.py:972
+#: apps/casework/forms.py:988
 msgid "At least one domain score is required."
 msgstr "საჭიროა მინიმუმ ერთი სფეროს შეფასება."
 
-#: apps/casework/forms.py:1044
+#: apps/casework/forms.py:1060
 msgid "Status change date"
 msgstr "სტატუსის ცვლილების თარიღი"
 
-#: apps/casework/forms.py:1049
+#: apps/casework/forms.py:1065
 msgid "Status change reason"
 msgstr "სტატუსის ცვლილების მიზეზი"
 
-#: apps/casework/forms.py:1153
+#: apps/casework/forms.py:1169
 msgid "Every assessment finding must belong to the plan enrollment."
 msgstr "შეფასების ყველა შედეგი გეგმის ჩარიცხვას უნდა ეკუთვნოდეს."
 
-#: apps/casework/forms.py:1172 apps/casework/models.py:2961
+#: apps/casework/forms.py:1188 apps/casework/models.py:2961
 msgid "Status change date cannot be before the plan start date."
 msgstr "სტატუსის ცვლილების თარიღი გეგმის დაწყების თარიღზე ადრე ვერ იქნება."
 
-#: apps/casework/forms.py:1185
+#: apps/casework/forms.py:1201
 msgid "A reason is required for a deferred or cancelled goal."
 msgstr "გადადებული ან გაუქმებული მიზნისთვის მიზეზი სავალდებულოა."
 
-#: apps/casework/forms.py:1226
+#: apps/casework/forms.py:1242
 msgid "At least one goal is required for an active or completed plan."
 msgstr "აქტიურ ან დასრულებულ გეგმას მინიმუმ ერთი მიზანი უნდა ჰქონდეს."
 
@@ -371,13 +376,17 @@ msgstr "ქვრივი"
 msgid "Separated"
 msgstr "განცალკევებული"
 
-#: apps/casework/models.py:271 apps/core/forms.py:80 apps/core/reporting.py:112
-#: templates/casework/beneficiary_detail.html:41 templates/core/reports.html:30
+#: apps/casework/models.py:271 apps/core/forms.py:80 apps/core/reporting.py:695
+#: apps/core/reporting.py:796 templates/casework/beneficiary_detail.html:54
+#: templates/core/reports.html:66 templates/core/reports.html:111
+#: templates/core/reports.html:141
 msgid "Region"
 msgstr "რეგიონი"
 
-#: apps/casework/models.py:279 apps/core/forms.py:53 apps/core/reporting.py:113
-#: templates/casework/beneficiary_detail.html:42 templates/core/reports.html:30
+#: apps/casework/models.py:279 apps/core/forms.py:53 apps/core/reporting.py:696
+#: apps/core/reporting.py:797 templates/casework/beneficiary_detail.html:55
+#: templates/core/reports.html:73 templates/core/reports.html:111
+#: templates/core/reports.html:141
 msgid "Municipality"
 msgstr "მუნიციპალიტეტი"
 
@@ -422,7 +431,7 @@ msgstr "გასვლის თარიღი არ შეიძლება
 msgid "First service date cannot be before enrollment date."
 msgstr "პირველი მომსახურების თარიღი არ შეიძლება ჩარიცხვის თარიღზე ადრე იყოს."
 
-#: apps/casework/models.py:405
+#: apps/casework/models.py:405 templates/core/reports.html:114
 msgid "Suspended"
 msgstr "შეჩერებული"
 
@@ -434,8 +443,9 @@ msgstr "დასრულებული"
 
 #: apps/casework/models.py:408 apps/casework/models.py:1113
 #: apps/casework/models.py:2583 apps/casework/models.py:2775
-#: apps/core/views.py:319 templates/casework/plan_detail.html:41
-#: templates/casework/summary_list.html:8 templates/core/reports.html:36
+#: apps/core/reporting.py:238 apps/core/reporting.py:726 apps/core/views.py:412
+#: templates/casework/plan_detail.html:41
+#: templates/casework/summary_list.html:8 templates/core/reports.html:117
 msgid "Cancelled"
 msgstr "გაუქმებული"
 
@@ -483,7 +493,7 @@ msgstr "შეჩერება"
 msgid "Resumption"
 msgstr "განახლება"
 
-#: apps/casework/models.py:561 templates/casework/beneficiary_detail.html:63
+#: apps/casework/models.py:561 templates/casework/beneficiary_detail.html:96
 msgid "Transfer"
 msgstr "გადაყვანა"
 
@@ -491,7 +501,7 @@ msgstr "გადაყვანა"
 msgid "Completion"
 msgstr "დასრულება"
 
-#: apps/casework/models.py:563 templates/casework/beneficiary_detail.html:63
+#: apps/casework/models.py:563 templates/casework/beneficiary_detail.html:96
 msgid "Exit"
 msgstr "გასვლა"
 
@@ -1314,7 +1324,7 @@ msgstr "გაუარესებული"
 msgid "Stable"
 msgstr "სტაბილური"
 
-#: apps/casework/models.py:3025 apps/core/reporting.py:66
+#: apps/casework/models.py:3025 apps/core/reporting.py:649
 #: templates/casework/plan_detail.html:33 templates/casework/plan_list.html:12
 msgid "Not yet assessed"
 msgstr "ჯერ არ არის შეფასებული"
@@ -1344,15 +1354,16 @@ msgid "Visit goals must belong to the same enrollment."
 msgstr "ვიზიტის მიზნები იმავე ჩარიცხვას უნდა ეკუთვნოდეს."
 
 #: apps/casework/models.py:3140 apps/casework/timeline.py:281
-#: apps/core/reporting.py:118 apps/core/reporting.py:126
-#: apps/core/reporting.py:142 apps/core/reporting.py:156
-#: apps/core/reporting.py:167 apps/core/views.py:305
-#: templates/casework/assessment_detail.html:19
-#: templates/casework/beneficiary_list.html:18
+#: apps/core/reporting.py:514 apps/core/reporting.py:523
+#: apps/core/reporting.py:532 apps/core/reporting.py:541
+#: apps/core/reporting.py:712 apps/core/reporting.py:764
+#: apps/core/reporting.py:802 apps/core/reporting.py:810
+#: apps/core/reporting.py:826 apps/core/reporting.py:840
+#: apps/core/reporting.py:851 templates/casework/assessment_detail.html:19
 #: templates/casework/plan_detail.html:23
-#: templates/casework/visit_detail.html:10 templates/core/dashboard.html:45
-#: templates/core/reports.html:33 templates/core/reports.html:39
-#: templates/core/reports.html:42 templates/core/reports.html:48
+#: templates/casework/visit_detail.html:10 templates/core/dashboard.html:49
+#: templates/core/reports.html:123 templates/core/reports.html:144
+#: templates/core/reports.html:147 templates/core/reports.html:153
 msgid "Beneficiary"
 msgstr "ბენეფიციარი"
 
@@ -1362,8 +1373,10 @@ msgid "Service Visit"
 msgstr "მომსახურების ვიზიტი"
 
 #: apps/casework/models.py:3142 apps/casework/timeline.py:216
-#: apps/casework/timeline.py:283 templates/casework/assessment_detail.html:3
+#: apps/casework/timeline.py:283 apps/casework/workspace.py:184
+#: apps/core/reporting.py:557 templates/casework/assessment_detail.html:3
 #: templates/casework/assessment_form.html:31
+#: templates/casework/beneficiary_detail.html:118
 msgid "Assessment"
 msgstr "შეფასება"
 
@@ -1446,8 +1459,9 @@ msgstr "განხილვის სიხშირე: %(frequency)s"
 msgid "Review frequency not set"
 msgstr "განხილვის სიხშირე მითითებული არ არის"
 
-#: apps/casework/timeline.py:247 templates/casework/plan_detail.html:3
-#: templates/casework/plan_detail.html:9
+#: apps/casework/timeline.py:247 apps/casework/workspace.py:185
+#: apps/core/reporting.py:579 apps/core/reporting.py:589
+#: templates/casework/plan_detail.html:3 templates/casework/plan_detail.html:9
 msgid "Individual plan"
 msgstr "ინდივიდუალური გეგმა"
 
@@ -1455,7 +1469,7 @@ msgstr "ინდივიდუალური გეგმა"
 msgid "Plan Goal"
 msgstr "გეგმის მიზანი"
 
-#: apps/casework/timeline.py:268
+#: apps/casework/timeline.py:268 apps/core/reporting.py:598
 msgid "Plan goal"
 msgstr "გეგმის მიზანი"
 
@@ -1502,184 +1516,217 @@ msgstr "ტექსტური ფაილი UTF-8 კოდირება�
 msgid "The file content does not match a DOCX document."
 msgstr "ფაილის შიგთავსი DOCX დოკუმენტს არ შეესაბამება."
 
-#: apps/casework/views.py:325
+#: apps/casework/views.py:401
 msgid "Beneficiary created."
 msgstr "ბენეფიციარი შეიქმნა."
 
-#: apps/casework/views.py:335 templates/casework/beneficiary_list.html:7
-#: templates/casework/beneficiary_list.html:38 templates/core/dashboard.html:19
+#: apps/casework/views.py:411 templates/casework/beneficiary_list.html:11
+#: templates/casework/beneficiary_list.html:62 templates/core/dashboard.html:23
 msgid "New beneficiary"
 msgstr "ახალი ბენეფიციარი"
 
-#: apps/casework/views.py:424
+#: apps/casework/views.py:500
 msgid "Beneficiary updated."
 msgstr "ბენეფიციარი განახლდა."
 
-#: apps/casework/views.py:433
+#: apps/casework/views.py:509
 msgid "Update beneficiary"
 msgstr "ბენეფიციარის განახლება"
 
-#: apps/casework/views.py:491
+#: apps/casework/views.py:580
 msgid "Service enrollment created."
 msgstr "მომსახურებაზე ჩარიცხვა შეიქმნა."
 
-#: apps/casework/views.py:503
+#: apps/casework/views.py:592
 msgid "New service enrollment"
 msgstr "მომსახურებაზე ახალი ჩარიცხვა"
 
-#: apps/casework/views.py:531
+#: apps/casework/views.py:620
 msgid "Service enrollment updated."
 msgstr "მომსახურებაზე ჩარიცხვა განახლდა."
 
-#: apps/casework/views.py:544
+#: apps/casework/views.py:633
 msgid "Update service enrollment"
 msgstr "მომსახურებაზე ჩარიცხვის განახლება"
 
-#: apps/casework/views.py:555
+#: apps/casework/views.py:644
 msgid "Admit enrollment"
 msgstr "ჩარიცხვის მიღება"
 
-#: apps/casework/views.py:556
+#: apps/casework/views.py:645
 msgid "Suspend enrollment"
 msgstr "ჩარიცხვის შეჩერება"
 
-#: apps/casework/views.py:557
+#: apps/casework/views.py:646
 msgid "Resume enrollment"
 msgstr "ჩარიცხვის განახლება"
 
-#: apps/casework/views.py:558
+#: apps/casework/views.py:647
 msgid "Complete enrollment"
 msgstr "ჩარიცხვის დასრულება"
 
-#: apps/casework/views.py:559
+#: apps/casework/views.py:648
 msgid "Exit enrollment"
 msgstr "ჩარიცხვიდან გასვლა"
 
-#: apps/casework/views.py:560
+#: apps/casework/views.py:649
 msgid "Cancel enrollment"
 msgstr "ჩარიცხვის გაუქმება"
 
-#: apps/casework/views.py:586
+#: apps/casework/views.py:675
 msgid "Enrollment history updated."
 msgstr "ჩარიცხვის ისტორია განახლდა."
 
-#: apps/casework/views.py:624
+#: apps/casework/views.py:713
 msgid "Enrollment transferred."
 msgstr "ჩარიცხვა გადაყვანილია."
 
-#: apps/casework/views.py:629
+#: apps/casework/views.py:718
 msgid "Transfer enrollment"
 msgstr "ჩარიცხვის გადაყვანა"
 
-#: apps/casework/views.py:668
+#: apps/casework/views.py:757
 msgid "Beneficiary re-enrolled."
 msgstr "ბენეფიციარი ხელახლა ჩაირიცხა."
 
-#: apps/casework/views.py:681
+#: apps/casework/views.py:770
 msgid "Re-enroll beneficiary"
 msgstr "ბენეფიციარის ხელახალი ჩარიცხვა"
 
-#: apps/casework/views.py:766
+#: apps/casework/views.py:855
 msgid "New service visit"
 msgstr "ახალი მომსახურების ვიზიტი"
 
-#: apps/casework/views.py:785
+#: apps/casework/views.py:875
 msgid "Update service visit"
 msgstr "მომსახურების ვიზიტის განახლება"
 
-#: apps/casework/views.py:844
+#: apps/casework/views.py:946
 msgid "Changes saved."
 msgstr "ცვლილებები შენახულია."
 
-#: apps/casework/views.py:866 apps/casework/views.py:1463
+#: apps/casework/views.py:968 apps/casework/views.py:1577
 msgid "Month must use YYYY-MM format."
 msgstr "თვე უნდა იყოს YYYY-MM ფორმატში."
 
-#: apps/casework/views.py:921
+#: apps/casework/views.py:1023
 msgid "Service schedule saved."
 msgstr "მომსახურების გრაფიკი შენახულია."
 
-#: apps/casework/views.py:928
+#: apps/casework/views.py:1030
 msgid "Update monthly service schedule"
 msgstr "ყოველთვიური მომსახურების გრაფიკის განახლება"
 
-#: apps/casework/views.py:930
+#: apps/casework/views.py:1032
 msgid "New monthly service schedule"
 msgstr "ახალი ყოველთვიური მომსახურების გრაფიკი"
 
-#: apps/casework/views.py:1078
+#: apps/casework/views.py:1186
 msgid "Assessment saved."
 msgstr "შეფასება შენახულია."
 
-#: apps/casework/views.py:1087
+#: apps/casework/views.py:1195
 msgid "Update assessment"
 msgstr "შეფასების განახლება"
 
-#: apps/casework/views.py:1087 templates/casework/assessment_list.html:5
+#: apps/casework/views.py:1195 templates/casework/assessment_list.html:5
 #: templates/casework/assessment_list.html:15
 msgid "New assessment"
 msgstr "ახალი შეფასება"
 
-#: apps/casework/views.py:1227
+#: apps/casework/views.py:1338
 msgid "Goal added."
 msgstr "მიზანი დაემატა."
 
-#: apps/casework/views.py:1235 templates/casework/plan_detail.html:55
+#: apps/casework/views.py:1346 templates/casework/plan_detail.html:55
 #: templates/casework/plan_goal_form.html:25
 msgid "Add goal"
 msgstr "მიზნის დამატება"
 
-#: apps/casework/views.py:1284
+#: apps/casework/views.py:1395
 msgid "Goal updated."
 msgstr "მიზანი განახლდა."
 
-#: apps/casework/views.py:1293
+#: apps/casework/views.py:1404
 msgid "Update goal"
 msgstr "მიზნის განახლება"
 
-#: apps/casework/views.py:1333
+#: apps/casework/views.py:1444
 msgid "Goal progress recorded."
 msgstr "მიზნის პროგრესი ჩაიწერა."
 
-#: apps/casework/views.py:1342
+#: apps/casework/views.py:1453
 msgid "Record goal progress"
 msgstr "მიზნის პროგრესის ჩაწერა"
 
-#: apps/casework/views.py:1375
+#: apps/casework/views.py:1486
 msgid "Plan review recorded."
 msgstr "გეგმის განხილვა ჩაიწერა."
 
-#: apps/casework/views.py:1380
+#: apps/casework/views.py:1491
 msgid "Record plan review"
 msgstr "გეგმის განხილვის ჩაწერა"
 
-#: apps/casework/views.py:1441
+#: apps/casework/views.py:1555
 msgid "Individual plan saved."
 msgstr "ინდივიდუალური გეგმა შენახულია."
 
-#: apps/casework/views.py:1449
+#: apps/casework/views.py:1563
 msgid "Update individual plan"
 msgstr "ინდივიდუალური გეგმის განახლება"
 
-#: apps/casework/views.py:1449
+#: apps/casework/views.py:1563
 msgid "New individual plan"
 msgstr "ახალი ინდივიდუალური გეგმა"
 
-#: apps/casework/views.py:1480
+#: apps/casework/views.py:1594
 msgid "Attachment uploaded securely."
 msgstr "დანართი უსაფრთხოდ აიტვირთა."
 
-#: apps/casework/views.py:1531
+#: apps/casework/views.py:1645
 msgid "This record is referenced by other records and cannot be deleted."
 msgstr "ეს ჩანაწერი სხვა ჩანაწერებთან არის დაკავშირებული და ვერ წაიშლება."
 
-#: apps/casework/views.py:1542
+#: apps/casework/views.py:1656
 msgid "Record deleted."
 msgstr "ჩანაწერი წაიშალა."
 
-#: apps/casework/views.py:1608
+#: apps/casework/views.py:1722
 msgid "Attachment deleted."
 msgstr "დანართი წაიშალა."
+
+#: apps/casework/workspace.py:131
+msgid "Assessment review"
+msgstr "შეფასების განხილვა"
+
+#: apps/casework/workspace.py:133 templates/casework/beneficiary_detail.html:43
+msgid "Plan review"
+msgstr "გეგმის განხილვა"
+
+#: apps/casework/workspace.py:135
+msgid "Planned visit"
+msgstr "დაგეგმილი ვიზიტი"
+
+#: apps/casework/workspace.py:139
+msgid "No due work recorded"
+msgstr "შესასრულებელი სამუშაო არ არის მითითებული"
+
+#: apps/casework/workspace.py:145 apps/core/reminders.py:55
+msgid "Assessment review overdue"
+msgstr "შეფასების განხილვა ვადაგადაცილებულია"
+
+#: apps/casework/workspace.py:147 apps/core/reminders.py:76
+msgid "Plan review overdue"
+msgstr "გეგმის განხილვა ვადაგადაცილებულია"
+
+#: apps/casework/workspace.py:177
+msgid "Beneficiary record"
+msgstr "ბენეფიციარის ჩანაწერი"
+
+#: apps/casework/workspace.py:183 templates/casework/visit_detail.html:3
+#: templates/casework/visit_detail.html:6
+msgid "Service visit"
+msgstr "მომსახურების ვიზიტი"
 
 #: apps/centers/forms.py:65 templates/centers/staff_detail.html:22
 msgid "E-mail"
@@ -1728,7 +1775,7 @@ msgid "Username"
 msgstr "მომხმარებლის სახელი"
 
 #: apps/centers/forms.py:129 apps/core/forms.py:35
-#: templates/casework/beneficiary_detail.html:88
+#: templates/casework/beneficiary_detail.html:67
 #: templates/centers/center_detail.html:5
 msgid "Email"
 msgstr "ელფოსტა"
@@ -1746,10 +1793,12 @@ msgstr "გვარი"
 msgid "Employee number"
 msgstr "თანამშრომლის ნომერი"
 
-#: apps/centers/forms.py:139 apps/core/forms.py:93 apps/core/reporting.py:120
-#: apps/core/reporting.py:134 apps/core/reporting.py:160
+#: apps/centers/forms.py:139 apps/core/forms.py:93 apps/core/reporting.py:804
+#: apps/core/reporting.py:818 apps/core/reporting.py:844
 #: templates/casework/assessment_detail.html:22
-#: templates/casework/beneficiary_detail.html:52
+#: templates/casework/beneficiary_detail.html:111
+#: templates/casework/beneficiary_detail.html:118
+#: templates/casework/beneficiary_detail.html:123
 #: templates/casework/plan_detail.html:26
 #: templates/casework/plan_goal_form.html:46
 #: templates/casework/plan_list.html:8 templates/casework/plan_list.html:12
@@ -1757,8 +1806,8 @@ msgstr "თანამშრომლის ნომერი"
 #: templates/casework/visit_list.html:8 templates/centers/center_detail.html:5
 #: templates/centers/center_list.html:5 templates/centers/staff_detail.html:19
 #: templates/centers/staff_list.html:14 templates/centers/staff_list.html:21
-#: templates/core/dashboard.html:45 templates/core/reports.html:33
-#: templates/core/reports.html:39 templates/core/reports.html:48
+#: templates/core/dashboard.html:49 templates/core/reports.html:144
+#: templates/core/reports.html:147 templates/core/reports.html:153
 msgid "Status"
 msgstr "სტატუსი"
 
@@ -1803,88 +1852,88 @@ msgstr "დასრულებული"
 msgid "A specialist can have only one primary center."
 msgstr "სპეციალისტს მხოლოდ ერთი ძირითადი ცენტრი შეიძლება ჰქონდეს."
 
-#: apps/centers/views.py:66
+#: apps/centers/views.py:68
 #, python-format
 msgid "Active center changed to %(center)s."
 msgstr "აქტიური ცენტრი შეიცვალა: %(center)s."
 
-#: apps/centers/views.py:228
+#: apps/centers/views.py:230
 msgid "Employee profile updated."
 msgstr "თანამშრომლის პროფილი განახლდა."
 
-#: apps/centers/views.py:233
+#: apps/centers/views.py:235
 msgid "Update employee"
 msgstr "თანამშრომლის განახლება"
 
-#: apps/centers/views.py:263
+#: apps/centers/views.py:265
 msgid "You cannot reset your own access code here."
 msgstr "აქ საკუთარი წვდომის კოდის განახლება შეუძლებელია."
 
-#: apps/centers/views.py:281
+#: apps/centers/views.py:283
 msgid "New access code generated"
 msgstr "ახალი წვდომის კოდი გენერირებულია"
 
-#: apps/centers/views.py:297
+#: apps/centers/views.py:299
 msgid "Assign the employee to a center before uploading documents."
 msgstr "დოკუმენტების ატვირთვამდე თანამშრომელი მიაბით ცენტრს."
 
-#: apps/centers/views.py:300
+#: apps/centers/views.py:302
 msgid "Staff document uploaded securely."
 msgstr "თანამშრომლის დოკუმენტი უსაფრთხოდ აიტვირთა."
 
-#: apps/centers/views.py:323
+#: apps/centers/views.py:325
 msgid "Staff document deleted."
 msgstr "თანამშრომლის დოკუმენტი წაიშალა."
 
-#: apps/centers/views.py:366
+#: apps/centers/views.py:368
 msgid "Center created."
 msgstr "ცენტრი შეიქმნა."
 
-#: apps/centers/views.py:368 templates/centers/center_list.html:4
+#: apps/centers/views.py:370 templates/centers/center_list.html:4
 msgid "New center"
 msgstr "ახალი ცენტრი"
 
-#: apps/centers/views.py:386
+#: apps/centers/views.py:388
 msgid "Center updated."
 msgstr "ცენტრი განახლდა."
 
-#: apps/centers/views.py:388
+#: apps/centers/views.py:390
 msgid "Update center"
 msgstr "ცენტრის განახლება"
 
-#: apps/centers/views.py:409
+#: apps/centers/views.py:411
 msgid "This center is referenced by other records and cannot be deleted."
 msgstr "ეს ცენტრი სხვა ჩანაწერებთან არის დაკავშირებული და ვერ წაიშლება."
 
-#: apps/centers/views.py:418
+#: apps/centers/views.py:420
 msgid "Center deleted."
 msgstr "ცენტრი წაიშალა."
 
-#: apps/centers/views.py:442
+#: apps/centers/views.py:444
 msgid "Specialist added to the center roster."
 msgstr "სპეციალისტი ცენტრის სიას დაემატა."
 
-#: apps/centers/views.py:447
+#: apps/centers/views.py:449
 msgid "Link existing specialist"
 msgstr "არსებული სპეციალისტის დაკავშირება"
 
-#: apps/centers/views.py:473
+#: apps/centers/views.py:475
 msgid "Employee account created"
 msgstr "თანამშრომლის ანგარიში შეიქმნა"
 
-#: apps/centers/views.py:480 templates/centers/center_detail.html:6
+#: apps/centers/views.py:482 templates/centers/center_detail.html:6
 msgid "Create specialist"
 msgstr "სპეციალისტის შექმნა"
 
-#: apps/centers/views.py:502
+#: apps/centers/views.py:504
 msgid "Specialist profile updated."
 msgstr "სპეციალისტის პროფილი განახლდა."
 
-#: apps/centers/views.py:507
+#: apps/centers/views.py:509
 msgid "Update specialist"
 msgstr "სპეციალისტის განახლება"
 
-#: apps/centers/views.py:528
+#: apps/centers/views.py:530
 msgid "Specialist removed from this center roster."
 msgstr "სპეციალისტი ამ ცენტრის სიიდან წაიშალა."
 
@@ -1892,15 +1941,17 @@ msgstr "სპეციალისტი ამ ცენტრის სიი
 msgid "Achieved date"
 msgstr "მიღწევის თარიღი"
 
-#: apps/core/forms.py:9 apps/core/reporting.py:131 apps/core/views.py:308
+#: apps/core/forms.py:9 apps/core/reporting.py:715 apps/core/reporting.py:734
+#: apps/core/reporting.py:815 templates/casework/beneficiary_detail.html:111
+#: templates/casework/beneficiary_detail.html:113
 #: templates/casework/schedule_list.html:17
 #: templates/casework/visit_detail.html:14 templates/casework/visit_list.html:8
-#: templates/core/reports.html:19 templates/core/reports.html:36
-#: templates/core/reports.html:39
+#: templates/core/reports.html:82 templates/core/reports.html:117
+#: templates/core/reports.html:120 templates/core/reports.html:147
 msgid "Activity"
 msgstr "აქტივობა"
 
-#: apps/core/forms.py:10 templates/casework/beneficiary_detail.html:91
+#: apps/core/forms.py:10 templates/casework/beneficiary_detail.html:70
 #: templates/centers/center_detail.html:5
 msgid "Address"
 msgstr "მისამართი"
@@ -1909,7 +1960,7 @@ msgstr "მისამართი"
 msgid "Application contract number"
 msgstr "განაცხადის ხელშეკრულების ნომერი"
 
-#: apps/core/forms.py:12
+#: apps/core/forms.py:12 apps/core/reporting.py:744
 msgid "Assessment date"
 msgstr "შეფასების თარიღი"
 
@@ -1934,22 +1985,28 @@ msgstr "საწყისი ქულა"
 msgid "Baseline"
 msgstr "საწყისი მაჩვენებელი"
 
-#: apps/core/forms.py:18 apps/core/reporting.py:125 apps/core/reporting.py:141
-#: apps/core/reporting.py:155 apps/core/reporting.py:166 apps/core/views.py:304
+#: apps/core/forms.py:18 apps/core/reporting.py:711 apps/core/reporting.py:729
+#: apps/core/reporting.py:741 apps/core/reporting.py:763
+#: apps/core/reporting.py:786 apps/core/reporting.py:809
+#: apps/core/reporting.py:825 apps/core/reporting.py:839
+#: apps/core/reporting.py:850 templates/core/reports.html:120
+#: templates/core/reports.html:126 templates/core/reports.html:138
 msgid "Beneficiary code"
 msgstr "ბენეფიციარის კოდი"
 
-#: apps/core/forms.py:19 templates/casework/beneficiary_detail.html:38
+#: apps/core/forms.py:19 templates/casework/beneficiary_detail.html:51
 msgid "Birth date"
 msgstr "დაბადების თარიღი"
 
-#: apps/core/forms.py:20 apps/core/reporting.py:138
+#: apps/core/forms.py:20 apps/core/reporting.py:738 apps/core/reporting.py:822
 #: templates/casework/visit_detail.html:20
 msgid "Cancellation reason"
 msgstr "გაუქმების მიზეზი"
 
-#: apps/core/forms.py:21 apps/core/reporting.py:172
-#: templates/casework/plan_detail.html:41 templates/core/reports.html:45
+#: apps/core/forms.py:21 apps/core/reporting.py:755 apps/core/reporting.py:856
+#: templates/casework/plan_detail.html:41 templates/core/reminders.html:17
+#: templates/core/reminders.html:39 templates/core/reports.html:129
+#: templates/core/reports.html:150
 msgid "Category"
 msgstr "კატეგორია"
 
@@ -1957,8 +2014,9 @@ msgstr "კატეგორია"
 msgid "Code"
 msgstr "კოდი"
 
-#: apps/core/forms.py:24 apps/core/reporting.py:179
-#: templates/casework/plan_detail.html:91 templates/core/reports.html:45
+#: apps/core/forms.py:24 apps/core/reporting.py:768 apps/core/reporting.py:863
+#: templates/casework/plan_detail.html:91 templates/core/reports.html:132
+#: templates/core/reports.html:150
 msgid "Child condition outcome"
 msgstr "ბავშვის მდგომარეობის შედეგი"
 
@@ -1970,8 +2028,8 @@ msgstr "მიმდინარე ქულა"
 msgid "Definition"
 msgstr "განსაზღვრება"
 
-#: apps/core/forms.py:29 apps/core/reporting.py:132 apps/core/views.py:309
-#: templates/casework/visit_detail.html:15
+#: apps/core/forms.py:29 apps/core/reporting.py:716 apps/core/reporting.py:735
+#: apps/core/reporting.py:816 templates/casework/visit_detail.html:15
 msgid "Delivery location"
 msgstr "მომსახურების ადგილი"
 
@@ -1988,7 +2046,7 @@ msgstr "დანიშნულების სერვისი და ცე
 msgid "Domain"
 msgstr "სფერო"
 
-#: apps/core/forms.py:33 apps/core/reporting.py:136
+#: apps/core/forms.py:33 apps/core/reporting.py:820
 msgid "Duration minutes"
 msgstr "ხანგრძლივობა წუთებში"
 
@@ -1996,9 +2054,12 @@ msgstr "ხანგრძლივობა წუთებში"
 msgid "Evidence"
 msgstr "მტკიცებულება"
 
-#: apps/core/forms.py:38 templates/casework/plan_detail.html:24
-#: templates/casework/visit_detail.html:11 templates/core/reports.html:39
-#: templates/core/reports.html:42 templates/core/reports.html:48
+#: apps/core/forms.py:38 apps/core/reporting.py:492 apps/core/reporting.py:501
+#: templates/casework/plan_detail.html:24
+#: templates/casework/visit_detail.html:11 templates/core/reports.html:120
+#: templates/core/reports.html:123 templates/core/reports.html:126
+#: templates/core/reports.html:138 templates/core/reports.html:147
+#: templates/core/reports.html:153
 msgid "Enrollment"
 msgstr "ჩარიცხვა"
 
@@ -2026,7 +2087,7 @@ msgstr "მიზანი"
 msgid "Goals worked on"
 msgstr "დამუშავებული მიზნები"
 
-#: apps/core/forms.py:47 templates/casework/beneficiary_detail.html:89
+#: apps/core/forms.py:47 templates/casework/beneficiary_detail.html:68
 msgid "Guardian or parent"
 msgstr "მეურვე ან მშობელი"
 
@@ -2050,8 +2111,8 @@ msgstr "გაზომვის ტიპი"
 msgid "Measurement unit or scale"
 msgstr "გაზომვის ერთეული ან სკალა"
 
-#: apps/core/forms.py:58 apps/core/reporting.py:109
-#: templates/core/reports.html:30
+#: apps/core/forms.py:58 apps/core/reporting.py:793
+#: templates/core/reports.html:141
 msgid "Name"
 msgstr "სახელი"
 
@@ -2063,7 +2124,7 @@ msgstr "შემდეგი განხილვის თარიღი"
 msgid "Numeric value"
 msgstr "რიცხვითი მნიშვნელობა"
 
-#: apps/core/forms.py:63 apps/core/reporting.py:137
+#: apps/core/forms.py:63 apps/core/reporting.py:821
 #: templates/casework/visit_detail.html:17
 msgid "Participants"
 msgstr "მონაწილეები"
@@ -2072,11 +2133,11 @@ msgstr "მონაწილეები"
 msgid "Participation format"
 msgstr "მონაწილეობის ფორმატი"
 
-#: apps/core/forms.py:65 templates/casework/beneficiary_detail.html:86
+#: apps/core/forms.py:65 templates/casework/beneficiary_detail.html:65
 msgid "Personal ID"
 msgstr "პირადი ნომერი"
 
-#: apps/core/forms.py:66 templates/casework/beneficiary_detail.html:87
+#: apps/core/forms.py:66 templates/casework/beneficiary_detail.html:66
 #: templates/centers/center_detail.html:5
 msgid "Phone"
 msgstr "ტელეფონი"
@@ -2089,13 +2150,14 @@ msgstr "გეგმის დასრულების თარიღი"
 msgid "Plan start date"
 msgstr "გეგმის დაწყების თარიღი"
 
-#: apps/core/forms.py:69 apps/core/views.py:314
-#: templates/casework/schedule_list.html:17 templates/core/reports.html:36
+#: apps/core/forms.py:69 apps/core/reporting.py:721
+#: templates/casework/schedule_list.html:17 templates/core/reports.html:117
 msgid "Planned units"
 msgstr "დაგეგმილი ერთეულები"
 
-#: apps/core/forms.py:70 apps/core/views.py:311
-#: templates/casework/schedule_list.html:17 templates/core/reports.html:36
+#: apps/core/forms.py:70 apps/core/reporting.py:718
+#: templates/casework/beneficiary_detail.html:113
+#: templates/casework/schedule_list.html:17 templates/core/reports.html:117
 msgid "Planned visits"
 msgstr "დაგეგმილი ვიზიტები"
 
@@ -2112,7 +2174,7 @@ msgstr "პროგრესის შენიშვნები"
 msgid "Progress summary"
 msgstr "პროგრესის შეჯამება"
 
-#: apps/core/forms.py:75 templates/casework/beneficiary_detail.html:72
+#: apps/core/forms.py:75 templates/casework/beneficiary_detail.html:104
 #: templates/casework/visit_detail.html:25
 msgid "Reason"
 msgstr "მიზეზი"
@@ -2133,7 +2195,7 @@ msgstr "რეკომენდაციები"
 msgid "Recorded on"
 msgstr "ჩაწერის თარიღი"
 
-#: apps/core/forms.py:81 apps/core/reporting.py:163
+#: apps/core/forms.py:81 apps/core/reporting.py:847
 #: templates/casework/plan_detail.html:31
 msgid "Review frequency"
 msgstr "განხილვის სიხშირე"
@@ -2158,18 +2220,21 @@ msgstr "მომსახურების გრაფიკების რ�
 msgid "Service units"
 msgstr "მომსახურების ერთეულები"
 
-#: apps/core/forms.py:88 templates/casework/beneficiary_detail.html:40
+#: apps/core/forms.py:88 templates/casework/beneficiary_detail.html:53
 msgid "Sex"
 msgstr "სქესი"
 
-#: apps/core/forms.py:89 apps/core/reporting.py:129 apps/core/reporting.py:145
-#: apps/core/reporting.py:159 templates/base.html:113
+#: apps/core/forms.py:89 apps/core/reporting.py:701 apps/core/reporting.py:732
+#: apps/core/reporting.py:813 apps/core/reporting.py:829
+#: apps/core/reporting.py:843 templates/base.html:119
 #: templates/casework/assessment_list.html:12
+#: templates/casework/beneficiary_detail.html:111
 #: templates/casework/plan_list.html:12 templates/casework/summary_list.html:8
 #: templates/casework/visit_detail.html:12 templates/casework/visit_list.html:8
-#: templates/centers/center_detail.html:7 templates/core/dashboard.html:45
-#: templates/core/reports.html:18 templates/core/reports.html:39
-#: templates/core/reports.html:42 templates/core/reports.html:48
+#: templates/centers/center_detail.html:7 templates/core/dashboard.html:49
+#: templates/core/reports.html:39 templates/core/reports.html:114
+#: templates/core/reports.html:120 templates/core/reports.html:123
+#: templates/core/reports.html:147 templates/core/reports.html:153
 msgid "Specialist"
 msgstr "სპეციალისტი"
 
@@ -2182,8 +2247,8 @@ msgstr "პასუხისმგებელი სპეციალის�
 msgid "Source assessment"
 msgstr "წყარო შეფასება"
 
-#: apps/core/forms.py:92 apps/core/reporting.py:121 apps/core/reporting.py:161
-#: templates/casework/beneficiary_detail.html:54
+#: apps/core/forms.py:92 apps/core/reporting.py:805 apps/core/reporting.py:845
+#: templates/casework/beneficiary_detail.html:87
 #: templates/casework/plan_detail.html:29
 msgid "Start date"
 msgstr "დაწყების თარიღი"
@@ -2193,7 +2258,7 @@ msgstr "დაწყების თარიღი"
 msgid "Target date"
 msgstr "სამიზნე თარიღი"
 
-#: apps/core/forms.py:95 apps/core/reporting.py:150
+#: apps/core/forms.py:95 apps/core/reporting.py:834
 msgid "Total score"
 msgstr "ჯამური ქულა"
 
@@ -2217,116 +2282,439 @@ msgstr "გადამოწმების სტატუსი"
 msgid "Visible to specialists"
 msgstr "ხილულია სპეციალისტებისთვის"
 
-#: apps/core/forms.py:102 apps/core/reporting.py:130
+#: apps/core/forms.py:102 apps/core/reporting.py:733 apps/core/reporting.py:814
 msgid "Visit date"
 msgstr "ვიზიტის თარიღი"
 
-#: apps/core/reporting.py:27 templates/casework/plan_detail.html:46
+#: apps/core/reminders.py:53 apps/core/views.py:555 templates/base.html:61
+#: templates/casework/assessment_list.html:3
+#: templates/casework/assessment_list.html:5
+#: templates/casework/beneficiary_detail.html:28
+#: templates/casework/beneficiary_detail.html:117
+#: templates/core/dashboard.html:33
+msgid "Assessments"
+msgstr "შეფასებები"
+
+#: apps/core/reminders.py:73 apps/core/views.py:556
+#| msgid "Plan review"
+msgid "Plan reviews"
+msgstr "გეგმის განხილვები"
+
+#: apps/core/reminders.py:78
+#| msgid "Plan review"
+msgid "Plan review upcoming"
+msgstr "გეგმის განხილვის ვადა ახლოვდება"
+
+#: apps/core/reminders.py:98 apps/core/reporting.py:698
+#: apps/core/reporting.py:703 apps/core/views.py:557
+#: templates/core/reports.html:111 templates/core/reports.html:114
+#| msgid "Enrollment"
+msgid "Enrollments"
+msgstr "ჩარიცხვები"
+
+#: apps/core/reminders.py:101
+#| msgid "Enrollment notes"
+msgid "Enrollment end date has passed"
+msgstr "ჩარიცხვის დასრულების თარიღი გავიდა"
+
+#: apps/core/reminders.py:103
+#| msgid "Enrollment history"
+msgid "Enrollment expires soon"
+msgstr "ჩარიცხვის ვადა მალე იწურება"
+
+#: apps/core/reminders.py:123 apps/core/views.py:558
+#| msgid "Contact"
+msgid "Contracts"
+msgstr "ხელშეკრულებები"
+
+#: apps/core/reminders.py:126
+msgid "Staff contract has expired"
+msgstr "თანამშრომლის ხელშეკრულების ვადა ამოიწურა"
+
+#: apps/core/reminders.py:128
+#| msgid "Staff documentation"
+msgid "Staff contract expires soon"
+msgstr "თანამშრომლის ხელშეკრულების ვადა მალე იწურება"
+
+#: apps/core/reminders.py:151 apps/core/views.py:559
+msgid "Data quality"
+msgstr "მონაცემთა ხარისხი"
+
+#: apps/core/reporting.py:27 apps/core/reporting.py:153
+#: apps/core/reporting.py:967 apps/core/views.py:473
+#: templates/core/reports.html:136 templates/core/reports.html:142
+#: templates/core/reports.html:145
+msgid "Unknown"
+msgstr "უცნობი"
+
+#: apps/core/reporting.py:129 templates/casework/plan_detail.html:46
 msgid "Overall"
 msgstr "საერთო"
 
-#: apps/core/reporting.py:108 apps/core/reporting.py:117
-#: templates/core/reports.html:30
-msgid "Person code"
-msgstr "პირის კოდი"
+#: apps/core/reporting.py:154 apps/core/views.py:472
+#: templates/core/reports.html:142
+msgid "Outside 0-7"
+msgstr "0-7-ის მიღმა"
 
-#: apps/core/reporting.py:110 templates/casework/beneficiary_detail.html:39
-#: templates/casework/beneficiary_list.html:18 templates/core/reports.html:30
-msgid "Age"
-msgstr "ასაკი"
+#: apps/core/reporting.py:156 apps/core/reporting.py:157
+#| msgid "None recorded"
+msgid "Not recorded"
+msgstr "არ არის მითითებული"
 
-#: apps/core/reporting.py:111 templates/core/reports.html:30
-msgid "SSK age band"
-msgstr "SSK-ის ასაკობრივი ჯგუფი"
+#: apps/core/reporting.py:220 apps/core/views.py:410
+#| msgid "Planned visit"
+msgid "Overdue planned visit"
+msgstr "ვადაგადაცილებული დაგეგმილი ვიზიტი"
 
-#: apps/core/reporting.py:119 apps/core/reporting.py:128
-#: apps/core/reporting.py:144 apps/core/reporting.py:158
-#: apps/core/reporting.py:169 apps/core/views.py:307
+#: apps/core/reporting.py:229 apps/core/reporting.py:725 apps/core/views.py:411
+#: templates/casework/summary_list.html:8 templates/core/reports.html:117
+msgid "No show"
+msgstr "არ გამოცხადდა"
+
+#: apps/core/reporting.py:263
+#| msgid "Save assessment"
+msgid "Baseline assessment"
+msgstr "საბაზისო შეფასება"
+
+#: apps/core/reporting.py:267
+#| msgid "Complete"
+msgid "Comparable"
+msgstr "შედარებადი"
+
+#: apps/core/reporting.py:271
+#| msgid "Not applicable"
+msgid "Not comparable"
+msgstr "არ არის შედარებადი"
+
+#: apps/core/reporting.py:490 apps/core/views.py:423
+#| msgid "Enrollment notes"
+msgid "Enrollment dates need review"
+msgstr "ჩარიცხვის თარიღები განხილვას საჭიროებს"
+
+#: apps/core/reporting.py:499
+msgid "Enrollment contract number is missing"
+msgstr "ჩარიცხვის ხელშეკრულების ნომერი არ არის მითითებული"
+
+#: apps/core/reporting.py:512
+#| msgid "Birth date"
+msgid "Birth date is missing"
+msgstr "დაბადების თარიღი არ არის მითითებული"
+
+#: apps/core/reporting.py:521
+msgid "Region is missing"
+msgstr "რეგიონი არ არის მითითებული"
+
+#: apps/core/reporting.py:530
+#| msgid "Municipality"
+msgid "Municipality is missing"
+msgstr "მუნიციპალიტეტი არ არის მითითებული"
+
+#: apps/core/reporting.py:539
+msgid "No beneficiary document is attached for this center"
+msgstr "ამ ცენტრისთვის ბენეფიციარის დოკუმენტი არ არის ატვირთული"
+
+#: apps/core/reporting.py:555
+#| msgid "Assessment review overdue"
+msgid "Assessment review is overdue"
+msgstr "შეფასების განხილვა ვადაგადაცილებულია"
+
+#: apps/core/reporting.py:577
+#| msgid "Plan review overdue"
+msgid "Plan review is overdue"
+msgstr "გეგმის განხილვა ვადაგადაცილებულია"
+
+#: apps/core/reporting.py:587
+msgid "Active plan has no review due date"
+msgstr "აქტიურ გეგმას განხილვის ვადა არ აქვს მითითებული"
+
+#: apps/core/reporting.py:596
+#| msgid "Legacy details require review"
+msgid "Plan contains goals that require review"
+msgstr "გეგმა შეიცავს მიზნებს, რომლებიც განხილვას საჭიროებს"
+
+#: apps/core/reporting.py:691 templates/centers/center_list.html:5
+#: templates/centers/center_select.html:11 templates/core/reports.html:111
+msgid "Center"
+msgstr "ცენტრი"
+
+#: apps/core/reporting.py:692 apps/core/reporting.py:714
+#: apps/core/reporting.py:731 apps/core/reporting.py:743
+#: apps/core/reporting.py:766 apps/core/reporting.py:778
+#: apps/core/reporting.py:788 apps/core/reporting.py:803
+#: apps/core/reporting.py:812 apps/core/reporting.py:828
+#: apps/core/reporting.py:842 apps/core/reporting.py:853
 #: templates/casework/assessment_list.html:12
-#: templates/casework/beneficiary_detail.html:51
-#: templates/casework/beneficiary_list.html:12
-#: templates/casework/plan_list.html:12 templates/core/reports.html:33
-#: templates/core/reports.html:42 templates/core/reports.html:48
+#: templates/casework/beneficiary_list.html:17
+#: templates/casework/plan_list.html:12 templates/core/reports.html:48
+#: templates/core/reports.html:111 templates/core/reports.html:123
+#: templates/core/reports.html:135 templates/core/reports.html:138
+#: templates/core/reports.html:144 templates/core/reports.html:153
 msgid "Service"
 msgstr "მომსახურება"
 
-#: apps/core/reporting.py:122 apps/core/reporting.py:162
-#: templates/casework/beneficiary_detail.html:55
-#: templates/casework/plan_detail.html:30
-msgid "End date"
-msgstr "დასრულების თარიღი"
+#: apps/core/reporting.py:693 templates/casework/beneficiary_list.html:16
+#: templates/core/reports.html:111
+msgid "Enrollment status"
+msgstr "ჩარიცხვის სტატუსი"
 
-#: apps/core/reporting.py:133 apps/core/views.py:310
+#: apps/core/reporting.py:694 apps/core/reporting.py:795
+#: templates/core/reports.html:57 templates/core/reports.html:111
+#: templates/core/reports.html:141
+msgid "SSK age band"
+msgstr "SSK-ის ასაკობრივი ჯგუფი"
+
+#: apps/core/reporting.py:697 apps/core/reporting.py:702
+#: apps/core/reporting.py:759 apps/core/reporting.py:780 templates/base.html:52
+#: templates/casework/beneficiary_list.html:3
+#: templates/casework/beneficiary_list.html:8
+#: templates/casework/summary_list.html:8 templates/core/reports.html:111
+#: templates/core/reports.html:114 templates/core/reports.html:129
+#: templates/core/reports.html:135
+msgid "Beneficiaries"
+msgstr "ბენეფიციარები"
+
+#: apps/core/reporting.py:704 templates/core/reports.html:114
+#| msgid "Assignment"
+msgid "Active assignments"
+msgstr "აქტიური დანიშვნები"
+
+#: apps/core/reporting.py:705
+#| msgid "Edit enrollment"
+msgid "Pending enrollments"
+msgstr "მოლოდინის რეჟიმში მყოფი ჩარიცხვები"
+
+#: apps/core/reporting.py:706
+#| msgid "Save enrollment"
+msgid "Active enrollments"
+msgstr "აქტიური ჩარიცხვები"
+
+#: apps/core/reporting.py:707
+#| msgid "Suspend enrollment"
+msgid "Suspended enrollments"
+msgstr "შეჩერებული ჩარიცხვები"
+
+#: apps/core/reporting.py:710 apps/core/reporting.py:776
+#: templates/casework/beneficiary_detail.html:113
+#: templates/casework/schedule_list.html:11
+#: templates/casework/schedule_list.html:17
+#: templates/casework/summary_list.html:6
+#: templates/casework/summary_list.html:8 templates/core/reports.html:117
+#: templates/core/reports.html:135
+msgid "Month"
+msgstr "თვე"
+
+#: apps/core/reporting.py:717 apps/core/reporting.py:817
 #: templates/casework/schedule_list.html:17
 #: templates/casework/visit_detail.html:16
 msgid "Format"
 msgstr "ფორმატი"
 
-#: apps/core/reporting.py:135 templates/casework/summary_list.html:8
-#: templates/casework/visit_list.html:8 templates/core/reports.html:39
-msgid "Units"
-msgstr "ერთეულები"
+#: apps/core/reporting.py:719 templates/core/reports.html:117
+msgid "Delivered visits"
+msgstr "გაწეული ვიზიტები"
 
-#: apps/core/reporting.py:146 templates/casework/assessment_list.html:12
-#: templates/casework/plan_detail.html:80 templates/casework/visit_list.html:8
-#: templates/core/dashboard.html:45 templates/core/reports.html:39
-#: templates/core/reports.html:42
-msgid "Date"
-msgstr "თარიღი"
+#: apps/core/reporting.py:720
+msgid "Visit variance"
+msgstr "ვიზიტების სხვაობა"
 
-#: apps/core/reporting.py:147 templates/casework/assessment_list.html:12
-#: templates/core/reports.html:42
+#: apps/core/reporting.py:722 templates/core/reports.html:117
+msgid "Delivered units"
+msgstr "გაწეული ერთეულები"
+
+#: apps/core/reporting.py:723
+msgid "Unit variance"
+msgstr "ერთეულების სხვაობა"
+
+#: apps/core/reporting.py:724
+msgid "Delivered duration minutes"
+msgstr "გაწეული მომსახურების ხანგრძლივობა წუთებში"
+
+#: apps/core/reporting.py:736 templates/core/reports.html:120
+#| msgid "Resumption"
+msgid "Exception"
+msgstr "გამონაკლისი"
+
+#: apps/core/reporting.py:737 templates/core/reports.html:120
+#| msgid "Overdue"
+msgid "Days overdue"
+msgstr "ვადაგადაცილებული დღეები"
+
+#: apps/core/reporting.py:745 apps/core/reporting.py:831
+#: templates/casework/assessment_list.html:12 templates/core/reports.html:123
+#: templates/core/reports.html:126
 msgid "Type"
 msgstr "ტიპი"
 
-#: apps/core/reporting.py:148 templates/casework/assessment_detail.html:20
-#: templates/core/reports.html:42
+#: apps/core/reporting.py:746 apps/core/reporting.py:832
+#: templates/casework/assessment_detail.html:20 templates/core/reports.html:123
+#: templates/core/reports.html:126
 msgid "Instrument"
 msgstr "ინსტრუმენტი"
 
-#: apps/core/reporting.py:149 templates/casework/assessment_detail.html:21
-msgid "Template version"
-msgstr "შაბლონის ვერსია"
+#: apps/core/reporting.py:747 templates/core/reports.html:126
+#| msgid "Current"
+msgid "Current total"
+msgstr "მიმდინარე ჯამი"
 
-#: apps/core/reporting.py:151 templates/core/reports.html:42
-msgid "Classification"
-msgstr "კლასიფიკაცია"
+#: apps/core/reporting.py:748 templates/core/reports.html:126
+#| msgid "Previous"
+msgid "Previous total"
+msgstr "წინა ჯამი"
 
-#: apps/core/reporting.py:152 templates/casework/assessment_detail.html:27
-#: templates/core/reports.html:42
+#: apps/core/reporting.py:749 templates/core/reports.html:126
+#| msgid "State change"
+msgid "Total change"
+msgstr "ჯამის ცვლილება"
+
+#: apps/core/reporting.py:750 apps/core/reporting.py:836
+#: templates/casework/assessment_detail.html:27 templates/core/reports.html:123
+#: templates/core/reports.html:126
 msgid "Delayed domains"
 msgstr "დაგვიანებული სფეროები"
 
-#: apps/core/reporting.py:170 templates/casework/plan_detail.html:27
-#: templates/core/reports.html:45
-msgid "Plan version"
-msgstr "გეგმის ვერსია"
+#: apps/core/reporting.py:751 templates/core/reports.html:126
+#| msgid "Delayed domains"
+msgid "Delayed-domain change"
+msgstr "დაგვიანებული სფეროების ცვლილება"
 
-#: apps/core/reporting.py:171 templates/core/reports.html:45
+#: apps/core/reporting.py:752 templates/core/reports.html:126
+#| msgid "Plan status"
+msgid "Comparison status"
+msgstr "შედარების სტატუსი"
+
+#: apps/core/reporting.py:756 templates/core/reports.html:129
+#| msgid "Family status"
+msgid "Goal status"
+msgstr "მიზნის სტატუსი"
+
+#: apps/core/reporting.py:757 templates/casework/beneficiary_detail.html:123
+#: templates/core/reports.html:129
+msgid "Goals"
+msgstr "მიზნები"
+
+#: apps/core/reporting.py:758 templates/base.html:64
+#: templates/core/reports.html:129
+msgid "Plans"
+msgstr "გეგმები"
+
+#: apps/core/reporting.py:760 templates/core/reports.html:129
+#| msgid "Overdue"
+msgid "Overdue goals"
+msgstr "ვადაგადაცილებული მიზნები"
+
+#: apps/core/reporting.py:767 apps/core/reporting.py:855
+#: templates/casework/beneficiary_detail.html:45
+#: templates/casework/beneficiary_list.html:48 templates/core/reports.html:132
+#: templates/core/reports.html:150
 msgid "Plan status"
 msgstr "გეგმის სტატუსი"
 
-#: apps/core/reporting.py:173 templates/core/reports.html:45
+#: apps/core/reporting.py:769 apps/core/reporting.py:857
+#: templates/core/reports.html:132 templates/core/reports.html:150
 msgid "Total goals"
 msgstr "მიზნების ჯამი"
 
-#: apps/core/reporting.py:174 templates/core/reports.html:45
-msgid "Planned goals"
-msgstr "დაგეგმილი მიზნები"
-
-#: apps/core/reporting.py:175 templates/core/reports.html:45
-msgid "In-progress goals"
-msgstr "მიმდინარე მიზნები"
-
-#: apps/core/reporting.py:176 templates/core/reports.html:45
+#: apps/core/reporting.py:770 apps/core/reporting.py:860
+#: templates/core/reports.html:132 templates/core/reports.html:150
 msgid "Achieved goals"
 msgstr "მიღწეული მიზნები"
 
-#: apps/core/reporting.py:177 templates/core/reports.html:45
+#: apps/core/reporting.py:771 templates/core/reports.html:132
+#| msgid "Achieved goals"
+msgid "Active goals"
+msgstr "აქტიური მიზნები"
+
+#: apps/core/reporting.py:772 apps/core/reporting.py:861
+#: templates/core/reports.html:132 templates/core/reports.html:150
 msgid "Deferred goals"
 msgstr "გადადებული მიზნები"
 
-#: apps/core/reporting.py:178 templates/core/reports.html:45
+#: apps/core/reporting.py:773 templates/core/reports.html:132
+#| msgid "Achieved date"
+msgid "Achieved percent"
+msgstr "მიღწეული მიზნების პროცენტი"
+
+#: apps/core/reporting.py:777 templates/core/reports.html:135
+msgid "Lifecycle event"
+msgstr "ჩარიცხვის სტატუსის მოვლენა"
+
+#: apps/core/reporting.py:779 templates/core/reports.html:135
+#| msgid "Event"
+msgid "Events"
+msgstr "მოვლენები"
+
+#: apps/core/reporting.py:783 templates/core/reports.html:138
+msgid "Severity"
+msgstr "სიმძიმე"
+
+#: apps/core/reporting.py:784 templates/core/reports.html:138
+msgid "Issue"
+msgstr "პრობლემა"
+
+#: apps/core/reporting.py:785 templates/core/reports.html:138
+#| msgid "Recorded by"
+msgid "Record type"
+msgstr "ჩანაწერის ტიპი"
+
+#: apps/core/reporting.py:789 templates/core/reminders.html:39
+#: templates/core/reports.html:138
+#| msgid "To date"
+msgid "Due date"
+msgstr "შესრულების ვადა"
+
+#: apps/core/reporting.py:792 apps/core/reporting.py:801
+#: templates/core/reports.html:141
+msgid "Person code"
+msgstr "პირის კოდი"
+
+#: apps/core/reporting.py:794 templates/casework/beneficiary_detail.html:52
+#: templates/casework/beneficiary_list.html:31 templates/core/reports.html:141
+msgid "Age"
+msgstr "ასაკი"
+
+#: apps/core/reporting.py:806 apps/core/reporting.py:846
+#: templates/casework/beneficiary_detail.html:88
+#: templates/casework/plan_detail.html:30
+msgid "End date"
+msgstr "დასრულების თარიღი"
+
+#: apps/core/reporting.py:819 templates/casework/summary_list.html:8
+#: templates/casework/visit_list.html:8 templates/core/reports.html:147
+msgid "Units"
+msgstr "ერთეულები"
+
+#: apps/core/reporting.py:830 templates/casework/assessment_list.html:12
+#: templates/casework/beneficiary_detail.html:111
+#: templates/casework/beneficiary_detail.html:118
+#: templates/casework/plan_detail.html:80 templates/casework/visit_list.html:8
+#: templates/core/dashboard.html:49 templates/core/reports.html:120
+#: templates/core/reports.html:123 templates/core/reports.html:126
+#: templates/core/reports.html:147
+msgid "Date"
+msgstr "თარიღი"
+
+#: apps/core/reporting.py:833 templates/casework/assessment_detail.html:21
+msgid "Template version"
+msgstr "შაბლონის ვერსია"
+
+#: apps/core/reporting.py:835 templates/core/reports.html:123
+msgid "Classification"
+msgstr "კლასიფიკაცია"
+
+#: apps/core/reporting.py:854 templates/casework/plan_detail.html:27
+#: templates/core/reports.html:150
+msgid "Plan version"
+msgstr "გეგმის ვერსია"
+
+#: apps/core/reporting.py:858 templates/core/reports.html:150
+msgid "Planned goals"
+msgstr "დაგეგმილი მიზნები"
+
+#: apps/core/reporting.py:859 templates/core/reports.html:150
+msgid "In-progress goals"
+msgstr "მიმდინარე მიზნები"
+
+#: apps/core/reporting.py:862 templates/core/reports.html:150
 msgid "Cancelled goals"
 msgstr "გაუქმებული მიზნები"
 
@@ -2334,76 +2722,134 @@ msgstr "გაუქმებული მიზნები"
 msgid "Enter a valid phone number."
 msgstr "შეიყვანეთ სწორი ტელეფონის ნომერი."
 
-#: apps/core/views.py:53 templates/base.html:49
-#: templates/casework/beneficiary_list.html:3
-#: templates/casework/beneficiary_list.html:6
-#: templates/casework/summary_list.html:8
-msgid "Beneficiaries"
-msgstr "ბენეფიციარები"
+#: apps/core/views.py:76
+#| msgid "Beneficiary search"
+msgid "Beneficiaries by service and geography"
+msgstr "ბენეფიციარები მომსახურებისა და გეოგრაფიის მიხედვით"
 
-#: apps/core/views.py:54 templates/casework/beneficiary_detail.html:21
-msgid "Service enrollments"
-msgstr "მომსახურებაზე ჩარიცხვები"
+#: apps/core/views.py:77
+#| msgid "No specialist assignments."
+msgid "Specialist caseload and active assignments"
+msgstr "სპეციალისტის დატვირთვა და აქტიური დანიშვნები"
 
-#: apps/core/views.py:55 templates/casework/beneficiary_detail.html:112
-#: templates/casework/visit_list.html:3 templates/casework/visit_list.html:5
-msgid "Service visits"
-msgstr "მომსახურების ვიზიტები"
-
-#: apps/core/views.py:56
+#: apps/core/views.py:78
 msgid "Planned versus delivered service"
 msgstr "დაგეგმილი და გაწეული მომსახურება"
 
-#: apps/core/views.py:57 templates/base.html:58
-#: templates/casework/assessment_list.html:3
-#: templates/casework/assessment_list.html:5
-#: templates/casework/beneficiary_detail.html:112
-#: templates/core/dashboard.html:29
-msgid "Assessments"
-msgstr "შეფასებები"
+#: apps/core/views.py:79
+msgid "No-shows, cancellations, and overdue visits"
+msgstr "გამოუცხადებლობა, გაუქმება და ვადაგადაცილებული ვიზიტები"
 
-#: apps/core/views.py:58 templates/casework/beneficiary_detail.html:112
-#: templates/casework/plan_list.html:3 templates/casework/plan_list.html:5
-msgid "Individual plans"
-msgstr "ინდივიდუალური გეგმები"
+#: apps/core/views.py:80
+#| msgid "Initial, repeated, and final assessment cycles."
+msgid "Initial, repeated, and final assessments"
+msgstr "საწყისი, განმეორებითი და საბოლოო შეფასებები"
 
-#: apps/core/views.py:59
-msgid "Plan goals and outcomes"
-msgstr "გეგმის მიზნები და შედეგები"
+#: apps/core/views.py:81
+msgid "Assessment progress and delayed domains"
+msgstr "შეფასების პროგრესი და დაგვიანებული სფეროები"
 
-#: apps/core/views.py:303 templates/casework/schedule_list.html:11
-#: templates/casework/schedule_list.html:17
-#: templates/casework/summary_list.html:6
-#: templates/casework/summary_list.html:8 templates/core/reports.html:36
-msgid "Month"
-msgstr "თვე"
+#: apps/core/views.py:82
+#| msgid "Plan goals and outcomes"
+msgid "Plan goals by category and status"
+msgstr "გეგმის მიზნები კატეგორიისა და სტატუსის მიხედვით"
 
-#: apps/core/views.py:312 templates/core/reports.html:36
-msgid "Delivered visits"
-msgstr "გაწეული ვიზიტები"
+#: apps/core/views.py:83
+#| msgid "Beneficiary code"
+msgid "Beneficiary outcomes"
+msgstr "ბენეფიციარის შედეგები"
 
-#: apps/core/views.py:313
-msgid "Visit variance"
-msgstr "ვიზიტების სხვაობა"
+#: apps/core/views.py:84
+#| msgid "Enrollment specialists"
+msgid "Enrollment lifecycle trends"
+msgstr "ჩარიცხვის სასიცოცხლო ციკლის ტენდენციები"
 
-#: apps/core/views.py:315 templates/core/reports.html:36
-msgid "Delivered units"
-msgstr "გაწეული ერთეულები"
+#: apps/core/views.py:85
+msgid "Data-quality exceptions"
+msgstr "მონაცემთა ხარისხის გამონაკლისები"
 
-#: apps/core/views.py:316
-msgid "Unit variance"
-msgstr "ერთეულების სხვაობა"
+#: apps/core/views.py:86
+#| msgid "Beneficiary code"
+msgid "Beneficiary detail"
+msgstr "ბენეფიციარის დეტალები"
 
-#: apps/core/views.py:317
-msgid "Delivered duration minutes"
-msgstr "გაწეული მომსახურების ხანგრძლივობა წუთებში"
+#: apps/core/views.py:87
+#| msgid "Enrollment code"
+msgid "Enrollment detail"
+msgstr "ჩარიცხვის დეტალები"
 
-#: apps/core/views.py:318 templates/casework/summary_list.html:8
-#: templates/core/reports.html:36
-msgid "No show"
-msgstr "არ გამოცხადდა"
+#: apps/core/views.py:88
+#| msgid "Visit date"
+msgid "Visit detail"
+msgstr "ვიზიტის დეტალები"
 
-#: templates/audit/event_list.html:1 templates/base.html:87
+#: apps/core/views.py:89
+#| msgid "Plan period details"
+msgid "Plan detail"
+msgstr "გეგმის დეტალები"
+
+#: apps/core/views.py:90
+#| msgid "Plan goals and outcomes"
+msgid "Plan goals and outcomes detail"
+msgstr "გეგმის მიზნებისა და შედეგების დეტალები"
+
+#: apps/core/views.py:421
+#| msgid "Upload beneficiary document"
+msgid "Missing beneficiary document"
+msgstr "ბენეფიციარის დოკუმენტი არ არის"
+
+#: apps/core/views.py:422
+#| msgid "Application contract number"
+msgid "Missing enrollment contract number"
+msgstr "ჩარიცხვის ხელშეკრულების ნომერი არ არის მითითებული"
+
+#: apps/core/views.py:424
+#| msgid "Birth date"
+msgid "Missing birth date"
+msgstr "დაბადების თარიღი არ არის მითითებული"
+
+#: apps/core/views.py:425
+msgid "Missing region"
+msgstr "რეგიონი არ არის მითითებული"
+
+#: apps/core/views.py:426
+#| msgid "Municipality"
+msgid "Missing municipality"
+msgstr "მუნიციპალიტეტი არ არის მითითებული"
+
+#: apps/core/views.py:427
+#| msgid "Assessment review"
+msgid "Overdue assessment review"
+msgstr "ვადაგადაცილებული შეფასების განხილვა"
+
+#: apps/core/views.py:428
+#| msgid "Record plan review"
+msgid "Overdue plan review"
+msgstr "ვადაგადაცილებული გეგმის განხილვა"
+
+#: apps/core/views.py:429
+#| msgid "No plan reviews recorded."
+msgid "Missing plan review date"
+msgstr "გეგმის განხილვის თარიღი არ არის მითითებული"
+
+#: apps/core/views.py:430
+#| msgid "Legacy details require review"
+msgid "Goal requires review"
+msgstr "მიზანი განხილვას საჭიროებს"
+
+#: apps/core/views.py:469
+msgid "0-3"
+msgstr "0-3"
+
+#: apps/core/views.py:470
+msgid "3-5"
+msgstr "3-5"
+
+#: apps/core/views.py:471
+msgid "5-7"
+msgstr "5-7"
+
+#: templates/audit/event_list.html:1 templates/base.html:93
 msgid "Audit events"
 msgstr "აუდიტის მოვლენები"
 
@@ -2420,7 +2866,7 @@ msgid "Actor"
 msgstr "მოქმედი პირი"
 
 #: templates/audit/event_list.html:1
-#: templates/casework/beneficiary_detail.html:72
+#: templates/casework/beneficiary_detail.html:104
 msgid "Event"
 msgstr "მოვლენა"
 
@@ -2440,8 +2886,8 @@ msgstr "სისტემა ან ანონიმური მომხმ
 msgid "No audit events are available for this center."
 msgstr "ამ ცენტრისთვის აუდიტის მოვლენები არ არის."
 
-#: templates/base.html:9 templates/base.html:102 templates/base.html:174
-#: templates/base.html:182 templates/registration/login.html:3
+#: templates/base.html:9 templates/base.html:108 templates/base.html:180
+#: templates/base.html:188 templates/registration/login.html:3
 msgid "SSK Case Management"
 msgstr "SSK შემთხვევების მართვა"
 
@@ -2453,7 +2899,7 @@ msgstr "მთავარ შინაარსზე გადასვლა"
 msgid "Main navigation"
 msgstr "მთავარი ნავიგაცია"
 
-#: templates/base.html:38 templates/base.html:154
+#: templates/base.html:38 templates/base.html:160
 msgid "SSK Case Management home"
 msgstr "SSK შემთხვევების მართვის მთავარი გვერდი"
 
@@ -2466,87 +2912,92 @@ msgstr "სამუშაო სივრცე"
 msgid "Dashboard"
 msgstr "მთავარი გვერდი"
 
-#: templates/base.html:52
+#: templates/base.html:49 templates/casework/beneficiary_list.html:3
+#: templates/casework/beneficiary_list.html:8
+msgid "My beneficiaries"
+msgstr "ჩემი ბენეფიციარები"
+
+#: templates/base.html:55
 msgid "Visits"
 msgstr "ვიზიტები"
 
-#: templates/base.html:55 templates/casework/beneficiary_detail.html:112
-#: templates/core/dashboard.html:70
+#: templates/base.html:58 templates/casework/beneficiary_detail.html:112
+#: templates/core/dashboard.html:74
 msgid "Service schedules"
 msgstr "მომსახურების გრაფიკები"
 
-#: templates/base.html:61
-msgid "Plans"
-msgstr "გეგმები"
-
-#: templates/base.html:64
+#: templates/base.html:67
 msgid "Summaries"
 msgstr "შეჯამებები"
 
-#: templates/base.html:68
+#: templates/base.html:71
 msgid "Operations"
 msgstr "ოპერაციები"
 
-#: templates/base.html:71 templates/core/reports.html:3
-#: templates/core/reports.html:6
+#: templates/base.html:74 templates/core/reports.html:3
 msgid "Reports"
 msgstr "ანგარიშები"
 
-#: templates/base.html:74
+#: templates/base.html:77 templates/core/reminders.html:3
+#: templates/core/reminders.html:8
+msgid "Reminders"
+msgstr "შეხსენებები"
+
+#: templates/base.html:80
 msgid "Center roster"
 msgstr "ცენტრის სპეციალისტთა სია"
 
-#: templates/base.html:79 templates/centers/staff_list.html:3
+#: templates/base.html:85 templates/centers/staff_list.html:3
 #: templates/centers/staff_list.html:8
 msgid "Employees"
 msgstr "თანამშრომლები"
 
-#: templates/base.html:84 templates/centers/center_list.html:2
+#: templates/base.html:90 templates/centers/center_list.html:2
 #: templates/centers/center_list.html:4 templates/centers/center_list.html:5
 msgid "Centers"
 msgstr "ცენტრები"
 
-#: templates/base.html:94
+#: templates/base.html:100
 msgid "Close navigation"
 msgstr "ნავიგაციის დახურვა"
 
-#: templates/base.html:100
+#: templates/base.html:106
 msgid "Open navigation"
 msgstr "ნავიგაციის გახსნა"
 
-#: templates/base.html:105
+#: templates/base.html:111
 msgid "Change center"
 msgstr "ცენტრის შეცვლა"
 
-#: templates/base.html:106
+#: templates/base.html:112
 msgid "Active center"
 msgstr "აქტიური ცენტრი"
 
-#: templates/base.html:113
+#: templates/base.html:119
 msgid "System Manager"
 msgstr "სისტემის მენეჯერი"
 
-#: templates/base.html:113 tests/test_assignment_authorization.py:152
+#: templates/base.html:119 tests/test_assignment_authorization.py:152
 msgid "Central HR"
 msgstr "ცენტრალური HR"
 
-#: templates/base.html:113
+#: templates/base.html:119
 msgid "Center Coordinator"
 msgstr "ცენტრის კოორდინატორი"
 
-#: templates/base.html:124
+#: templates/base.html:130
 msgid "Language"
 msgstr "ენა"
 
-#: templates/base.html:130
+#: templates/base.html:136
 msgid "Apply"
 msgstr "გამოყენება"
 
-#: templates/base.html:135
+#: templates/base.html:141
 msgid "Sign out"
 msgstr "გასვლა"
 
-#: templates/base.html:175 templates/base.html:183
+#: templates/base.html:181 templates/base.html:189
 msgid "Sensitive information must be handled according to approved policy."
 msgstr "სენსიტიური ინფორმაცია დამტკიცებული პოლიტიკის შესაბამისად უნდა დამუშავდეს."
 
@@ -2569,7 +3020,7 @@ msgid "Delete draft"
 msgstr "მონახაზის წაშლა"
 
 #: templates/casework/assessment_detail.html:14
-#: templates/casework/beneficiary_detail.html:15
+#: templates/casework/beneficiary_detail.html:20
 #: templates/casework/plan_detail.html:18
 #: templates/casework/visit_detail.html:7
 msgid "Back to list"
@@ -2580,6 +3031,8 @@ msgid "Primary specialist"
 msgstr "მთავარი სპეციალისტი"
 
 #: templates/casework/assessment_detail.html:24
+#: templates/casework/beneficiary_detail.html:46
+#: templates/casework/beneficiary_list.html:49
 msgid "Responsible specialists"
 msgstr "პასუხისმგებელი სპეციალისტები"
 
@@ -2596,15 +3049,20 @@ msgid "Derived classification"
 msgstr "გამოთვლილი კლასიფიკაცია"
 
 #: templates/casework/assessment_detail.html:26
-#: templates/casework/plan_detail.html:77 templates/core/reports.html:43
+#: templates/casework/plan_detail.html:77 templates/core/reports.html:124
 msgid "Not classified"
 msgstr "არაკლასიფიცირებული"
 
 #: templates/casework/assessment_detail.html:28
+#: templates/casework/beneficiary_detail.html:118
 msgid "Next review"
 msgstr "შემდეგი განხილვა"
 
 #: templates/casework/assessment_detail.html:28
+#: templates/casework/beneficiary_detail.html:42
+#: templates/casework/beneficiary_detail.html:43
+#: templates/casework/beneficiary_detail.html:118
+#: templates/casework/beneficiary_detail.html:123
 msgid "Not scheduled"
 msgstr "არ არის დაგეგმილი"
 
@@ -2616,19 +3074,19 @@ msgstr "არცერთი"
 #: templates/casework/assessment_detail.html:30
 #: templates/casework/assessment_detail.html:31
 #: templates/casework/assessment_detail.html:32
-#: templates/casework/beneficiary_detail.html:38
-#: templates/casework/beneficiary_detail.html:39
-#: templates/casework/beneficiary_detail.html:40
-#: templates/casework/beneficiary_detail.html:41
-#: templates/casework/beneficiary_detail.html:42
-#: templates/casework/beneficiary_detail.html:72
-#: templates/casework/beneficiary_detail.html:86
-#: templates/casework/beneficiary_detail.html:87
-#: templates/casework/beneficiary_detail.html:88
-#: templates/casework/beneficiary_detail.html:89
-#: templates/casework/beneficiary_detail.html:90
-#: templates/casework/beneficiary_detail.html:91
-#: templates/casework/beneficiary_list.html:23
+#: templates/casework/beneficiary_detail.html:51
+#: templates/casework/beneficiary_detail.html:52
+#: templates/casework/beneficiary_detail.html:53
+#: templates/casework/beneficiary_detail.html:54
+#: templates/casework/beneficiary_detail.html:55
+#: templates/casework/beneficiary_detail.html:65
+#: templates/casework/beneficiary_detail.html:66
+#: templates/casework/beneficiary_detail.html:67
+#: templates/casework/beneficiary_detail.html:68
+#: templates/casework/beneficiary_detail.html:69
+#: templates/casework/beneficiary_detail.html:70
+#: templates/casework/beneficiary_detail.html:104
+#: templates/casework/beneficiary_list.html:32
 #: templates/centers/center_detail.html:5
 #: templates/centers/center_detail.html:7
 #: templates/centers/staff_detail.html:17
@@ -2670,8 +3128,8 @@ msgstr "მნიშვნელობის გარეშე"
 
 #: templates/casework/assessment_detail.html:46
 #: templates/casework/assessment_detail.html:71
-#: templates/casework/beneficiary_detail.html:43
 #: templates/casework/beneficiary_detail.html:56
+#: templates/casework/beneficiary_detail.html:89
 #: templates/casework/plan_detail.html:34
 #: templates/casework/plan_detail.html:75
 #: templates/casework/plan_goal_form.html:57
@@ -2693,14 +3151,13 @@ msgid "Total change: %(total)s. Delayed-domain change: %(delayed)s."
 msgstr "ჯამის ცვლილება: %(total)s. დაგვიანებული სფეროების ცვლილება: %(delayed)s."
 
 #: templates/casework/assessment_detail.html:60
-#: templates/casework/beneficiary_detail.html:108
+#: templates/casework/beneficiary_detail.html:139
 #: templates/centers/staff_list.html:39 templates/includes/pagination.html:5
 msgid "Previous"
 msgstr "წინა"
 
 #: templates/casework/assessment_detail.html:60
 #: templates/casework/assessment_detail.html:71
-#: templates/casework/beneficiary_detail.html:95
 msgid "Current"
 msgstr "მიმდინარე მაჩვენებელი"
 
@@ -2775,9 +3232,9 @@ msgid "Initial, repeated, and final assessment cycles."
 msgstr "საწყისი, განმეორებითი და საბოლოო შეფასების ციკლები."
 
 #: templates/casework/assessment_list.html:7
-#: templates/casework/beneficiary_list.html:10
+#: templates/casework/beneficiary_list.html:15
 #: templates/casework/plan_list.html:7 templates/casework/visit_list.html:6
-#: templates/centers/staff_list.html:13
+#: templates/centers/staff_list.html:13 templates/core/reports.html:27
 msgid "Search"
 msgstr "ძიება"
 
@@ -2791,7 +3248,7 @@ msgid "All types"
 msgstr "ყველა ტიპი"
 
 #: templates/casework/assessment_list.html:9
-#: templates/casework/beneficiary_list.html:13
+#: templates/casework/beneficiary_list.html:18
 #: templates/casework/plan_list.html:9 templates/casework/schedule_list.html:12
 #: templates/casework/summary_list.html:6 templates/casework/visit_list.html:6
 #: templates/centers/staff_list.html:16
@@ -2801,8 +3258,8 @@ msgstr "ფილტრი"
 #: templates/casework/assessment_list.html:12
 #: templates/casework/plan_list.html:12
 #: templates/casework/schedule_list.html:17
-#: templates/casework/visit_list.html:8 templates/core/reports.html:36
-#: templates/core/reports.html:45
+#: templates/casework/visit_list.html:8 templates/core/reports.html:117
+#: templates/core/reports.html:132 templates/core/reports.html:150
 msgid "Beneficiary and enrollment"
 msgstr "ბენეფიციარი და ჩარიცხვა"
 
@@ -2834,215 +3291,359 @@ msgstr "შენახული ფაილის სახელი შემ
 msgid "Upload securely"
 msgstr "უსაფრთხოდ ატვირთვა"
 
-#: templates/casework/beneficiary_detail.html:12
+#: templates/casework/beneficiary_detail.html:13
+#: templates/casework/beneficiary_detail.html:109
+msgid "New Visit"
+msgstr "ახალი ვიზიტი"
+
+#: templates/casework/beneficiary_detail.html:14
+#: templates/casework/beneficiary_detail.html:117
+msgid "New Assessment"
+msgstr "ახალი შეფასება"
+
+#: templates/casework/beneficiary_detail.html:15
+#: templates/casework/beneficiary_detail.html:122
+msgid "New Plan"
+msgstr "ახალი გეგმა"
+
+#: templates/casework/beneficiary_detail.html:17
 msgid "Edit person"
 msgstr "პირის რედაქტირება"
 
-#: templates/casework/beneficiary_detail.html:13
+#: templates/casework/beneficiary_detail.html:18
 msgid "Edit enrollment"
 msgstr "ჩარიცხვის რედაქტირება"
 
-#: templates/casework/beneficiary_detail.html:21
-msgid "Choose one case episode. Case records stay inside the selected service enrollment."
-msgstr "აირჩიეთ ერთი მომსახურების ეპიზოდი. საქმის ჩანაწერები არჩეული მომსახურების ჩარიცხვაში რჩება."
+#: templates/casework/beneficiary_detail.html:24
+msgid "Beneficiary workspace"
+msgstr "ბენეფიციარის სამუშაო სივრცე"
 
-#: templates/casework/beneficiary_detail.html:22
-msgid "Add service enrollment"
-msgstr "მომსახურებაზე ჩარიცხვის დამატება"
+#: templates/casework/beneficiary_detail.html:25
+#: templates/casework/beneficiary_detail.html:39
+msgid "Overview"
+msgstr "მიმოხილვა"
 
-#: templates/casework/beneficiary_detail.html:32
+#: templates/casework/beneficiary_detail.html:26
+#: templates/casework/beneficiary_detail.html:78
+msgid "Service enrollments"
+msgstr "მომსახურებაზე ჩარიცხვები"
+
+#: templates/casework/beneficiary_detail.html:27
+#: templates/casework/beneficiary_detail.html:109
+msgid "Visits and schedules"
+msgstr "ვიზიტები და გრაფიკები"
+
+#: templates/casework/beneficiary_detail.html:29
+#: templates/casework/beneficiary_detail.html:122
+msgid "Plans and goals"
+msgstr "გეგმები და მიზნები"
+
+#: templates/casework/beneficiary_detail.html:30
+#: templates/casework/beneficiary_detail.html:127
+msgid "Documents"
+msgstr "დოკუმენტები"
+
+#: templates/casework/beneficiary_detail.html:31
+#: templates/casework/beneficiary_detail.html:132
+msgid "Authorized timeline"
+msgstr "ავტორიზებული ქრონოლოგია"
+
+#: templates/casework/beneficiary_detail.html:35
 msgid "Restricted view"
 msgstr "შეზღუდული ხედი"
 
-#: templates/casework/beneficiary_detail.html:32
-msgid "Identifiers, contact information, unrelated enrollments, restricted classifications, assignments, contract numbers, and beneficiary attachments are not available to the specialist role."
-msgstr "იდენტიფიკატორები, საკონტაქტო ინფორმაცია, დაუკავშირებელი ჩარიცხვები, შეზღუდული კლასიფიკაციები, დანიშვნები, კონტრაქტის ნომრები და ბენეფიციარის დანართები სპეციალისტის როლისთვის მიუწვდომელია."
+#: templates/casework/beneficiary_detail.html:35
+msgid "Personal identifiers, contact information, contract details, hidden classifications, and identity documents are not available to the specialist role."
+msgstr "პირადი იდენტიფიკატორები, საკონტაქტო ინფორმაცია, ხელშეკრულების დეტალები, დამალული კლასიფიკაციები და პირადობის დოკუმენტები სპეციალისტის როლისთვის მიუწვდომელია."
 
-#: templates/casework/beneficiary_detail.html:36
+#: templates/casework/beneficiary_detail.html:39
+msgid "Current service context and due work for this enrollment."
+msgstr "ამ ჩარიცხვის მიმდინარე სერვისი და შესასრულებელი სამუშაო."
+
+#: templates/casework/beneficiary_detail.html:41
+msgid "Active service"
+msgstr "აქტიური სერვისი"
+
+#: templates/casework/beneficiary_detail.html:42
+msgid "Next assessment"
+msgstr "შემდეგი შეფასება"
+
+#: templates/casework/beneficiary_detail.html:42
+#: templates/casework/beneficiary_detail.html:43
+#: templates/core/reminders.html:43
+msgid "Overdue"
+msgstr "ვადაგადაცილებული"
+
+#: templates/casework/beneficiary_detail.html:43
+msgid "On track"
+msgstr "გეგმის მიხედვით"
+
+#: templates/casework/beneficiary_detail.html:44
+#: templates/casework/beneficiary_list.html:47
+msgid "Latest visit"
+msgstr "ბოლო ვიზიტი"
+
+#: templates/casework/beneficiary_detail.html:44
+#: templates/casework/beneficiary_list.html:47
+msgid "No visits recorded"
+msgstr "ვიზიტები არ არის ჩაწერილი"
+
+#: templates/casework/beneficiary_detail.html:45
+#: templates/casework/beneficiary_detail.html:123
+#: templates/casework/plan_list.html:12 templates/core/reports.html:123
+msgid "Version"
+msgstr "ვერსია"
+
+#: templates/casework/beneficiary_detail.html:45
+#: templates/casework/beneficiary_list.html:48
+msgid "No plan recorded"
+msgstr "გეგმა არ არის ჩაწერილი"
+
+#: templates/casework/beneficiary_detail.html:46
+#: templates/casework/beneficiary_detail.html:101
+#: templates/casework/beneficiary_list.html:49
+msgid "No current specialist"
+msgstr "მიმდინარე სპეციალისტი არ არის"
+
+#: templates/casework/beneficiary_detail.html:49
 #: templates/casework/beneficiary_form.html:9
 msgid "Person information"
 msgstr "პირის ინფორმაცია"
 
-#: templates/casework/beneficiary_detail.html:39
-#: templates/casework/beneficiary_list.html:23
+#: templates/casework/beneficiary_detail.html:52
 #, python-format
 msgid "SSK band %(band)s"
 msgstr "SSK-ის ჯგუფი %(band)s"
 
-#: templates/casework/beneficiary_detail.html:43
+#: templates/casework/beneficiary_detail.html:56
 msgid "Free-text notes"
 msgstr "თავისუფალი ტექსტის შენიშვნები"
 
-#: templates/casework/beneficiary_detail.html:48
-msgid "Selected service enrollment"
-msgstr "არჩეული მომსახურების ჩარიცხვა"
-
-#: templates/casework/beneficiary_detail.html:48
-msgid "Dates use effective-from semantics."
-msgstr "თარიღები მოქმედების დაწყების პრინციპს იყენებს."
-
-#: templates/casework/beneficiary_detail.html:53
-msgid "Current center"
-msgstr "მიმდინარე ცენტრი"
-
-#: templates/casework/beneficiary_detail.html:53
-msgid "No current placement"
-msgstr "მიმდინარე ცენტრი არ არის"
-
-#: templates/casework/beneficiary_detail.html:54
-#: templates/casework/beneficiary_detail.html:72
-msgid "Unknown legacy date"
-msgstr "ძველი ჩანაწერის უცნობი თარიღი"
-
-#: templates/casework/beneficiary_detail.html:55
-#: templates/casework/plan_detail.html:30 templates/casework/plan_list.html:12
-#: templates/centers/center_list.html:5 templates/core/reports.html:34
-msgid "Open"
-msgstr "ღია"
-
-#: templates/casework/beneficiary_detail.html:56
-msgid "Enrollment notes"
-msgstr "ჩარიცხვის შენიშვნები"
-
-#: templates/casework/beneficiary_detail.html:60
-msgid "Admit"
-msgstr "მიღება"
-
-#: templates/casework/beneficiary_detail.html:61
-msgid "Suspend"
-msgstr "შეჩერება"
-
-#: templates/casework/beneficiary_detail.html:62
-msgid "Resume"
-msgstr "განახლება"
-
-#: templates/casework/beneficiary_detail.html:63
-msgid "Complete"
-msgstr "დასრულება"
-
-#: templates/casework/beneficiary_detail.html:66
-msgid "Re-enroll"
-msgstr "ხელახალი ჩარიცხვა"
-
-#: templates/casework/beneficiary_detail.html:71
-msgid "Enrollment history"
-msgstr "ჩარიცხვის ისტორია"
-
-#: templates/casework/beneficiary_detail.html:72
-msgid "State change"
-msgstr "სტატუსის ცვლილება"
-
-#: templates/casework/beneficiary_detail.html:76
+#: templates/casework/beneficiary_detail.html:59
 msgid "Diagnoses for this enrollment"
 msgstr "ამ ჩარიცხვის დიაგნოზები"
 
-#: templates/casework/beneficiary_detail.html:77
+#: templates/casework/beneficiary_detail.html:59
 msgid "No visible coded diagnoses."
 msgstr "ხილული კოდირებული დიაგნოზები არ არის."
 
-#: templates/casework/beneficiary_detail.html:78
+#: templates/casework/beneficiary_detail.html:60
 msgid "Social statuses for this enrollment"
 msgstr "ამ ჩარიცხვის სოციალური სტატუსები"
 
-#: templates/casework/beneficiary_detail.html:79
+#: templates/casework/beneficiary_detail.html:60
 msgid "No visible social-status classifications."
 msgstr "ხილული სოციალური სტატუსის კლასიფიკაციები არ არის."
 
-#: templates/casework/beneficiary_detail.html:84
+#: templates/casework/beneficiary_detail.html:63
 msgid "Restricted person information"
 msgstr "პირის შეზღუდული ინფორმაცია"
 
-#: templates/casework/beneficiary_detail.html:90
+#: templates/casework/beneficiary_detail.html:69
 msgid "Contract number"
 msgstr "ხელშეკრულების ნომერი"
 
-#: templates/casework/beneficiary_detail.html:92
+#: templates/casework/beneficiary_detail.html:71
 msgid "Preserved legacy diagnosis narrative"
 msgstr "შენარჩუნებული ძველი დიაგნოზის ტექსტი"
 
+#: templates/casework/beneficiary_detail.html:78
+msgid "Choose one authorized case episode. Every section below follows the selected service."
+msgstr "აირჩიეთ ერთი ავტორიზებული შემთხვევის ეპიზოდი. ქვემოთ მოცემული ყველა სექცია არჩეულ სერვისს ეკუთვნის."
+
+#: templates/casework/beneficiary_detail.html:79
+msgid "Add service enrollment"
+msgstr "მომსახურებაზე ჩარიცხვის დამატება"
+
+#: templates/casework/beneficiary_detail.html:81
+#: templates/core/dashboard.html:31
+msgid "Authorized service enrollments"
+msgstr "ავტორიზებული მომსახურებაზე ჩარიცხვები"
+
+#: templates/casework/beneficiary_detail.html:86
+msgid "Current center"
+msgstr "მიმდინარე ცენტრი"
+
+#: templates/casework/beneficiary_detail.html:86
+msgid "No current placement"
+msgstr "მიმდინარე ცენტრი არ არის"
+
+#: templates/casework/beneficiary_detail.html:87
+#: templates/casework/beneficiary_detail.html:104
+msgid "Unknown legacy date"
+msgstr "ძველი ჩანაწერის უცნობი თარიღი"
+
+#: templates/casework/beneficiary_detail.html:88
+#: templates/casework/plan_detail.html:30 templates/casework/plan_list.html:12
+#: templates/centers/center_list.html:5 templates/core/reports.html:145
+msgid "Open"
+msgstr "ღია"
+
+#: templates/casework/beneficiary_detail.html:89
+msgid "Enrollment notes"
+msgstr "ჩარიცხვის შენიშვნები"
+
+#: templates/casework/beneficiary_detail.html:93
+msgid "Admit"
+msgstr "მიღება"
+
 #: templates/casework/beneficiary_detail.html:94
-#: templates/casework/beneficiary_form.html:14
-#: templates/casework/enrollment_form.html:10
-msgid "Enrollment specialists"
-msgstr "ჩარიცხვის სპეციალისტები"
+msgid "Suspend"
+msgstr "შეჩერება"
 
 #: templates/casework/beneficiary_detail.html:95
-#: tests/test_assignment_authorization.py:149
-msgid "Future"
-msgstr "სამომავლო"
+msgid "Resume"
+msgstr "განახლება"
 
-#: templates/casework/beneficiary_detail.html:95
-#: tests/test_assignment_authorization.py:150
-msgid "Expired"
-msgstr "ვადაგასული"
+#: templates/casework/beneficiary_detail.html:96
+msgid "Complete"
+msgstr "დასრულება"
 
-#: templates/casework/beneficiary_detail.html:95
-#: tests/test_assignment_authorization.py:151
-msgid "Unknown assignment dates"
-msgstr "დანიშვნის თარიღები უცნობია"
+#: templates/casework/beneficiary_detail.html:98
+msgid "Re-enroll"
+msgstr "ხელახალი ჩარიცხვა"
 
-#: templates/casework/beneficiary_detail.html:95
+#: templates/casework/beneficiary_detail.html:100
+msgid "Current responsible specialists"
+msgstr "მიმდინარე პასუხისმგებელი სპეციალისტები"
+
+#: templates/casework/beneficiary_detail.html:103
+#: templates/casework/beneficiary_detail.html:104
+msgid "Enrollment history"
+msgstr "ჩარიცხვის ისტორია"
+
+#: templates/casework/beneficiary_detail.html:104
+msgid "State change"
+msgstr "სტატუსის ცვლილება"
+
+#: templates/casework/beneficiary_detail.html:105
+msgid "Historical specialist assignments"
+msgstr "სპეციალისტების ისტორიული დანიშვნები"
+
+#: templates/casework/beneficiary_detail.html:105
 msgid "Unknown start"
 msgstr "დაწყების თარიღი უცნობია"
 
-#: templates/casework/beneficiary_detail.html:95
+#: templates/casework/beneficiary_detail.html:105
 msgid "to"
 msgstr "მდე"
 
-#: templates/casework/beneficiary_detail.html:95
+#: templates/casework/beneficiary_detail.html:105
 msgid "No specialist assignments."
 msgstr "სპეციალისტის დანიშვნები არ არის."
 
-#: templates/casework/beneficiary_detail.html:101
-msgid "Case activity timeline"
-msgstr "საქმის აქტივობების ქრონოლოგია"
+#: templates/casework/beneficiary_detail.html:109
+msgid "Planned and delivered work for the selected service enrollment."
+msgstr "არჩეული სერვისის ჩარიცხვის დაგეგმილი და შესრულებული სამუშაო."
 
-#: templates/casework/beneficiary_detail.html:101
+#: templates/casework/beneficiary_detail.html:109
+msgid "Add monthly schedule"
+msgstr "ყოველთვიური გრაფიკის დამატება"
+
+#: templates/casework/beneficiary_detail.html:109
+msgid "View all visits"
+msgstr "ყველა ვიზიტის ნახვა"
+
+#: templates/casework/beneficiary_detail.html:110
+msgid "Recent visits"
+msgstr "ბოლო ვიზიტები"
+
+#: templates/casework/beneficiary_detail.html:111
+msgid "No visits recorded for this enrollment."
+msgstr "ამ ჩარიცხვისთვის ვიზიტები არ არის ჩაწერილი."
+
+#: templates/casework/beneficiary_detail.html:113
+#: templates/casework/schedule_list.html:17 templates/core/reports.html:89
+#: templates/core/reports.html:120
+msgid "Location"
+msgstr "ადგილი"
+
+#: templates/casework/beneficiary_detail.html:113
+msgid "No service schedules recorded for this enrollment."
+msgstr "ამ ჩარიცხვისთვის მომსახურების გრაფიკები არ არის ჩაწერილი."
+
+#: templates/casework/beneficiary_detail.html:117
+msgid "Current authorized assessments and their next review dates."
+msgstr "მიმდინარე ავტორიზებული შეფასებები და მათი შემდეგი განხილვის თარიღები."
+
+#: templates/casework/beneficiary_detail.html:117
+msgid "View all assessments"
+msgstr "ყველა შეფასების ნახვა"
+
+#: templates/casework/beneficiary_detail.html:118
+msgid "No assessments recorded for this enrollment."
+msgstr "ამ ჩარიცხვისთვის შეფასებები არ არის ჩაწერილი."
+
+#: templates/casework/beneficiary_detail.html:122
+msgid "Individual plan periods, review status, and measurable goals."
+msgstr "ინდივიდუალური გეგმის პერიოდები, განხილვის სტატუსი და გაზომვადი მიზნები."
+
+#: templates/casework/beneficiary_detail.html:122
+msgid "View all plans"
+msgstr "ყველა გეგმის ნახვა"
+
+#: templates/casework/beneficiary_detail.html:123
+msgid "Plan"
+msgstr "გეგმა"
+
+#: templates/casework/beneficiary_detail.html:123
+msgid "Period"
+msgstr "პერიოდი"
+
+#: templates/casework/beneficiary_detail.html:123
+msgid "Review due"
+msgstr "განხილვის ვადა"
+
+#: templates/casework/beneficiary_detail.html:123
+msgid "No individual plans recorded for this enrollment."
+msgstr "ამ ჩარიცხვისთვის ინდივიდუალური გეგმები არ არის ჩაწერილი."
+
+#: templates/casework/beneficiary_detail.html:127
+msgid "Only documents authorized through this beneficiary or the selected enrollment records are shown."
+msgstr "ნაჩვენებია მხოლოდ ამ ბენეფიციარის ან არჩეული ჩარიცხვის ჩანაწერებით ავტორიზებული დოკუმენტები."
+
+#: templates/casework/beneficiary_detail.html:127
+msgid "Upload beneficiary document"
+msgstr "ბენეფიციარის დოკუმენტის ატვირთვა"
+
+#: templates/casework/beneficiary_detail.html:128
+msgid "No authorized documents have been uploaded."
+msgstr "ავტორიზებული დოკუმენტები ატვირთული არ არის."
+
+#: templates/casework/beneficiary_detail.html:132
 msgid "Authorized records for the selected enrollment in newest-first order."
 msgstr "არჩეული ჩარიცხვის ავტორიზებული ჩანაწერები, ახლიდან ძველისკენ."
 
-#: templates/casework/beneficiary_detail.html:105
+#: templates/casework/beneficiary_detail.html:136
 msgid "View record"
 msgstr "ჩანაწერის ნახვა"
 
-#: templates/casework/beneficiary_detail.html:105
+#: templates/casework/beneficiary_detail.html:136
 msgid "Download attachment"
 msgstr "დანართის ჩამოტვირთვა"
 
-#: templates/casework/beneficiary_detail.html:108
+#: templates/casework/beneficiary_detail.html:139
 msgid "Timeline pagination"
 msgstr "ქრონოლოგიის გვერდები"
 
-#: templates/casework/beneficiary_detail.html:108
+#: templates/casework/beneficiary_detail.html:139
 #: templates/centers/staff_list.html:40 templates/includes/pagination.html:7
 #, python-format
 msgid "Page %(page)s of %(pages)s"
 msgstr "გვერდი %(page)s, სულ %(pages)s"
 
-#: templates/casework/beneficiary_detail.html:108
+#: templates/casework/beneficiary_detail.html:139
 #: templates/centers/staff_list.html:41 templates/includes/pagination.html:9
 msgid "Next"
 msgstr "შემდეგი"
 
-#: templates/casework/beneficiary_detail.html:109
+#: templates/casework/beneficiary_detail.html:140
 msgid "No case activity yet"
 msgstr "საქმის აქტივობა ჯერ არ არის"
 
-#: templates/casework/beneficiary_detail.html:109
+#: templates/casework/beneficiary_detail.html:140
 msgid "Authorized records for this service enrollment will appear here when they are added."
 msgstr "ამ მომსახურების ჩარიცხვის ავტორიზებული ჩანაწერები დამატების შემდეგ აქ გამოჩნდება."
-
-#: templates/casework/beneficiary_detail.html:112
-msgid "Related work"
-msgstr "დაკავშირებული სამუშაო"
-
-#: templates/casework/beneficiary_detail.html:112
-msgid "Authorized records linked to this service enrollment."
-msgstr "ამ მომსახურების ჩარიცხვასთან დაკავშირებული ავტორიზებული ჩანაწერები."
-
-#: templates/casework/beneficiary_detail.html:112
-msgid "Add monthly schedule"
-msgstr "ყოველთვიური გრაფიკის დამატება"
 
 #: templates/casework/beneficiary_form.html:5
 msgid "Person, enrollment, diagnosis, and social-status fields are kept separate and limited by role."
@@ -3051,6 +3652,11 @@ msgstr "პირის, ჩარიცხვის, დიაგნოზი�
 #: templates/casework/beneficiary_form.html:11
 msgid "Initial service enrollment"
 msgstr "მომსახურებაზე საწყისი ჩარიცხვა"
+
+#: templates/casework/beneficiary_form.html:14
+#: templates/casework/enrollment_form.html:10
+msgid "Enrollment specialists"
+msgstr "ჩარიცხვის სპეციალისტები"
 
 #: templates/casework/beneficiary_form.html:17
 msgid "Coded diagnoses"
@@ -3073,40 +3679,60 @@ msgstr "დამხმარე დოკუმენტი"
 msgid "Save beneficiary"
 msgstr "ბენეფიციარის შენახვა"
 
-#: templates/casework/beneficiary_list.html:6
+#: templates/casework/beneficiary_list.html:9
+msgid "Your current beneficiary assignments and the next work due for each service are shown."
+msgstr "ნაჩვენებია ბენეფიციარებზე თქვენი მიმდინარე დანიშვნები და თითოეული სერვისისთვის შემდეგი შესასრულებელი სამუშაო."
+
+#: templates/casework/beneficiary_list.html:9
 msgid "People and service enrollments authorized for your current center are shown."
 msgstr "ნაჩვენებია მიმდინარე ცენტრისთვის ავტორიზებული პირები და მომსახურებაზე ჩარიცხვები."
 
-#: templates/casework/beneficiary_list.html:10
+#: templates/casework/beneficiary_list.html:14
+msgid "Beneficiary filters"
+msgstr "ბენეფიციარების ფილტრები"
+
+#: templates/casework/beneficiary_list.html:15
 msgid "Name or beneficiary code"
 msgstr "სახელი ან ბენეფიციარის კოდი"
 
-#: templates/casework/beneficiary_list.html:11
-msgid "Enrollment status"
-msgstr "ჩარიცხვის სტატუსი"
-
-#: templates/casework/beneficiary_list.html:11
+#: templates/casework/beneficiary_list.html:16
 #: templates/casework/plan_list.html:8 templates/centers/staff_list.html:14
 msgid "All statuses"
 msgstr "ყველა სტატუსი"
 
-#: templates/casework/beneficiary_list.html:12
+#: templates/casework/beneficiary_list.html:17 templates/core/reports.html:50
 msgid "All services"
 msgstr "ყველა სერვისი"
 
-#: templates/casework/beneficiary_list.html:18 templates/core/dashboard.html:27
-msgid "Authorized service enrollments"
-msgstr "ავტორიზებული მომსახურებაზე ჩარიცხვები"
+#: templates/casework/beneficiary_list.html:43
+msgid "Open workspace"
+msgstr "სამუშაო სივრცის გახსნა"
 
-#: templates/casework/beneficiary_list.html:28
+#: templates/casework/beneficiary_list.html:46
+msgid "Next due"
+msgstr "შემდეგი ვადა"
+
+#: templates/casework/beneficiary_list.html:51
+msgid "Due work alerts"
+msgstr "შესასრულებელი სამუშაოს გაფრთხილებები"
+
+#: templates/casework/beneficiary_list.html:54
 msgid "No authorized enrollments"
 msgstr "ავტორიზებული ჩარიცხვები არ არის"
 
-#: templates/casework/beneficiary_list.html:38
+#: templates/casework/beneficiary_list.html:62
+msgid "No current assignments"
+msgstr "მიმდინარე დანიშვნები არ არის"
+
+#: templates/casework/beneficiary_list.html:62
 msgid "No beneficiaries found"
 msgstr "ბენეფიციარები ვერ მოიძებნა"
 
-#: templates/casework/beneficiary_list.html:38
+#: templates/casework/beneficiary_list.html:62
+msgid "There are no active beneficiary assignments in this center, or the current filters exclude them."
+msgstr "ამ ცენტრში ბენეფიციარებზე აქტიური დანიშვნები არ არის ან მიმდინარე ფილტრები მათ გამორიცხავს."
+
+#: templates/casework/beneficiary_list.html:62
 msgid "Change the filters or create the first beneficiary and service enrollment for this center."
 msgstr "შეცვალეთ ფილტრები ან შექმენით ამ ცენტრის პირველი ბენეფიციარი და მომსახურებაზე ჩარიცხვა."
 
@@ -3177,7 +3803,7 @@ msgstr "მიზნების გამოთვლილი ჯამებ�
 msgid "These totals are derived from goal records and cannot be edited."
 msgstr "ეს ჯამები მიზნების ჩანაწერებიდან გამოითვლება და მათი რედაქტირება შეუძლებელია."
 
-#: templates/casework/plan_detail.html:41 templates/core/reports.html:42
+#: templates/casework/plan_detail.html:41 templates/core/reports.html:123
 msgid "Total"
 msgstr "ჯამი"
 
@@ -3299,6 +3925,10 @@ msgstr "მოქმედებები"
 msgid "This plan has no goals yet."
 msgstr "ამ გეგმას ჯერ არ აქვს მიზნები."
 
+#: templates/casework/plan_list.html:3 templates/casework/plan_list.html:5
+msgid "Individual plans"
+msgstr "ინდივიდუალური გეგმები"
+
 #: templates/casework/plan_list.html:5
 msgid "Goals, dates, ownership, and plan status."
 msgstr "მიზნები, თარიღები, პასუხისმგებელი პირი და გეგმის სტატუსი."
@@ -3307,17 +3937,13 @@ msgstr "მიზნები, თარიღები, პასუხის�
 msgid "New plan"
 msgstr "ახალი გეგმა"
 
-#: templates/casework/plan_list.html:12 templates/core/reports.html:42
-msgid "Version"
-msgstr "ვერსია"
-
-#: templates/casework/plan_list.html:12 templates/core/reports.html:33
-#: templates/core/reports.html:48
+#: templates/casework/plan_list.html:12 templates/core/reports.html:144
+#: templates/core/reports.html:153
 msgid "Start"
 msgstr "დაწყება"
 
-#: templates/casework/plan_list.html:12 templates/core/reports.html:33
-#: templates/core/reports.html:48
+#: templates/casework/plan_list.html:12 templates/core/reports.html:144
+#: templates/core/reports.html:153
 msgid "End"
 msgstr "დასრულება"
 
@@ -3359,10 +3985,6 @@ msgstr "გრაფიკის დამატება"
 msgid "Beneficiary or enrollment"
 msgstr "ბენეფიციარი ან ჩარიცხვა"
 
-#: templates/casework/schedule_list.html:17 templates/core/reports.html:19
-msgid "Location"
-msgstr "ადგილი"
-
 #: templates/casework/schedule_list.html:23
 msgid "No schedules found"
 msgstr "გრაფიკები ვერ მოიძებნა"
@@ -3385,7 +4007,7 @@ msgstr "შენახვა"
 msgid "Monthly summaries"
 msgstr "ყოველთვიური შეჯამებები"
 
-#: templates/casework/summary_list.html:5 templates/core/dashboard.html:76
+#: templates/casework/summary_list.html:5 templates/core/dashboard.html:81
 msgid "Monthly service summaries"
 msgstr "მომსახურების ყოველთვიური შეჯამებები"
 
@@ -3404,11 +4026,6 @@ msgstr "შეჯამებები ვერ მოიძებნა"
 #: templates/casework/summary_list.html:11
 msgid "Summaries appear automatically after service visits are saved."
 msgstr "შეჯამებები მომსახურების ვიზიტების შენახვის შემდეგ ავტომატურად გამოჩნდება."
-
-#: templates/casework/visit_detail.html:3
-#: templates/casework/visit_detail.html:6
-msgid "Service visit"
-msgstr "მომსახურების ვიზიტი"
 
 #: templates/casework/visit_detail.html:7
 msgid "Correct"
@@ -3430,6 +4047,10 @@ msgstr "შესწორების დრო"
 msgid "Corrected by"
 msgstr "შემსწორებელი"
 
+#: templates/casework/visit_list.html:3 templates/casework/visit_list.html:5
+msgid "Service visits"
+msgstr "მომსახურების ვიზიტები"
+
 #: templates/casework/visit_list.html:5
 msgid "Authorized planned and delivered service activity for the active center."
 msgstr "აქტიური ცენტრის ავტორიზებული დაგეგმილი და გაწეული მომსახურება."
@@ -3438,12 +4059,12 @@ msgstr "აქტიური ცენტრის ავტორიზებ�
 msgid "Record visit"
 msgstr "ვიზიტის ჩაწერა"
 
-#: templates/casework/visit_list.html:6 templates/core/reports.html:17
+#: templates/casework/visit_list.html:6 templates/core/reports.html:33
 msgid "All"
 msgstr "ყველა"
 
-#: templates/casework/visit_list.html:8 templates/core/reports.html:36
-#: templates/core/reports.html:39
+#: templates/casework/visit_list.html:8 templates/core/reports.html:117
+#: templates/core/reports.html:147
 msgid "Location and format"
 msgstr "ადგილი და ფორმატი"
 
@@ -3553,10 +4174,6 @@ msgstr "ადმინისტრირება"
 #: templates/centers/center_list.html:4
 msgid "Centers available to your account."
 msgstr "თქვენი ანგარიშისთვის ხელმისაწვდომი ცენტრები."
-
-#: templates/centers/center_list.html:5 templates/centers/center_select.html:11
-msgid "Center"
-msgstr "ცენტრი"
 
 #: templates/centers/center_list.html:5 templates/centers/staff_list.html:21
 msgid "Contact"
@@ -3734,124 +4351,220 @@ msgstr "ავტორიზებული შემთხვევები�
 msgid "Open reports"
 msgstr "ანგარიშების გახსნა"
 
-#: templates/core/dashboard.html:25
+#: templates/core/dashboard.html:18
+#| msgid "Open reports"
+msgid "Open reminders"
+msgstr "შეხსენებების გახსნა"
+
+#: templates/core/dashboard.html:29
 msgid "Center metrics"
 msgstr "ცენტრის მაჩვენებლები"
 
-#: templates/core/dashboard.html:26
+#: templates/core/dashboard.html:30
 msgid "Authorized beneficiaries"
 msgstr "ნებადართული ბენეფიციარები"
 
-#: templates/core/dashboard.html:28
+#: templates/core/dashboard.html:32
 msgid "Completed visits this month"
 msgstr "ამ თვეში დასრულებული ვიზიტები"
 
-#: templates/core/dashboard.html:30
+#: templates/core/dashboard.html:34
 msgid "Active plans"
 msgstr "აქტიური გეგმები"
 
-#: templates/core/dashboard.html:37
+#: templates/core/dashboard.html:41
 msgid "Recent service visits"
 msgstr "ბოლო მომსახურების ვიზიტები"
 
-#: templates/core/dashboard.html:38
+#: templates/core/dashboard.html:42
 msgid "Most recent records you are authorized to view."
 msgstr "უახლესი ჩანაწერები, რომელთა ნახვის უფლებაც გაქვთ."
 
-#: templates/core/dashboard.html:40
+#: templates/core/dashboard.html:44
 msgid "View all"
 msgstr "ყველას ნახვა"
 
-#: templates/core/dashboard.html:60
+#: templates/core/dashboard.html:64
 msgid "No service visits are available yet."
 msgstr "მომსახურების ვიზიტები ჯერ არ არის."
 
-#: templates/core/dashboard.html:61 templates/core/dashboard.html:69
+#: templates/core/dashboard.html:65 templates/core/dashboard.html:73
 msgid "Record service visit"
 msgstr "მომსახურების ვიზიტის ჩაწერა"
 
-#: templates/core/dashboard.html:67 templates/core/dashboard.html:68
+#: templates/core/dashboard.html:71 templates/core/dashboard.html:72
 msgid "Quick actions"
 msgstr "სწრაფი მოქმედებები"
 
-#: templates/core/dashboard.html:71
+#: templates/core/dashboard.html:75
 msgid "Create assessment"
 msgstr "შეფასების შექმნა"
 
-#: templates/core/dashboard.html:72
+#: templates/core/dashboard.html:76
 msgid "Create individual plan"
 msgstr "ინდივიდუალური გეგმის შექმნა"
 
-#: templates/core/dashboard.html:74
+#: templates/core/dashboard.html:77
+#| msgid "Review required"
+msgid "Review reminders"
+msgstr "შეხსენებების განხილვა"
+
+#: templates/core/dashboard.html:79
 msgid "Open center roster"
 msgstr "ცენტრის სიის გახსნა"
 
-#: templates/core/reports.html:6
-msgid "Every report reuses the same server-side authorization as record lists and detail pages."
+#: templates/core/reminders.html:9
+#| msgid "Most recent records you are authorized to view."
+msgid "Current in-application reminders from records you are authorized to view."
+msgstr "მიმდინარე შიდა შეხსენებები ჩანაწერებიდან, რომელთა ნახვის უფლებაც გაქვთ."
+
+#: templates/core/reminders.html:14
+#| msgid "Report filters"
+msgid "Reminder filters"
+msgstr "შეხსენებების ფილტრები"
+
+#: templates/core/reminders.html:19
+#| msgid "All centers"
+msgid "All reminders"
+msgstr "ყველა შეხსენება"
+
+#: templates/core/reminders.html:26
+#| msgid "Report filters"
+msgid "Apply filters"
+msgstr "ფილტრების გამოყენება"
+
+#: templates/core/reminders.html:32
+#| msgid "Actions"
+msgid "Action queue"
+msgstr "სამოქმედო რიგი"
+
+#: templates/core/reminders.html:33
+#, python-format
+msgid "%(count)s current reminders."
+msgstr "%(count)s მიმდინარე შეხსენება."
+
+#: templates/core/reminders.html:39
+msgid "Priority"
+msgstr "პრიორიტეტი"
+
+#: templates/core/reminders.html:39
+msgid "Reminder"
+msgstr "შეხსენება"
+
+#: templates/core/reminders.html:39
+#| msgid "Recorded on"
+msgid "Record"
+msgstr "ჩანაწერი"
+
+#: templates/core/reminders.html:39 templates/core/reports.html:138
+#| msgid "Actions"
+msgid "Action"
+msgstr "მოქმედება"
+
+#: templates/core/reminders.html:43
+msgid "Upcoming"
+msgstr "მოახლოებული"
+
+#: templates/core/reminders.html:47 templates/core/reports.html:139
+#| msgid "Review"
+msgid "Review now"
+msgstr "ახლავე განხილვა"
+
+#: templates/core/reminders.html:48 templates/core/reports.html:139
+#| msgid "Open reports"
+msgid "Open record"
+msgstr "ჩანაწერის გახსნა"
+
+#: templates/core/reminders.html:48
+#| msgid "None recorded"
+msgid "No record link"
+msgstr "ჩანაწერის ბმული არ არის"
+
+#: templates/core/reminders.html:55
+#| msgid "No authorized records match these filters."
+msgid "No current reminders match this filter."
+msgstr "ამ ფილტრს არცერთი მიმდინარე შეხსენება არ შეესაბამება."
+
+#: templates/core/reminders.html:58
+msgid "Reminders are shown only in the application. No email is sent."
+msgstr "შეხსენებები მხოლოდ აპლიკაციაში ჩანს. ელფოსტა არ იგზავნება."
+
+#: templates/core/reports.html:8
+#| msgid "Open reports"
+msgid "Operational reports"
+msgstr "ოპერაციული ანგარიშები"
+
+#: templates/core/reports.html:9
+#| msgid "Every report reuses the same server-side authorization as record lists and detail pages."
+msgid "Every report starts with the same server-side authorization as record lists and detail pages."
 msgstr "ყველა ანგარიში იყენებს იმავე სერვერულ ავტორიზაციას, რასაც ჩანაწერების სიები და დეტალური გვერდები."
 
-#: templates/core/reports.html:7
+#: templates/core/reports.html:13
 msgid "Export safe CSV"
 msgstr "უსაფრთხო CSV ექსპორტი"
 
-#: templates/core/reports.html:11
+#: templates/core/reports.html:19
 msgid "Report filters"
 msgstr "ანგარიშის ფილტრები"
 
-#: templates/core/reports.html:13
+#: templates/core/reports.html:22
 msgid "Report"
 msgstr "ანგარიში"
 
-#: templates/core/reports.html:14
-msgid "Beneficiary search"
-msgstr "ბენეფიციარის ძიება"
-
-#: templates/core/reports.html:15
+#: templates/core/reports.html:28
 msgid "From date"
 msgstr "თარიღიდან"
 
-#: templates/core/reports.html:16
-msgid "To date"
-msgstr "თარიღამდე"
+#: templates/core/reports.html:29
+msgid "To date or reporting date"
+msgstr "თარიღამდე ან ანგარიშგების თარიღი"
 
-#: templates/core/reports.html:17
-msgid "Status or type"
-msgstr "სტატუსი ან ტიპი"
+#: templates/core/reports.html:31
+msgid "Status, type, or exception"
+msgstr "სტატუსი, ტიპი ან გამონაკლისი"
 
-#: templates/core/reports.html:18
+#: templates/core/reports.html:41
 msgid "All authorized specialists"
 msgstr "ყველა ავტორიზებული სპეციალისტი"
 
-#: templates/core/reports.html:19
+#: templates/core/reports.html:59
+#| msgid "SSK age band"
+msgid "All age bands"
+msgstr "ყველა ასაკობრივი ჯგუფი"
+
+#: templates/core/reports.html:68
+#| msgid "All locations"
+msgid "All regions"
+msgstr "ყველა რეგიონი"
+
+#: templates/core/reports.html:75
+#| msgid "All activities"
+msgid "All municipalities"
+msgstr "ყველა მუნიციპალიტეტი"
+
+#: templates/core/reports.html:84
 msgid "All activities"
 msgstr "ყველა აქტივობა"
 
-#: templates/core/reports.html:19
+#: templates/core/reports.html:91
 msgid "All locations"
 msgstr "ყველა ადგილი"
 
-#: templates/core/reports.html:21
+#: templates/core/reports.html:97
 msgid "Run report"
 msgstr "ანგარიშის გაშვება"
 
-#: templates/core/reports.html:25
+#: templates/core/reports.html:104
 #, python-format
-msgid "%(count)s authorized records. The page displays up to 500 rows."
+#| msgid "%(count)s authorized records. The page displays up to 500 rows."
+msgid "%(count)s authorized rows. The page displays up to 500 rows."
 msgstr "%(count)s ავტორიზებული ჩანაწერი. გვერდზე მაქსიმუმ 500 სტრიქონი ჩანს."
 
-#: templates/core/reports.html:31 templates/core/reports.html:34
-msgid "Unknown"
-msgstr "უცნობი"
-
-#: templates/core/reports.html:31
-msgid "Outside 0-7"
-msgstr "0-7-ის მიღმა"
-
-#: templates/core/reports.html:36
+#: templates/core/reports.html:117
 msgid "Variance"
 msgstr "სხვაობა"
 
-#: templates/core/reports.html:54
+#: templates/core/reports.html:159
 msgid "No authorized records match these filters."
 msgstr "ამ ფილტრებს არცერთი ავტორიზებული ჩანაწერი არ შეესაბამება."
 
@@ -3952,3 +4665,30 @@ msgstr "თქვენი დროებითი წვდომის კო
 #: templates/registration/password_change_required.html:14
 msgid "Save new password"
 msgstr "ახალი პაროლის შენახვა"
+
+#: tests/test_assignment_authorization.py:149
+msgid "Future"
+msgstr "სამომავლო"
+
+#: tests/test_assignment_authorization.py:150
+msgid "Expired"
+msgstr "ვადაგასული"
+
+#: tests/test_assignment_authorization.py:151
+msgid "Unknown assignment dates"
+msgstr "დანიშვნის თარიღები უცნობია"
+
+#~ msgid "Status or type"
+#~ msgstr "სტატუსი ან ტიპი"
+
+#~ msgid "Selected service enrollment"
+#~ msgstr "არჩეული მომსახურების ჩარიცხვა"
+
+#~ msgid "Dates use effective-from semantics."
+#~ msgstr "თარიღები მოქმედების დაწყების პრინციპს იყენებს."
+
+#~ msgid "Case activity timeline"
+#~ msgstr "საქმის აქტივობების ქრონოლოგია"
+
+#~ msgid "Related work"
+#~ msgstr "დაკავშირებული სამუშაო"

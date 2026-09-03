@@ -17,7 +17,7 @@ The repository includes:
 - private attachments with randomized storage names and authorized downloads
 - audit events for sensitive reads, changes, downloads, and exports
 - login throttling, administrator-issued temporary access codes, required first-login password changes, CSRF protection, and production cookie settings
-- authorized reports and spreadsheet-safe CSV export
+- authorized operational reports, in-application reminders, and spreadsheet-safe CSV export
 - responsive templates and English plus Georgian localization setup
 - Docker Compose development and production examples
 - synthetic demo data and pytest security coverage
@@ -58,6 +58,7 @@ SQLite is an explicit test-only convenience. Development, staging, and productio
 - [Beneficiary and service enrollment foundation](docs/BENEFICIARY_ENROLLMENT_FOUNDATION.md)
 - [Service visits and schedules](docs/SERVICE_VISITS_AND_SCHEDULES.md)
 - [Service plans and outcomes](docs/SERVICE_PLANS_AND_OUTCOMES.md)
+- [Operational reporting and reminders](docs/OPERATIONAL_REPORTING_AND_REMINDERS.md)
 - [Permission matrix](docs/PERMISSION_MATRIX.md)
 - [Local setup](docs/LOCAL_SETUP.md)
 - [Production deployment](docs/PRODUCTION_DEPLOYMENT.md)

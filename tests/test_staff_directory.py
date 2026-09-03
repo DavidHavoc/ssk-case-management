@@ -169,12 +169,12 @@ def test_temporary_code_forces_password_change_before_application_access(client,
         },
     )
     assert response.status_code == 302
-    assert response.url == reverse("dashboard")
+    assert response.url == reverse("specialist_workspace")
 
     user.refresh_from_db()
     assert not user.must_change_password
     assert user.check_password(replacement_password)
-    assert client.get(reverse("dashboard")).status_code == 200
+    assert client.get(reverse("specialist_workspace")).status_code == 200
 
 
 def test_manager_generates_new_code_from_employee_record(client, manager, specialist_a):

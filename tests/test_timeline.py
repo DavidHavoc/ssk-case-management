@@ -366,6 +366,6 @@ def test_georgian_timeline_labels_render(
         response = client.get(reverse("beneficiary_detail", kwargs={"pk": beneficiary_a.pk}))
 
     body = response.content.decode()
-    assert "საქმის აქტივობების ქრონოლოგია" in body
+    assert "ავტორიზებული ქრონოლოგია" in body
     assert "მომსახურების ვიზიტი" in body
     assert "ჩანაწერის ნახვა" in body

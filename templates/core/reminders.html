@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Reminders" %}{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div>
+      <div class="eyebrow">{{ active_center.name }}</div>
+      <h1 id="page-title">{% translate "Reminders" %}</h1>
+      <p>{% translate "Current in-application reminders from records you are authorized to view." %}</p>
+    </div>
+  </header>
+
+  <form class="form-card" method="get" aria-labelledby="reminder-filter-heading">
+    <div class="form-section-heading"><h2 id="reminder-filter-heading">{% translate "Reminder filters" %}</h2></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="category">{% translate "Category" %}</label>
+        <select class="form-select" id="category" name="category">
+          <option value="">{% translate "All reminders" %}</option>
+          {% for value, label in category_choices %}
+            <option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="form-actions"><button class="button button-primary" type="submit">{% translate "Apply filters" %}</button></div>
+  </form>
+
+  <section class="section-block" aria-labelledby="reminder-results-heading">
+    <div class="section-heading">
+      <div>
+        <h2 id="reminder-results-heading">{% translate "Action queue" %}</h2>
+        <p>{% blocktranslate with count=reminder_count %}{{ count }} current reminders.{% endblocktranslate %}</p>
+      </div>
+    </div>
+    {% if reminders %}
+      <div class="table-wrap" tabindex="0" role="region" aria-labelledby="reminder-results-heading">
+        <table>
+          <thead><tr><th>{% translate "Priority" %}</th><th>{% translate "Category" %}</th><th>{% translate "Reminder" %}</th><th>{% translate "Record" %}</th><th>{% translate "Due date" %}</th><th>{% translate "Action" %}</th></tr></thead>
+          <tbody>
+            {% for reminder in reminders %}
+              <tr>
+                <td><span class="status status-{{ reminder.urgency }}">{% if reminder.urgency == 'danger' %}{% translate "Overdue" %}{% else %}{% translate "Upcoming" %}{% endif %}</span></td>
+                <td>{{ reminder.category_label }}</td>
+                <td>{{ reminder.title }}</td>
+                <td>{{ reminder.detail }}</td>
+                <td>{{ reminder.due_date|date:"SHORT_DATE_FORMAT"|default:_('Review now') }}</td>
+                <td>{% if reminder.url %}<a href="{{ reminder.url }}">{% translate "Open record" %}</a>{% else %}<span>{% translate "No record link" %}</span>{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state compact">{% translate "No current reminders match this filter." %}</div>
+    {% endif %}
+  </section>
+  <p class="help-text">{% translate "Reminders are shown only in the application. No email is sent." %}</p>
+{% endblock %}

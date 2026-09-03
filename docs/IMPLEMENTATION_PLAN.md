@@ -39,6 +39,8 @@ The main rules carried into this application are:
 - UUID primary keys reduce identifier predictability, but authorization never depends on UUID secrecy.
 - Monthly summaries use specialist, center, and month. This corrects legacy primary-center attribution for specialists who work in multiple centers.
 - Restricted values are removed from specialist forms and templates, and specialist report and export routes never query those columns.
+- Operational reports and in-application reminders derive from the same authorized enrollment, visit, assessment, plan, lifecycle-event, assignment, and staff-contract selectors as routine workflows.
+- Reminder generation has no email or external delivery side effect. Delivery channels require separate configuration and approval.
 - Private files are stored outside public static paths and have no public URL.
 - Stock, assets, payroll posting, automated retention, and data-subject workflows are not part of this focused case-management MVP.
 

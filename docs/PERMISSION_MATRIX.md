@@ -34,6 +34,7 @@ Coordinator and specialist access also requires an active user and active staff 
 | Monthly summaries | All | No | Current center | Own specialist summary only |
 | HTML reports | All | No | Authorized center scope | Same current enrollment and continuity selectors as lists |
 | CSV export | All | No case export | Authorized center scope | Denied |
+| In-application reminders | Authorized center records and contracts | No case reminders | Authorized center records and contracts | Assigned enrollment records and own contract only |
 | Beneficiary attachment | All | No | Current center | Denied |
 | Visit, assessment, plan attachment | Authorized parent | No | Authorized event-time parent | Read with authorized historical parent; change requires record-date assignment |
 | Audit event view | All | No | No | No |
@@ -70,6 +71,8 @@ Coordinator and specialist access also requires an active user and active staff 
 | Report filter | Base report QuerySet is authorized before filters are applied |
 | Planned versus delivered report | Schedule and visit sources are each authorized before aggregation |
 | Plan outcome report | Authorized plan selector runs before category totals, status totals, review conclusions, and CSV rows are derived |
+| Operational aggregation | Every aggregation receives an authorized QuerySet before filters, grouping, or exception derivation |
+| Reminders | Due work and data-quality items are derived from authorized QuerySets and are displayed only inside the application |
 | CSV export | Same report selector, coordinator or manager role gate, safe columns only |
 | Case attachment identifier | Beneficiary files remain selected-center scoped. Event files recheck the authorized parent, its stored event-time center, and change scope |
 | Staff attachment identifier | Staff parent scope is checked before HR-field or change capability. Cross-center identifiers return 404 |

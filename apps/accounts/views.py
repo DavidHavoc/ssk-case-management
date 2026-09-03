@@ -3,11 +3,12 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.db import transaction
 from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from apps.audit.models import AuditEvent
 from apps.audit.services import record_event
+from apps.core.authorization import casework_home_route
 
 from .forms import RateLimitedAuthenticationForm, StyledPasswordChangeForm
 
@@ -16,6 +17,12 @@ class RateLimitedLoginView(LoginView):
     authentication_form = RateLimitedAuthenticationForm
     template_name = "registration/login.html"
     redirect_authenticated_user = True
+
+    def get_success_url(self):
+        redirect_url = self.get_redirect_url()
+        if redirect_url:
+            return redirect_url
+        return reverse(casework_home_route(self.request.user))
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -39,7 +46,9 @@ class RateLimitedLoginView(LoginView):
 class RequiredPasswordChangeView(PasswordChangeView):
     form_class = StyledPasswordChangeForm
     template_name = "registration/password_change_required.html"
-    success_url = reverse_lazy("dashboard")
+
+    def get_success_url(self):
+        return reverse(casework_home_route(self.request.user))
 
     def form_valid(self, form):
         with transaction.atomic():

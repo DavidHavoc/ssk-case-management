@@ -41,7 +41,7 @@ def test_authenticated_shell_marks_active_page_and_exposes_mobile_navigation(
         f'{reverse("beneficiary_list")}" aria-current="page"' in body
     )
     assert f'href="{reverse("audit_log")}"' in body
-    assert 'class="table-wrap" tabindex="0" role="region"' in body
+    assert 'class="beneficiary-card-list" aria-labelledby="page-title"' in body
     assert 'class="status status-active"' in body
 
 
@@ -53,11 +53,16 @@ def test_specialist_shell_does_not_expose_manager_navigation(
 
     response = client.get(reverse("dashboard"))
 
+    assert response.status_code == 302
+    assert response.url == reverse("specialist_workspace")
+    response = client.get(response.url)
     assert response.status_code == 200
     body = response.content.decode()
     assert f'href="{reverse("center_list")}"' not in body
     assert f'href="{reverse("audit_log")}"' not in body
     assert f'href="{reverse("summary_list")}"' in body
+    assert f'href="{reverse("dashboard")}"' not in body
+    assert f'href="{reverse("specialist_workspace")}"' in body
 
 
 def test_long_form_validation_has_linked_error_summary(client, manager, center_a):
