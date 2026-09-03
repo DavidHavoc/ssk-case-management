@@ -593,7 +593,8 @@ trap start_proxy EXIT
 
 cd "$APP_DIR"
 docker compose -p ssk -f docker-compose.prod.yml stop proxy
-certbot renew --cert-name "$DOMAIN" --standalone --quiet "$@"
+certbot renew --cert-name "$DOMAIN" --standalone --quiet \
+  --no-random-sleep-on-renew "$@"
 install -m 640 -o root -g root \
   "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" \
   "$APP_DIR/deploy/tls/fullchain.pem"
@@ -721,7 +722,7 @@ cd /opt/ssk-case-management
 sudo docker compose -p ssk -f docker-compose.prod.yml ps
 sudo docker compose -p ssk -f docker-compose.prod.yml logs --tail=100 web proxy db
 curl --fail --silent --show-error https://cases.example.org/en/health/
-curl --head https://cases.example.org/en/login/
+curl --head https://cases.example.org/en/accounts/login/
 ```
 
 Confirm that PostgreSQL is not listening on a public host port:

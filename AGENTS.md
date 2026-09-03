@@ -9,10 +9,13 @@
 
 Last verified: 2026-09-03.
 
-- An IONOS VPS exists with Ubuntu 24.04.4 LTS, 4 GB RAM, and a 120 GB disk. It had approximately 114 GB free when checked.
+- The IONOS VPS runs Ubuntu 24.04.4 LTS with 4 GB RAM and a 120 GB disk. It had approximately 112 GB free after deployment checks.
 - From this desktop host, SSH works through the `ssk-production` host alias as the `sskadmin` user. Do not request, reveal, copy, or modify SSH private keys or passwords.
-- The server has a temporary IONOS hostname that resolves to its VPS address. Use a domain controlled by the organization before any real deployment.
-- Docker, the application, TLS, backups, monitoring, and production data have not been deployed.
-- A temporary passwordless-sudo rule used for connection testing was removed. Do not recreate it unless the user explicitly authorizes temporary remote administrator access.
-- The last read-only check found that root SSH login and SSH password authentication were still enabled, and UFW was inactive. Treat the server as not production-ready until those settings are corrected and the full production runbook is completed.
-- Do not deploy or place real beneficiary data on the VPS without an explicit user request. When deployment is requested, follow `docs/VPS_OPERATIONS_RUNBOOK.md` and `docs/PRODUCTION_DEPLOYMENT.md`, beginning with fresh security and readiness checks.
+- The staged application is available at `https://0ufkrzj.cserverhost.cloud` using a trusted temporary TLS certificate. Replace this provider hostname with an organization-controlled domain before real use.
+- Docker Engine and Compose are installed. The application runs from `/opt/ssk-case-management` with Nginx, Django and Gunicorn, and PostgreSQL 16. PostgreSQL and Gunicorn have no public host ports.
+- Root SSH login, SSH password authentication, interactive authentication, and SSH forwarding are disabled. UFW allows SSH only from the administrator address used during deployment and allows public HTTP and HTTPS.
+- The PostgreSQL production database contains migrations and reference catalogs but no users or beneficiaries. Do not run `seed_demo_data`, create users, or add beneficiary data until every readiness gate is complete.
+- The certificate-renewal service and timer are installed and passed a staging renewal test. The ACME account currently has no operational contact email.
+- An empty-database backup and restore rehearsal passed in an isolated temporary container. Encrypted off-host backups, retention, backup monitoring, and a restore on a separate host are not configured.
+- External uptime and alert monitoring and the provider firewall configuration are not verified. Treat the server as a staged deployment that is not approved for real data or users.
+- The temporary passwordless-sudo deployment rule was removed after deployment. Do not recreate it unless the user explicitly authorizes temporary remote administrator access.
