@@ -573,7 +573,6 @@ def test_staff_directory_roles_and_mixed_role_scope(
     }
     download = client.get(reverse("staff_attachment_download", kwargs={"pk": hr_attachment.pk}))
     assert download.status_code == 200
-    download.close()
     assert client.get(reverse("beneficiary_list")).status_code == 403
 
     client.force_login(coordinator_a)
