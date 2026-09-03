@@ -12,8 +12,10 @@ from apps.casework.models import (
     Assessment,
     BeneficiarySpecialistAssignment,
     IndividualPlan,
+    ServiceActivityDefinition,
     ServiceVisit,
     SpecialistMonthlyServiceSummary,
+    VisitLocationDefinition,
 )
 
 from .factories import (
@@ -211,6 +213,9 @@ def test_concurrent_visit_creation_keeps_monthly_summary_complete(
     barrier = Barrier(2)
     beneficiary_id = beneficiary_a.pk
     specialist_id = specialist_a.pk
+    activity, location = ensure_visit_catalogs()
+    activity_id = activity.pk
+    location_id = location.pk
 
     def create_visit(day: int) -> None:
         close_old_connections()
@@ -221,7 +226,8 @@ def test_concurrent_visit_creation_keeps_monthly_summary_complete(
                     specialist_id=specialist_id,
                 ).beneficiary
                 specialist = beneficiary.specialists.get(pk=specialist_id)
-                activity, location = ensure_visit_catalogs()
+                activity = ServiceActivityDefinition.objects.get(pk=activity_id)
+                location = VisitLocationDefinition.objects.get(pk=location_id)
                 barrier.wait(timeout=10)
                 ServiceVisit.objects.create(
                     beneficiary=beneficiary,
