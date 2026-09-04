@@ -20,7 +20,7 @@ from apps.accounts.roles import is_system_manager
 from apps.accounts.services import issue_temporary_access_code
 from apps.audit.models import AuditEvent
 from apps.audit.services import record_event
-from apps.casework.models import AttachmentParentType
+from apps.casework.models import AttachmentParentType, CenterServiceOffering
 from apps.casework.private_attachments import (
     AttachmentParentCenterRequired,
     staff_attachments,
@@ -41,6 +41,7 @@ from apps.core.decorators import active_center_required
 
 from .forms import (
     CenterForm,
+    CenterServiceOfferingForm,
     NewSpecialistForm,
     SpecialistAssignmentForm,
     SpecialistProfileForm,
@@ -345,7 +346,9 @@ def center_detail(request):
         {
             "center": center,
             "assignments": assignments,
+            "service_offerings": center.service_offerings.select_related("service"),
             "can_manage": can_manage_center(request.user, center),
+            "can_manage_offerings": is_system_manager(request.user),
         },
     )
 
@@ -388,6 +391,65 @@ def center_update(request):
         messages.success(request, _("Center updated."))
         return redirect("center_detail")
     return render(request, "centers/center_form.html", {"form": form, "title": _("Update center")})
+
+
+@active_center_required
+def service_offering_create(request):
+    center = request.ssk_center
+    if not is_system_manager(request.user):
+        raise PermissionDenied
+    form = CenterServiceOfferingForm(request.POST or None, center=center)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            offering = form.save()
+            record_event(
+                actor=request.user,
+                event_type=AuditEvent.EventType.CREATE,
+                target_type="CenterServiceOffering",
+                target_id=offering.pk,
+                center=center,
+            )
+        messages.success(request, _("Service offering added."))
+        return redirect("center_detail")
+    return render(
+        request,
+        "centers/service_offering_form.html",
+        {"form": form, "center": center, "title": _("Add service offering")},
+    )
+
+
+@active_center_required
+def service_offering_update(request, pk):
+    center = request.ssk_center
+    if not is_system_manager(request.user):
+        raise PermissionDenied
+    offering = get_object_or_404(
+        CenterServiceOffering.objects.select_related("service").filter(center=center),
+        pk=pk,
+    )
+    form = CenterServiceOfferingForm(request.POST or None, instance=offering, center=center)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            form.save()
+            record_event(
+                actor=request.user,
+                event_type=AuditEvent.EventType.UPDATE,
+                target_type="CenterServiceOffering",
+                target_id=offering.pk,
+                center=center,
+            )
+        messages.success(request, _("Service offering updated."))
+        return redirect("center_detail")
+    return render(
+        request,
+        "centers/service_offering_form.html",
+        {
+            "form": form,
+            "center": center,
+            "offering": offering,
+            "title": _("Update service offering"),
+        },
+    )
 
 
 @active_center_required

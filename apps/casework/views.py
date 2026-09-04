@@ -96,6 +96,14 @@ def _can_manage_restricted(user) -> bool:
     return is_system_manager(user) or is_coordinator(user)
 
 
+def _has_effective_active_enrollment(user, center) -> bool:
+    on_date = timezone.localdate()
+    return any(
+        can_create_case_record(user, center, enrollment, on_date)
+        for enrollment in enrollments_for_user(user, center, as_of=on_date)
+    )
+
+
 def _audit_read(request, obj, target_type: str) -> None:
     record_event(
         actor=request.user,
@@ -793,16 +801,8 @@ def _case_list(request, *, model, selector, template_name, choices):
             "query": query,
             "selected_status": status,
             "status_choices": choices[1],
-            "can_create": enrollments_for_user(request.user, request.ssk_center)
-            .filter(
-                center_placements__center=request.ssk_center,
-                center_placements__valid_from__lte=timezone.localdate(),
-            )
-            .filter(
-                Q(center_placements__valid_to__isnull=True)
-                | Q(center_placements__valid_to__gt=timezone.localdate())
-            )
-            .exists(),
+            "can_create": _has_effective_active_enrollment(request.user, request.ssk_center),
+            "can_manage_enrollments": _can_manage_restricted(request.user),
         },
     )
 
@@ -986,16 +986,8 @@ def schedule_list(request):
             "selected_month": month,
             "query": query,
             "changeable_schedule_ids": changeable_schedule_ids,
-            "can_create": enrollments_for_user(request.user, request.ssk_center)
-            .filter(
-                center_placements__center=request.ssk_center,
-                center_placements__valid_from__lte=timezone.localdate(),
-            )
-            .filter(
-                Q(center_placements__valid_to__isnull=True)
-                | Q(center_placements__valid_to__gt=timezone.localdate())
-            )
-            .exists(),
+            "can_create": _has_effective_active_enrollment(request.user, request.ssk_center),
+            "can_manage_enrollments": _can_manage_restricted(request.user),
         },
     )
 

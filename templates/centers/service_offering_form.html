@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div>
+      <div class="eyebrow">{{ center.code }}</div>
+      <h1>{{ title }}</h1>
+      <p>{% translate "Configure a service that this center is authorized to deliver." %}</p>
+    </div>
+  </header>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "includes/form_error_summary.html" %}
+    <section class="form-card">
+      <div class="form-grid">{% include "includes/form_fields.html" %}</div>
+    </section>
+    <div class="form-actions form-actions-sticky">
+      <button class="button button-primary" type="submit">{% translate "Save service offering" %}</button>
+      <a class="button button-quiet" href="{% url 'center_detail' %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+{% endblock %}

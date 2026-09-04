@@ -194,7 +194,7 @@ EnrollmentAssignmentFormSet = inlineformset_factory(
     EnrollmentSpecialistAssignment,
     form=EnrollmentAssignmentForm,
     fields=("specialist", "assignment_role", "valid_from", "valid_to"),
-    extra=0,
+    extra=1,
     can_delete=True,
 )
 

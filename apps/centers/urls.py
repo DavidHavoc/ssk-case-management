@@ -31,6 +31,16 @@ urlpatterns = [
     path("new/", views.center_create, name="center_create"),
     path("current/", views.center_detail, name="center_detail"),
     path("current/update/", views.center_update, name="center_update"),
+    path(
+        "current/service-offerings/new/",
+        views.service_offering_create,
+        name="service_offering_create",
+    ),
+    path(
+        "current/service-offerings/<uuid:pk>/update/",
+        views.service_offering_update,
+        name="service_offering_update",
+    ),
     path("current/delete/", views.center_delete, name="center_delete"),
     path("current/specialists/link/", views.specialist_assign, name="specialist_assign"),
     path("current/specialists/new/", views.specialist_create, name="specialist_create"),

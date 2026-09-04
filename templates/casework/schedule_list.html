@@ -20,6 +20,6 @@
     </div>
     {% include "includes/pagination.html" %}
   {% else %}
-    <div class="empty-state"><h2>{% translate "No schedules found" %}</h2><p>{% translate "Add a monthly schedule to compare planned and delivered service." %}</p></div>
+    <div class="empty-state"><h2>{% translate "No schedules found" %}</h2>{% if can_create %}<p>{% translate "Add a monthly schedule to compare planned and delivered service." %}</p><a class="button button-primary" href="{% url 'schedule_create' %}">{% translate "Add schedule" %}</a>{% else %}<p>{% translate "An active beneficiary enrollment is required before a service schedule can be created." %}</p>{% if can_manage_enrollments %}<a class="button button-secondary" href="{% url 'beneficiary_list' %}">{% translate "Open beneficiaries" %}</a>{% endif %}{% endif %}</div>
   {% endif %}
 {% endblock %}

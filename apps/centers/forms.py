@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.accounts.roles import SPECIALIST, ensure_application_groups
 from apps.accounts.services import issue_temporary_access_code
+from apps.casework.models import CenterServiceOffering, ServiceDefinition
 from apps.core.forms import StyledForm, StyledModelForm
 from apps.core.validators import phone_number_validator
 
@@ -24,6 +25,48 @@ class CenterForm(StyledModelForm):
             "address": forms.Textarea(attrs={"rows": 3}),
             "description": forms.Textarea(attrs={"rows": 4}),
         }
+
+
+class CenterServiceOfferingForm(StyledModelForm):
+    class Meta:
+        model = CenterServiceOffering
+        fields = ("service", "valid_from", "valid_to", "is_active")
+        widgets = {
+            "valid_from": forms.DateInput(attrs={"type": "date"}),
+            "valid_to": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, center, **kwargs):
+        self.center = center
+        super().__init__(*args, **kwargs)
+        if not self.instance._state.adding:
+            self.fields["service"].queryset = ServiceDefinition.objects.filter(
+                pk=self.instance.service_id
+            )
+            self.fields["service"].disabled = True
+        else:
+            configured_service_ids = center.service_offerings.values("service_id")
+            self.fields["service"].queryset = (
+                ServiceDefinition.objects.filter(is_active=True)
+                .exclude(family=ServiceDefinition.Family.LEGACY)
+                .exclude(pk__in=configured_service_ids)
+            )
+
+    def clean_service(self):
+        service = self.cleaned_data["service"]
+        if (
+            self.instance._state.adding
+            and CenterServiceOffering.objects.filter(
+                center=self.center,
+                service=service,
+            ).exists()
+        ):
+            raise ValidationError(_("This service is already configured for the center."))
+        return service
+
+    def save(self, commit=True):
+        self.instance.center = self.center
+        return super().save(commit=commit)
 
 
 class SpecialistAssignmentForm(StyledModelForm):
