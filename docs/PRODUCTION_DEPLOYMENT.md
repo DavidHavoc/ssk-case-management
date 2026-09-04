@@ -2,6 +2,8 @@
 
 The included Compose design is a starting point for a small deployment. It is not a substitute for infrastructure review, TLS certificate management, monitoring, patch ownership, and organizational approval.
 
+The staged VPS was last verified on 2026-09-04 at revision `2968e67fddaae57c1a2eaf57e21f1734d7b8ee17` from branch `codex/center-service-offering-admin`. It has one active staging superuser named `admin`, active center `TEST`, four configured service offerings, and no beneficiaries or service enrollments. It is not approved for real users or real beneficiary data.
+
 ## Components
 
 - PostgreSQL with a persistent encrypted volume
@@ -62,6 +64,23 @@ The provided Nginx file replaces `X-Forwarded-For` with the direct client addres
 
 9. Verify `/en/health/`, temporary-code login and required password change, administrator access-code reset, center selection, denied cross-center URLs, private downloads, and audit events.
 10. Complete role-specific UAT with synthetic staging data.
+
+## Center service setup
+
+New centers do not receive service offerings automatically. After creating and selecting a
+center, a System Manager opens the center detail page and explicitly adds each service the center
+is authorized to deliver. Only active non-legacy service definitions are available for new
+offerings.
+
+The same page lists every existing offering with its validity dates and active status. A System
+Manager may update those fields or deactivate an offering. Referenced and historical offerings
+must be retained. Coordinators, specialists, Central HR users, and anonymous users cannot manage
+offerings. Offering creation and update actions use CSRF-protected POST requests and create audit
+events.
+
+Before enrollment UAT, confirm that each configured offering appears in the enrollment form.
+Visit, schedule, assessment, and plan actions remain unavailable until an effective active
+enrollment exists.
 
 ## TLS and network controls
 

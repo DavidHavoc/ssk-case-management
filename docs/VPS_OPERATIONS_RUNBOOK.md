@@ -8,6 +8,25 @@ The target deployment is a small organization with approximately 10 employees. T
 application load is low, but the confidentiality and recoverability requirements are high
 because the system can hold beneficiary and case information.
 
+## Current staged deployment record
+
+Last verified on 2026-09-04:
+
+- Hostname: `0ufkrzj.cserverhost.cloud`
+- Application path: `/opt/ssk-case-management`
+- Compose project: `ssk`
+- Source branch: `codex/center-service-offering-admin`
+- Deployed revision: `2968e67fddaae57c1a2eaf57e21f1734d7b8ee17`
+- Repository origin: `https://github.com/DavidHavoc/ssk-case-management.git`
+- Database state: one active staging superuser named `admin`, one active center with code `TEST`,
+  four center service offerings, zero beneficiaries, and zero service enrollments
+- Configured TEST offerings: `HOME-CARE`, `FOOD-DELIVERY`, `EARLY-INTERVENTION`, and
+  `FUTURE-GENERAL`
+
+This remains a staged deployment. It is not approved for real users or beneficiary data.
+Encrypted off-host backups, backup monitoring, a separate-host restore, external uptime and
+alert monitoring, and provider firewall verification remain incomplete.
+
 This is technical guidance, not legal advice. The organization remains responsible for its
 lawful basis, privacy notices, processor agreements, retention rules, incident notification,
 and any country-specific requirements.
@@ -712,6 +731,22 @@ sudo docker compose -p ssk -f docker-compose.prod.yml exec web \
 Use a real, organization-controlled email address and a unique password stored in the approved
 password manager. Do not create shared accounts. Create other users through the approved
 application administration workflow and grant only the required role and center memberships.
+
+### 12.2 Configure center service offerings
+
+New centers intentionally have no service offerings. A System Manager must open the active
+center's detail page and use **Add service offering** to select each service that the center is
+authorized to deliver. Do not enable every service automatically.
+
+The center detail page lists the service, validity dates, and active status. A System Manager can
+edit validity dates and activate or deactivate an existing offering. Existing and historical
+offerings are retained rather than deleted. Coordinators, specialists, Central HR users, and
+anonymous users cannot manage offerings. Creation and updates are recorded in the application
+audit log.
+
+After configuration, verify that the offering appears in the beneficiary enrollment form. An
+enrollment start date must fall inside the active offering period. A beneficiary needs an active,
+effective enrollment before visit, schedule, assessment, or plan creation actions are available.
 
 ## 13. Verify the production deployment
 

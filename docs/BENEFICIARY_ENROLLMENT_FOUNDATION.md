@@ -12,6 +12,12 @@ The original beneficiary center, service type, case status, application number, 
 
 An enrollment can reference only an enabled offering for its center. Transfers require an enabled destination offering for the same service. Center ownership is represented by effective-dated `EnrollmentCenterPlacement` rows, so a transfer does not overwrite history.
 
+New centers intentionally start without offerings. A System Manager configures them explicitly
+from the active center's detail page because different centers provide different services. New
+offerings may use active non-legacy service definitions only. Existing offerings remain available
+for validity-date and active-status updates and are not deleted through this workflow. Creation
+and update actions are audited.
+
 ## Enrollment lifecycle
 
 The supported states are pending, active, suspended, completed, exited, and cancelled. Lifecycle changes are written through the service layer and recorded as append-only `EnrollmentStateEvent` rows. Supported events include creation, admission, suspension, resumption, transfer, completion, exit, cancellation, and re-enrollment.
@@ -42,6 +48,11 @@ SSK age bands use completed months and are unambiguous:
 Migration `0006_seed_catalogs_and_backfill_enrollments` creates one legacy enrollment for each existing beneficiary and links every existing visit, assessment, plan, and specialist assignment to it. Existing source values are copied to `legacy_service_value` and `legacy_status_value`. Legacy free-text geography and diagnosis remain unchanged and are not automatically mapped to controlled codes.
 
 Existing records with missing dates remain missing. Exact legacy assignment intervals are marked as preserved legacy intervals instead of being discarded. New records use validated effective intervals.
+
+Enrollment create and update forms display one optional extra specialist-assignment row. The
+specialist choices are restricted to active specialists assigned to the selected center. Blank
+extra rows are ignored, while completed rows retain the effective-date and authorization
+validation applied by the server.
 
 Legacy transaction callers that omit an enrollment remain compatible only when the beneficiary has exactly one enrollment. Ambiguous multi-enrollment writes are rejected. The user interface and new code always select an enrollment explicitly.
 
