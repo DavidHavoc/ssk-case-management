@@ -15,7 +15,7 @@ Last verified on 2026-09-04:
 - Hostname: `0ufkrzj.cserverhost.cloud`
 - Application path: `/opt/ssk-case-management`
 - Compose project: `ssk`
-- Source branch: `codex/center-service-offering-admin`
+- Source branch: `main`
 - Deployed revision: `2968e67fddaae57c1a2eaf57e21f1734d7b8ee17`
 - Repository origin: `https://github.com/DavidHavoc/ssk-case-management.git`
 - Database state: one active staging superuser named `admin`, one active center with code `TEST`,

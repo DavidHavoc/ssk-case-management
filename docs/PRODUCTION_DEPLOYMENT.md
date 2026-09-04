@@ -2,7 +2,7 @@
 
 The included Compose design is a starting point for a small deployment. It is not a substitute for infrastructure review, TLS certificate management, monitoring, patch ownership, and organizational approval.
 
-The staged VPS was last verified on 2026-09-04 at revision `2968e67fddaae57c1a2eaf57e21f1734d7b8ee17` from branch `codex/center-service-offering-admin`. It has one active staging superuser named `admin`, active center `TEST`, four configured service offerings, and no beneficiaries or service enrollments. It is not approved for real users or real beneficiary data.
+The staged VPS was last verified on 2026-09-04 at revision `2968e67fddaae57c1a2eaf57e21f1734d7b8ee17`, which is contained in `main`. It has one active staging superuser named `admin`, active center `TEST`, four configured service offerings, and no beneficiaries or service enrollments. It is not approved for real users or real beneficiary data.
 
 ## Components
 
