@@ -217,6 +217,39 @@ def test_matching_staff_gets_current_service_access_only(tmp_path, manager, spec
         assert not assignment.is_effective(timezone.localdate() - timedelta(days=1))
 
 
+def test_multiple_named_specialists_share_access_without_duplicate_links(
+    tmp_path, manager, center_a, specialist_a
+):
+    second = make_specialist(center_a, "second-responsible")
+    first_name = specialist_a.staff_profile.user.get_full_name()
+    second_name = second.staff_profile.user.get_full_name()
+    plan = read_workbook(
+        workbook_path(tmp_path, source_row(specialist=f"{first_name}, {second_name}, {first_name}"))
+    )
+    result = apply_workbook(plan, **destination(manager, center_a, link_specialists=True))
+    assert result["assignments_created"] == 4
+    assert "specialist" not in BeneficiaryWorkbookImport.objects.get().review_issues
+    for specialist in (specialist_a, second):
+        assert enrollments_for_user(specialist.staff_profile.user, center_a).count() == 2
+    assert set(
+        EnrollmentSpecialistAssignment.objects.values_list("assignment_role", flat=True)
+    ) == {"primary"}
+
+
+def test_unmatched_co_responsible_name_is_flagged_without_hiding_known_match(
+    tmp_path, manager, center_a, specialist_a
+):
+    name = specialist_a.staff_profile.user.get_full_name()
+    plan = read_workbook(
+        workbook_path(tmp_path, source_row(specialist=f"{name}, Synthetic Missing Person"))
+    )
+    result = apply_workbook(
+        plan, **destination(manager, center_a, link_specialists=True), allow_incomplete=True
+    )
+    assert result["assignments_created"] == 2
+    assert "specialist" in BeneficiaryWorkbookImport.objects.get().review_issues
+
+
 def test_cross_center_and_ambiguous_names_do_not_grant_access(
     tmp_path, manager, center_a, specialist_b
 ):

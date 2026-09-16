@@ -64,7 +64,7 @@ class Command(BaseCommand):
             _, _, _, matches, existing = validate_destination(plan, **destination)
             report = plan.summary()
             report["already_imported"] = len(existing)
-            report["matched_specialist_rows"] = sum(value is not None for value in matches.values())
+            report["matched_specialist_rows"] = sum(bool(value) for value in matches.values())
             report["mode"] = "apply" if options["apply"] else "preview"
             if options["apply"]:
                 report["result"] = apply_workbook(

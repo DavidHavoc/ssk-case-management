@@ -335,13 +335,20 @@ def validate_destination(plan, *, actor, center_code, center_name, link_speciali
             raise WorkbookImportError(
                 f"Row {row.number}: personal ID already exists. Manual reconciliation required."
             )
-        matches[row.number] = None
+        matches[row.number] = []
+        row.issues = [issue for issue in row.issues if issue != "specialist"]
         if link_specialists and row.source["specialist"]:
-            candidates = specialists.get(normalized_name(row.source["specialist"]), [])
-            if len(candidates) == 1:
-                matches[row.number] = candidates[0]
-            elif "specialist" not in row.issues:
-                row.issues.append("specialist")
+            # A register cell may name several jointly responsible specialists.
+            # Match each person independently, without inferring a lead from order.
+            names = dict.fromkeys(
+                normalized_name(name) for name in row.source["specialist"].split(",")
+            )
+            for name in names:
+                candidates = specialists.get(name, [])
+                if len(candidates) == 1:
+                    matches[row.number].append(candidates[0])
+                elif "specialist" not in row.issues:
+                    row.issues.append("specialist")
         # Validate normalized fields without writing any personal data during preview.
         person = Beneficiary(beneficiary_code=case_code(plan, row), **row.person)
         try:
@@ -462,8 +469,7 @@ def apply_workbook(
                     effective_date=row.end if row.status == "exited" else row.start,
                     actor=actor,
                 )
-                specialist = matches[row.number]
-                if specialist:
+                for specialist in matches[row.number]:
                     # Current responsibility starts now, never infer historic staff access.
                     assignment_start = (
                         max(row.start, timezone.localdate())

@@ -27,6 +27,8 @@ Do not put source workbooks, personal values, or database backups in the reposit
   status, exact Barthel scores, assessments, schedules, or delivered visits.
 - `--link-specialists` matches normalized full names only against unique active staff
   already assigned to the selected center. No accounts or center memberships are created.
+  Comma-separated names are matched individually and linked as jointly responsible
+  specialists. Cell order does not establish a lead. Duplicate names create one link.
   Current assignments begin on the import date or future enrollment start, whichever is
   later. Closed or undated episodes retain a link with unknown historical assignment dates
   and grant no current specialist access. Missing or ambiguous matches are flagged.
