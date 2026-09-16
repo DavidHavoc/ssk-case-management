@@ -63,6 +63,7 @@ from .models import (
     Assessment,
     AttachmentParentType,
     Beneficiary,
+    BeneficiaryWorkbookImport,
     CenterServiceOffering,
     IndividualPlan,
     IndividualPlanGoal,
@@ -85,6 +86,7 @@ from .services import (
     transition_enrollment,
 )
 from .timeline import beneficiary_timeline_page
+from .workbook_import import source_details
 from .workspace import build_enrollment_workspace_rows, build_workspace_documents
 
 
@@ -262,6 +264,13 @@ def beneficiary_detail(request, pk):
     restricted = can_view_restricted_beneficiary_fields(
         request.user, beneficiary, request.ssk_center
     )
+    # The original workbook can contain identifiers and unverified health or
+    # household information. Do not load it into the specialist response context.
+    workbook_details = None
+    if restricted:
+        workbook_details = source_details(
+            BeneficiaryWorkbookImport.objects.filter(beneficiary=beneficiary).first()
+        )
     beneficiary_attachments = (
         case_attachments(request.user, request.ssk_center).list(
             AttachmentParentType.BENEFICIARY, beneficiary.pk
@@ -330,6 +339,7 @@ def beneficiary_detail(request, pk):
                 enrollment=selected_enrollment,
             ),
             "show_restricted": restricted,
+            "workbook_details": workbook_details,
             "workspace_summary": workspace_summary,
             "workspace_visits": authorized_visits[:10],
             "workspace_schedules": authorized_schedules[:10],

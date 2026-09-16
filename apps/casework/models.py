@@ -398,6 +398,25 @@ class Beneficiary(ValidatedModel):
             raise ValidationError(errors)
 
 
+class BeneficiaryWorkbookImport(ValidatedModel):
+    """Restricted source evidence. Never include this record in ordinary case exports."""
+
+    beneficiary = models.OneToOneField(
+        Beneficiary, on_delete=models.CASCADE, related_name="workbook_import"
+    )
+    source_digest = models.CharField(max_length=64)
+    source_row = models.PositiveIntegerField()
+    source_values = models.JSONField(default=dict)
+    review_issues = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["source_digest", "source_row"], name="unique_beneficiary_workbook_row"
+            )
+        ]
+
+
 class ServiceEnrollment(ValidatedModel):
     class Status(models.TextChoices):
         PENDING = "pending", _("Pending")
@@ -470,6 +489,10 @@ class ServiceEnrollment(ValidatedModel):
         )
 
     def status_on(self, on_date: date) -> str | None:
+        # A terminal legacy snapshot without an exit date cannot establish when
+        # service delivery was authorized. Preserve the uncertainty.
+        if self.legacy_dates_incomplete and self.is_terminal and self.end_date is None:
+            return None
         if self.start_date and on_date < self.start_date:
             return None
         if self.end_date and on_date >= self.end_date:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import runpy
 import subprocess
 import sys
@@ -86,7 +87,8 @@ def test_secret_and_generated_file_patterns_are_ignored():
 
 def test_georgian_catalog_has_no_empty_or_fuzzy_application_messages():
     catalog = (REPOSITORY_ROOT / "locale/ka/LC_MESSAGES/django.po").read_text()
-    assert catalog.count('\nmsgstr ""\n') == 1
+    # Empty opening lines followed by quoted continuations are valid PO strings.
+    assert not re.search(r'\nmsgstr ""(?:\n(?!")|$)', catalog)
     assert "#, fuzzy" not in catalog
 
 

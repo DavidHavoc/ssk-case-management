@@ -4847,3 +4847,75 @@ msgstr "ვადაგასული"
 #: tests/test_assignment_authorization.py:151
 msgid "Unknown assignment dates"
 msgstr "დანიშვნის თარიღები უცნობია"
+
+msgid "Original register information"
+msgstr "საწყისი რეესტრის ინფორმაცია"
+
+msgid "Source row %(row)s. These values are preserved as supplied and are not a new assessment."
+msgstr "საწყისი ფაილის სტრიქონი %(row)s. მნიშვნელობები შენახულია მოწოდებული სახით და არ წარმოადგენს ახალ შეფასებას."
+
+msgid "Information needing review"
+msgstr "გადასამოწმებელი ინფორმაცია"
+
+msgid "Status recorded in workbook"
+msgstr "ფაილში მითითებული სტატუსი"
+
+msgid "Age recorded in workbook"
+msgstr "ფაილში მითითებული ასაკი"
+
+msgid "Barthel category recorded in workbook"
+msgstr "ფაილში მითითებული ბართელის კატეგორია"
+
+msgid "Responsible specialist recorded in workbook"
+msgstr "ფაილში მითითებული პასუხისმგებელი სპეციალისტი"
+
+msgid "Household recorded in workbook"
+msgstr "ფაილში მითითებული ოჯახური მდგომარეობა"
+
+msgid "Notes recorded in workbook"
+msgstr "ფაილში მითითებული შენიშვნა"
+
+msgid "Personal ID recorded in workbook"
+msgstr "ფაილში მითითებული პირადი ნომერი"
+
+msgid "Birth date recorded in workbook"
+msgstr "ფაილში მითითებული დაბადების თარიღი"
+
+msgid "Phone recorded in workbook"
+msgstr "ფაილში მითითებული საკონტაქტო ნომერი"
+
+msgid "Application number recorded in workbook"
+msgstr "ფაილში მითითებული განაცხადის ნომერი"
+
+msgid "Enrollment date recorded in workbook"
+msgstr "ფაილში მითითებული ჩართვის თარიღი"
+
+msgid "Exit date recorded in workbook"
+msgstr "ფაილში მითითებული გასვლის თარიღი"
+
+msgid "Sex recorded in workbook"
+msgstr "ფაილში მითითებული სქესი"
+
+msgid "Personal ID needs verification. The website field was left blank."
+msgstr "პირადი ნომერი გადასამოწმებელია. ვებგვერდის ველი ცარიელი დარჩა."
+
+msgid "Birth date needs verification. The website field was left blank."
+msgstr "დაბადების თარიღი გადასამოწმებელია. ვებგვერდის ველი ცარიელი დარჩა."
+
+msgid "Phone needs verification. The website field was left blank."
+msgstr "საკონტაქტო ნომერი გადასამოწმებელია. ვებგვერდის ველი ცარიელი დარჩა."
+
+msgid "Application number was stored as a date in Excel. The website field was left blank."
+msgstr "განაცხადის ნომერი Excel-ში თარიღად იყო შენახული. ვებგვერდის ველი ცარიელი დარჩა."
+
+msgid "Enrollment date is missing or invalid. Access dates need review."
+msgstr "ჩართვის თარიღი არ არის მითითებული ან არასწორია. წვდომის თარიღები გადასამოწმებელია."
+
+msgid "Exit date is missing or inconsistent. The exit date was left unset."
+msgstr "გასვლის თარიღი არ არის მითითებული ან შეუსაბამოა. გასვლის თარიღი შეუვსებელი დარჩა."
+
+msgid "Sex needs verification. The website field was left blank."
+msgstr "სქესი გადასამოწმებელია. ვებგვერდის ველი ცარიელი დარჩა."
+
+msgid "No unique active staff account matched this specialist in the selected center."
+msgstr "არჩეულ ცენტრში ამ სპეციალისტის შესაბამისი ერთადერთი აქტიური თანამშრომლის ანგარიში ვერ მოიძებნა."

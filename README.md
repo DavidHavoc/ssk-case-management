@@ -56,6 +56,7 @@ SQLite is an explicit test-only convenience. Development, staging, and productio
 - [Architecture](docs/ARCHITECTURE.md)
 - [Data model](docs/DATA_MODEL.md)
 - [Beneficiary and service enrollment foundation](docs/BENEFICIARY_ENROLLMENT_FOUNDATION.md)
+- [Beneficiary workbook import](docs/BENEFICIARY_WORKBOOK_IMPORT.md)
 - [Service visits and schedules](docs/SERVICE_VISITS_AND_SCHEDULES.md)
 - [Service plans and outcomes](docs/SERVICE_PLANS_AND_OUTCOMES.md)
 - [Operational reporting and reminders](docs/OPERATIONAL_REPORTING_AND_REMINDERS.md)

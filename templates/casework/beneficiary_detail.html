@@ -70,6 +70,21 @@
         <div class="detail-item wide"><dt>{% translate "Address" %}</dt><dd>{{ beneficiary.address|default:_('Not provided')|linebreaksbr }}</dd></div>
         {% if beneficiary.diagnosis_status %}<div class="detail-item wide"><dt>{% translate "Preserved legacy diagnosis narrative" %}</dt><dd>{{ beneficiary.diagnosis_status|linebreaksbr }}</dd></div>{% endif %}
       </dl>
+      {% if workbook_details %}
+        <h3>{% translate "Original register information" %}</h3>
+        <p>{% blocktranslate with row=workbook_details.row %}Source row {{ row }}. These values are preserved as supplied and are not a new assessment.{% endblocktranslate %}</p>
+        {% if workbook_details.issues %}
+          <div class="privacy-note" role="note">
+            <strong>{% translate "Information needing review" %}</strong>
+            <ul>{% for issue in workbook_details.issues %}<li>{{ issue }}</li>{% endfor %}</ul>
+          </div>
+        {% endif %}
+        <dl class="detail-grid">
+          {% for item in workbook_details.values %}
+            <div class="detail-item wide"><dt>{{ item.label }}</dt><dd>{{ item.value|linebreaksbr }}</dd></div>
+          {% endfor %}
+        </dl>
+      {% endif %}
     {% endif %}
   </section>
 
