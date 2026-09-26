@@ -16,6 +16,9 @@ from apps.casework.workbook_import import (
 class Command(BaseCommand):
     help = "Validate or import a Georgian beneficiary register, reporting no personal values."
 
+    def read_plan(self, options):
+        return read_workbook(options["workbook"])
+
     def add_arguments(self, parser):
         parser.add_argument("workbook")
         parser.add_argument("--center-code")
@@ -46,7 +49,7 @@ class Command(BaseCommand):
         if options["inspect"] and options["apply"]:
             raise CommandError("--inspect cannot be combined with --apply.")
         try:
-            plan = read_workbook(options["workbook"])
+            plan = self.read_plan(options)
             if options["inspect"]:
                 self.stdout.write(json.dumps(plan.summary(), ensure_ascii=False, indent=2))
                 return

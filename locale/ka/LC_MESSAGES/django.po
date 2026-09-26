@@ -4919,3 +4919,54 @@ msgstr "სქესი გადასამოწმებელია. ვე
 
 msgid "No unique active staff account matched this specialist in the selected center."
 msgstr "არჩეულ ცენტრში ამ სპეციალისტის შესაბამისი ერთადერთი აქტიური თანამშრომლის ანგარიში ვერ მოიძებნა."
+
+msgid "PDF reporting period"
+msgstr "PDF-ის საანგარიშო პერიოდი"
+
+msgid "Original PDF heading"
+msgstr "PDF-ის თავდაპირველი სათაური"
+
+msgid "Status confirmed for this import"
+msgstr "ამ იმპორტისთვის დადასტურებული სტატუსი"
+
+msgid "Guardian information recorded in PDF"
+msgstr "PDF-ში მითითებული კანონიერი წარმომადგენლის ინფორმაცია"
+
+msgid "Individual services reported in PDF"
+msgstr "PDF-ში მითითებული ინდივიდუალური მომსახურებების რაოდენობა"
+
+msgid "Group services reported in PDF"
+msgstr "PDF-ში მითითებული ჯგუფური მომსახურებების რაოდენობა"
+
+msgid "Services at home reported in PDF"
+msgstr "PDF-ში მითითებული ბინაზე მომსახურებების რაოდენობა"
+
+msgid "Services at center reported in PDF"
+msgstr "PDF-ში მითითებული ცენტრში მომსახურებების რაოდენობა"
+
+msgid "Total services reported in PDF"
+msgstr "PDF-ში მითითებული მომსახურებების საერთო რაოდენობა"
+
+msgid "Developmental delay areas recorded in PDF"
+msgstr "PDF-ში მითითებული განვითარების ჩამორჩენის სფეროების რაოდენობა"
+
+msgid "Personal ID recorded in PDF"
+msgstr "PDF-ში მითითებული პირადი ნომერი"
+
+msgid "Birth date recorded in PDF"
+msgstr "PDF-ში მითითებული დაბადების თარიღი"
+
+msgid "Historical enrollment date was not supplied and remains unset."
+msgstr "პროგრამაში ჩართვის თავდაპირველი თარიღი არ არის მოწოდებული და ველი შეუვსებელია."
+
+msgid "Current active status needs confirmation."
+msgstr "მიმდინარე აქტიური სტატუსი საჭიროებს დადასტურებას."
+
+msgid "Guardian information was not supplied."
+msgstr "კანონიერი წარმომადგენლის ინფორმაცია არ არის მოწოდებული."
+
+msgid "Service type counts do not equal the reported total."
+msgstr "მომსახურების სახეობების რაოდენობა არ ემთხვევა მითითებულ საერთო რაოდენობას."
+
+msgid "Location counts do not equal the reported service total."
+msgstr "ადგილების მიხედვით მომსახურებების რაოდენობა არ ემთხვევა მითითებულ საერთო რაოდენობას."

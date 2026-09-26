@@ -136,6 +136,9 @@ class WorkbookRow:
 class WorkbookPlan:
     digest: str
     rows: list[WorkbookRow]
+    service_codes: tuple[str, ...] = tuple(SERVICE_CODES.values())
+    snapshot_on: date | None = None
+    require_existing_center: bool = False
 
     def summary(self):
         return {
@@ -265,6 +268,10 @@ def source_details(record):
     """Call only after authorizing restricted person access in the view."""
     if record is None:
         return None
+    if record.source_values.get("source_format") == "early_intervention_pdf_v1":
+        from .early_intervention_import import pdf_source_details
+
+        return pdf_source_details(record)
     always = {"source_status", "source_age", "barthel_category", "specialist", "household", "notes"}
     return {
         "row": record.source_row,
@@ -281,6 +288,8 @@ def validate_destination(plan, *, actor, center_code, center_name, link_speciali
     if not is_system_manager(actor):
         raise PermissionDenied("Only an active System Manager can import beneficiaries.")
     center = Center.objects.filter(code=center_code).first()
+    if center is None and plan.require_existing_center:
+        raise WorkbookImportError("The selected existing center could not be found.")
     if center and (center.name != center_name or not center.is_active):
         raise WorkbookImportError("Center code belongs to a different name or inactive center.")
     if not center and Center.objects.filter(name=center_name).exists():
@@ -295,15 +304,20 @@ def validate_destination(plan, *, actor, center_code, center_name, link_speciali
         record.beneficiary.center_id != getattr(center, "pk", None) for record in existing.values()
     ):
         raise WorkbookImportError("This workbook was already imported into another center.")
-    services = {
-        s.code: s for s in ServiceDefinition.objects.filter(code__in=SERVICE_CODES.values())
-    }
-    if len(services) != len(SERVICE_CODES) or any(
+    if set(existing) - {row.number for row in plan.rows}:
+        raise WorkbookImportError("Previously imported source row count differs. Review required.")
+    services = {s.code: s for s in ServiceDefinition.objects.filter(code__in=plan.service_codes)}
+    if len(services) != len(plan.service_codes) or any(
         not service.is_active or service.valid_to for service in services.values()
     ):
         raise WorkbookImportError(
-            "Both service definitions must exist and be active without an end date."
+            "Required service definitions must exist and be active without an end date."
         )
+    if plan.require_existing_center and any(
+        service.family != ServiceDefinition.Family.EARLY_INTERVENTION
+        for service in services.values()
+    ):
+        raise WorkbookImportError("The selected service is not an early-intervention service.")
     offerings = {}
     if center:
         for code in services:
@@ -327,6 +341,10 @@ def validate_destination(plan, *, actor, center_code, center_name, link_speciali
     matches = {}
     for row in plan.rows:
         if row.number in existing:
+            if existing[row.number].source_values != row.source:
+                raise WorkbookImportError(
+                    f"Row {row.number}: previously imported source differs. Review required."
+                )
             continue
         if (
             row.person["personal_id"]
@@ -369,7 +387,7 @@ def apply_workbook(
     plan, *, actor, center_code, center_name, link_specialists, allow_incomplete=False
 ):
     # Lock catalog rows to serialize imports and repeat all destination checks under the lock.
-    list(ServiceDefinition.objects.select_for_update().filter(code__in=SERVICE_CODES.values()))
+    list(ServiceDefinition.objects.select_for_update().filter(code__in=plan.service_codes))
     center, services, offerings, matches, existing = validate_destination(
         plan,
         actor=actor,
@@ -391,7 +409,11 @@ def apply_workbook(
         center = Center.objects.create(code=center_code, name=center_name)
         audit_create(actor, center, center)
     for code, service in services.items():
-        starts = [row.start for row in new_rows if code in row.services and row.start]
+        starts = [
+            row.start or plan.snapshot_on
+            for row in new_rows
+            if code in row.services and (row.start or plan.snapshot_on)
+        ]
         if not any(code in row.services for row in new_rows):
             continue
         first = min(starts) if starts else None
@@ -441,7 +463,11 @@ def apply_workbook(
             audit_create(actor, center, source_record)
             for code in row.services:
                 incomplete = row.start is None or (row.status == "exited" and row.end is None)
-                suffix = "HC" if code == "HOME-CARE" else "FD"
+                suffix = {
+                    "HOME-CARE": "HC",
+                    "FOOD-DELIVERY": "FD",
+                    "EARLY-INTERVENTION": "EI",
+                }[code]
                 enrollment = ServiceEnrollment.objects.create(
                     beneficiary=beneficiary,
                     service=services[code],
@@ -457,7 +483,7 @@ def apply_workbook(
                     enrollment=enrollment,
                     center=center,
                     offering=offerings[code],
-                    valid_from=row.start,
+                    valid_from=row.start or plan.snapshot_on,
                     valid_to=row.end,
                     legacy_dates_incomplete=incomplete,
                 )
@@ -466,7 +492,9 @@ def apply_workbook(
                     enrollment=enrollment,
                     kind=EnrollmentStateEvent.Kind.LEGACY_IMPORT,
                     new_state=row.status,
-                    effective_date=row.end if row.status == "exited" else row.start,
+                    effective_date=(
+                        row.end if row.status == "exited" else row.start or plan.snapshot_on
+                    ),
                     actor=actor,
                 )
                 for specialist in matches[row.number]:
