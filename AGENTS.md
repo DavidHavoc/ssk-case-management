@@ -42,3 +42,37 @@ this is not a claim that every organizational or external control was independen
 - The owner's readiness confirmation is recorded above. Current encrypted off-host backups, retention, backup monitoring, external alerting, provider firewall, and organizational signoffs were not independently reverified during this task; the earlier September 4 statements about their absence must not be treated as current verified facts.
 - SSH and Docker access as `sskadmin` were verified after the owner fixed repository access and added the account to the Docker group. Keep private configuration, backups, and source workbooks restricted when repairing application code file permissions.
 - The temporary passwordless-sudo deployment rule was removed after deployment. Do not recreate it unless the user explicitly authorizes temporary remote administrator access.
+
+## Approved early intervention PDF import
+
+On 2026-09-26 the owner requested importing the supplied PDF into the existing Gori
+early intervention center, confirmed the reporting period is September 2026 despite
+the historical 2017 form heading, and confirmed all 43 listed children are currently active.
+
+- `SSK-GOR-EIC`, `სსკ-ს გორის ადრეული ინტერვენციის ცენტრი`, now has 43 active beneficiaries
+  and 43 `EARLY-INTERVENTION` enrollments. Its Early Intervention offering and current
+  center placements begin on the confirmed snapshot date, 2026-09-26.
+- Historical enrollment and first-service dates remain unset. No visits, assessments,
+  schedules, coded diagnoses, or specialist assignments were inferred from monthly totals.
+  Responsible specialists must be supplied separately before granting specialist access.
+- Names, text personal IDs including leading zeros, birth dates, and available guardian
+  names were reconciled. Representative IDs, the original heading, September 2026 period,
+  and reported service counts are retained in the existing restricted source section.
+- The source reports 257 services: 196 individual and 61 group. Location subtotals report
+  176 at home and 65 at the center. Nine location-total discrepancies and one missing
+  guardian entry are flagged. All 43 unknown historical start dates are also flagged.
+- All imported fields, original source values, statuses, and review flags reconciled on
+  the hosted database. The Georgian beneficiary detail page and public HTTPS health check
+  passed. A checksum confirmed the existing home-care records were unchanged.
+- The deployed application code is commit `b2b2abd3cf202eb1c95f84b7dea7bd58420664a7`, delivered
+  through a code-only Git bundle. No GitHub push was performed.
+- A restricted pre-import database backup restored successfully in an isolated temporary
+  PostgreSQL container. The backup and previous running image were retained on the VPS.
+- Local verification passed 237 tests with one PostgreSQL-only skip, Ruff, Django checks,
+  and migration checks. The synthetic PostgreSQL run passed 236 tests; the two remaining
+  deployment-file checks passed after their repository fixtures were added to the disposable
+  test image. All seven deployment tests then passed. Production deployment checks passed,
+  with no pending migrations. Temporary test containers and their database were removed.
+- A repeated hosted import skipped all 43 records and created no duplicates. The transferred
+  reviewed JSON and temporary local extraction files were removed after verification;
+  the owner's original PDF remains in Downloads and was never added to Git or a developer database.
