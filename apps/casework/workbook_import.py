@@ -272,6 +272,10 @@ def source_details(record):
         from .early_intervention_import import pdf_source_details
 
         return pdf_source_details(record)
+    if record.source_values.get("source_format") == "early_intervention_docx_v1":
+        from .early_intervention_docx_import import docx_source_details
+
+        return docx_source_details(record)
     always = {"source_status", "source_age", "barthel_category", "specialist", "household", "notes"}
     return {
         "row": record.source_row,

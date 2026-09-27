@@ -4970,3 +4970,30 @@ msgstr "მომსახურების სახეობების რ�
 
 msgid "Location counts do not equal the reported service total."
 msgstr "ადგილების მიხედვით მომსახურებების რაოდენობა არ ემთხვევა მითითებულ საერთო რაოდენობას."
+
+msgid "DOCX reporting period"
+msgstr "DOCX-ის საანგარიშო პერიოდი"
+
+msgid "Original DOCX heading"
+msgstr "DOCX-ის თავდაპირველი სათაური"
+
+msgid "Voucher number recorded in DOCX"
+msgstr "DOCX-ში მითითებული ვაუჩერის ნომერი"
+
+msgid "Guardian information recorded in DOCX"
+msgstr "DOCX-ში მითითებული კანონიერი წარმომადგენლის ინფორმაცია"
+
+msgid "Service information recorded in DOCX"
+msgstr "DOCX-ში მითითებული მომსახურების ინფორმაცია"
+
+msgid "Personal ID recorded in DOCX"
+msgstr "DOCX-ში მითითებული პირადი ნომერი"
+
+msgid "Birth date recorded in DOCX"
+msgstr "DOCX-ში მითითებული დაბადების თარიღი"
+
+msgid "Recorded birth date indicates an adult. Service eligibility needs review."
+msgstr "მითითებული დაბადების თარიღით ბენეფიციარი სრულწლოვანია. მომსახურებით სარგებლობის უფლება გადასამოწმებელია."
+
+msgid "Repeated service types need review. Original service lines were preserved."
+msgstr "მომსახურების განმეორებითი სახეობები გადასამოწმებელია. თავდაპირველი ჩანაწერები შენახულია."
