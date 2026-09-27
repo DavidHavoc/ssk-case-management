@@ -76,3 +76,44 @@ the historical 2017 form heading, and confirmed all 43 listed children are curre
 - A repeated hosted import skipped all 43 records and created no duplicates. The transferred
   reviewed JSON and temporary local extraction files were removed after verification;
   the owner's original PDF remains in Downloads and was never added to Git or a developer database.
+
+## Approved Lagodekhi early intervention DOCX import
+
+On 2026-09-27 the owner requested importing the supplied Form N2.2.1 DOCX register into
+the existing Lagodekhi center. The document explicitly covers June 2026, the owner confirmed
+the year and all 19 people as currently active, and confirmed the adult birth date as supplied.
+
+- `SSK-LAG-IEC`, `სსკ-ს ლაგოდეხის ადრეული ინტერვენციის ცენტრი`, now has 19 active
+  beneficiaries and 19 `EARLY-INTERVENTION` enrollments. Its new Early Intervention offering,
+  current placements, and active snapshot state begin on 2026-09-27.
+- Names, personal IDs including leading zeros, valid birth dates, guardian names, and voucher
+  numbers were reconciled. Whitespace is removed from operational IDs and voucher numbers only.
+  Guardian IDs, the original heading, reporting period, service types, counts, locations,
+  supervision entries, and original source values remain in restricted evidence.
+- The source contains 38 service lines reporting 152 services. These remain reported evidence;
+  no visits, assessments, plans, schedules, diagnoses, or specialist assignments were inferred.
+  Historical enrollment and first-service dates remain unset for all 19 people. One confirmed
+  adult birth date and one repeated individual-service type remain flagged for review.
+  Responsible specialists must be supplied separately before granting specialist access.
+- Every imported normalized field, source value, enrollment, placement, state event, and review
+  flag reconciled. Aggregate checks verified all 1,872 original rows across 53 models unchanged,
+  excluding only the administrator's login timestamp from authentication-page checks.
+  This includes the existing Gori beneficiary records, centers, staff, and service catalog.
+- A repeated hosted import skipped all 19 rows and created no duplicates. The Georgian detail
+  page returned successfully, restricted source information was visible to an authorized manager,
+  cross-center detail access was denied, anonymous access redirected to login, and public HTTPS
+  health passed.
+- Application code commit `c694ab1e433f29bc6b9e944453463a98ab70aea8` was deployed through a
+  code-only Git bundle. No GitHub push was performed. The pre-import database and private-file
+  backup and previous running image were retained on the VPS. The database backup restored
+  successfully in an isolated temporary PostgreSQL container.
+- Local verification passed 308 tests with one PostgreSQL-only skip, Ruff, Django checks,
+  and migration checks. The complete synthetic PostgreSQL run passed all 309 tests with no
+  skips. Production deployment checks passed, with no pending migrations.
+- The owner explicitly authorized setting only the nine changed code, test, translation,
+  and documentation files to mode 644 after restrictive release-file creation caused permission
+  errors. Private configuration, backups, and source files stayed restricted. No sudo rule,
+  SSH credential, account role, or firewall setting was changed.
+- Temporary test databases, containers, and the test image were removed. Transferred reviewed
+  JSON and temporary local extraction files were removed after verification. The original DOCX
+  remains in Downloads and was never added to Git or a developer database.
