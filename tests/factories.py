@@ -176,7 +176,7 @@ def make_beneficiary(
         ensure_center_offerings(center)
     number = next(counter)
     beneficiary = Beneficiary.objects.create(
-        beneficiary_code=code or f"BEN-TEST-{number:05d}",
+        beneficiary_code=code or "",
         service_type=Beneficiary.ServiceType.OTHER,
         service_status=Beneficiary.ServiceStatus.ACTIVE,
         center=center,

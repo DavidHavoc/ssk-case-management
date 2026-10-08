@@ -81,6 +81,12 @@ class BeneficiaryForm(StyledModelForm):
         self.user = user
         self.center = center
         super().__init__(*args, **kwargs)
+        self.fields["beneficiary_code"].disabled = True
+        self.fields["beneficiary_code"].required = False
+        if self.instance._state.adding:
+            self.fields["beneficiary_code"].help_text = _(
+                "Assigned automatically when saved, using the center code and next number."
+            )
         if not (is_system_manager(user) or is_coordinator(user)):
             for field in RESTRICTED_BENEFICIARY_FIELDS:
                 self.fields.pop(field, None)

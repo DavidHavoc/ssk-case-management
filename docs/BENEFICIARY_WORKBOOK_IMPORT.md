@@ -9,6 +9,9 @@ Do not put source workbooks, personal values, or database backups in the reposit
 
 - Each source row creates one person. Home care and food delivery create separate
   enrollment episodes for that same person.
+- Beneficiary codes use the center's next number, such as `SSK-GOR-HC_B009`.
+  Skipped repeat-import rows do not consume numbers. Source digest and row number
+  remain the import identity independently of the displayed beneficiary code.
 - The operator explicitly supplies the center code and name. An absent center is created
   with only the requested service offerings. Existing conflicting center configurations
   require manual review.

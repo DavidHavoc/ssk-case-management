@@ -16,9 +16,24 @@ Constraints prevent duplicate specialist and center pairs and more than one prim
 
 ## Case records
 
+Beneficiary codes are assigned automatically as `<CENTER-CODE>_B001`, with a separate
+persistent sequence for each center. Numbers have at least three digits and expand after
+999. Creation and counter advancement share a transaction and a center row lock. Deleted
+records do not release their numbers. Codes remain stable after person edits, center code
+changes, and enrollment transfers. New beneficiaries use the center's current code prefix.
+
+Migrations `0012` and `0013` add the code sequence and number existing records by creation
+time within their original center, using UUID as a tie breaker. The conversion includes
+inactive and exited records, preserves previous
+codes for search and rollback, and initializes each counter to its final assigned number.
+They do not change enrollment codes, source evidence, or case relationships. Schema and
+data changes use separate transactions so PostgreSQL can safely reverse both migrations.
+Take a restricted database backup before applying these migrations to the hosted application.
+
 | Entity | Important fields and relationships |
 |---|---|
-| Beneficiary | Unique case code, person identity, demographic, contact, free-text case notes, controlled geography, and restricted fields |
+| Beneficiary | Automatic unique center code, preserved previous code, person identity, demographic, contact, free-text case notes, controlled geography, and restricted fields |
+| Beneficiary Code Sequence | One persistent counter per Center, serialized with a center row lock |
 | Service Definition | Stable code, service family, effective dates, overlap policy, active state |
 | Center Service Offering | Center, Service Definition, effective dates, enabled state |
 | Service Enrollment | Beneficiary, Service Definition, episode code, status, dates, prior enrollment, preserved legacy source values |

@@ -9,7 +9,7 @@ from pathlib import Path
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models import F, Q
 from django.db.models.signals import m2m_changed, pre_delete
 from django.dispatch import receiver
@@ -223,6 +223,11 @@ class SocialStatusDefinition(EffectiveDatedCatalogModel):
         return self.localized_name
 
 
+class BeneficiaryCodeSequence(models.Model):
+    center = models.OneToOneField(Center, on_delete=models.PROTECT, primary_key=True)
+    last_number = models.PositiveBigIntegerField(default=0)
+
+
 class Beneficiary(ValidatedModel):
     class ServiceType(models.TextChoices):
         DISABILITY = "disability_support", _("Disability Support")
@@ -250,7 +255,8 @@ class Beneficiary(ValidatedModel):
         SEPARATED = "separated", _("Separated")
         OTHER = "other", _("Other")
 
-    beneficiary_code = models.CharField(max_length=32, unique=True)
+    beneficiary_code = models.CharField(max_length=48, unique=True, blank=True)
+    legacy_beneficiary_code = models.CharField(max_length=32, blank=True, editable=False)
     service_type = models.CharField(max_length=32, choices=ServiceType.choices, db_index=True)
     service_status = models.CharField(
         max_length=16, choices=ServiceStatus.choices, default=ServiceStatus.APPLIED, db_index=True
@@ -317,6 +323,35 @@ class Beneficiary(ValidatedModel):
     def __str__(self) -> str:
         return f"{self.beneficiary_code} | {self.full_name}"
 
+    def save(self, *args, **kwargs):
+        if not self._state.adding or not self.center_id:
+            return super().save(*args, **kwargs)
+        using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
+        original_code = self.beneficiary_code
+        try:
+            with transaction.atomic(using=using):
+                # The center lock also serializes creation of its first counter.
+                center = Center.objects.using(using).select_for_update().get(pk=self.center_id)
+                sequence, _created = BeneficiaryCodeSequence.objects.using(using).get_or_create(
+                    center=center
+                )
+                while True:
+                    sequence.last_number += 1
+                    self.beneficiary_code = f"{center.code}_B{sequence.last_number:03d}"
+                    if (
+                        not type(self)
+                        .objects.using(using)
+                        .filter(beneficiary_code=self.beneficiary_code)
+                        .exists()
+                    ):
+                        break
+                sequence.save(using=using, update_fields=["last_number"])
+                kwargs["using"] = using
+                return super().save(*args, **kwargs)
+        except Exception:
+            self.beneficiary_code = original_code
+            raise
+
     @property
     def age(self) -> int | None:
         calculated = self.age_on(timezone.localdate())
@@ -374,6 +409,16 @@ class Beneficiary(ValidatedModel):
         self.notes = self.notes.strip()
         today = timezone.localdate()
         errors = {}
+        if not self._state.adding:
+            saved_code = (
+                type(self)
+                .objects.using(self._state.db)
+                .filter(pk=self.pk)
+                .values_list("beneficiary_code", flat=True)
+                .first()
+            )
+            if saved_code != self.beneficiary_code:
+                errors["beneficiary_code"] = _("Beneficiary codes are assigned automatically.")
         if self.birth_date and self.birth_date > today:
             errors["birth_date"] = _("Birth date cannot be in the future.")
         if self.municipality_ref_id and not self.region_ref_id:

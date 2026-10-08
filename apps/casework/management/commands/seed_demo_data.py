@@ -246,7 +246,7 @@ class Command(BaseCommand):
         offering: CenterServiceOffering,
     ) -> tuple[Beneficiary, ServiceEnrollment]:
         beneficiary, _ = Beneficiary.objects.update_or_create(
-            beneficiary_code=code,
+            personal_id=f"SYNTHETIC-{code}",
             defaults={
                 "full_name": name,
                 "center": center,

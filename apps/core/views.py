@@ -157,7 +157,9 @@ def _report_queryset(request, report_type: str):
     if query:
         if report_type == "beneficiaries":
             queryset = queryset.filter(
-                Q(full_name__icontains=query) | Q(beneficiary_code__icontains=query)
+                Q(full_name__icontains=query)
+                | Q(beneficiary_code__icontains=query)
+                | Q(legacy_beneficiary_code__icontains=query)
             )
         elif report_type in {"beneficiary_breakdown", "enrollments"}:
             queryset = queryset.filter(

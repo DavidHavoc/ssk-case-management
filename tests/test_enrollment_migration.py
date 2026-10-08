@@ -155,7 +155,7 @@ def test_existing_synthetic_records_are_backfilled_without_reinterpretation():
         executor.migrate(leaf_targets)
 
     assert results == {
-        "person_code": "MIG-SYN-BEN",
+        "person_code": "MIG-SYN_B001",
         "region": "Exact Legacy Region Text",
         "municipality": "Exact Legacy Municipality Text",
         "diagnosis_narrative": "Exact restricted legacy diagnosis narrative",

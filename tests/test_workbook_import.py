@@ -158,6 +158,7 @@ def test_two_services_one_person_and_repeat_is_noop(tmp_path, manager, center_a)
     assert result["enrollments_created"] == 2
     person = Beneficiary.objects.get()
     assert person.personal_id == "00000000001"
+    assert person.beneficiary_code == f"{center_a.code}_B001"
     assert person.barthel_index is None
     assert person.family_status == ""
     assert person.notes == ""
@@ -173,6 +174,10 @@ def test_two_services_one_person_and_repeat_is_noop(tmp_path, manager, center_a)
     assert apply_workbook(plan, **destination(manager, center_a))["skipped"] == 1
     assert Beneficiary.objects.count() == 1
     assert AuditEvent.objects.count() == audits
+    next_person = Beneficiary.objects.create(
+        center=center_a, full_name="Synthetic next person", service_type="other"
+    )
+    assert next_person.beneficiary_code == f"{center_a.code}_B002"
 
 
 def test_review_approval_and_atomic_rollback(tmp_path, manager, center_a, monkeypatch):

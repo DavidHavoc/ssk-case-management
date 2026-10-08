@@ -138,7 +138,7 @@ def _authorized_request_object(
         raise
 
 
-def _legacy_intake_post(request):
+def _legacy_intake_post(request, beneficiary):
     if request.method != "POST" or "enrollment-offering" in request.POST:
         return request.POST or None
     legacy_service_type = request.POST.get("service_type", "other")
@@ -153,8 +153,7 @@ def _legacy_intake_post(request):
     data = request.POST.copy()
     if offering:
         data["enrollment-offering"] = str(offering.pk)
-    code = request.POST.get("beneficiary_code", "").strip().upper()
-    data["enrollment-episode_code"] = f"{code}-E01"
+    data["enrollment-episode_code"] = f"{beneficiary.pk}-E01"
     legacy_status = request.POST.get("service_status", "applied")
     data["enrollment-status"] = {
         "active": ServiceEnrollment.Status.ACTIVE,
@@ -182,7 +181,9 @@ def _beneficiary_list(request, *, specialist_workspace=False):
     service_type = request.GET.get("service_type", "").strip()
     if query:
         queryset = queryset.filter(
-            Q(full_name__icontains=query) | Q(beneficiary_code__icontains=query)
+            Q(full_name__icontains=query)
+            | Q(beneficiary_code__icontains=query)
+            | Q(legacy_beneficiary_code__icontains=query)
         )
     if status:
         queryset = queryset.filter(enrollments__in=authorized_enrollments.filter(status=status))
@@ -362,7 +363,7 @@ def beneficiary_create(request):
     form = BeneficiaryForm(
         request.POST or None, instance=beneficiary, user=request.user, center=request.ssk_center
     )
-    intake_data = _legacy_intake_post(request)
+    intake_data = _legacy_intake_post(request, beneficiary)
     enrollment_form = EnrollmentIntakeForm(
         intake_data,
         prefix="enrollment",
@@ -392,7 +393,11 @@ def beneficiary_create(request):
                 enrollment = create_enrollment(
                     beneficiary=beneficiary,
                     offering=enrollment_form.cleaned_data["offering"],
-                    episode_code=enrollment_form.cleaned_data["episode_code"],
+                    episode_code=(
+                        enrollment_form.cleaned_data["episode_code"]
+                        if "enrollment-offering" in request.POST
+                        else f"{beneficiary.beneficiary_code}-E01"
+                    ),
                     start_date=enrollment_form.cleaned_data["start_date"],
                     status=enrollment_form.cleaned_data["status"],
                     first_service_date=enrollment_form.cleaned_data["first_service_date"],

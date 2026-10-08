@@ -4997,3 +4997,9 @@ msgstr "მითითებული დაბადების თარი�
 
 msgid "Repeated service types need review. Original service lines were preserved."
 msgstr "მომსახურების განმეორებითი სახეობები გადასამოწმებელია. თავდაპირველი ჩანაწერები შენახულია."
+
+msgid "Assigned automatically when saved, using the center code and next number."
+msgstr "შენახვისას ავტომატურად ენიჭება ცენტრის კოდისა და შემდეგი რიგითი ნომრის მიხედვით."
+
+msgid "Beneficiary codes are assigned automatically."
+msgstr "ბენეფიციარის კოდები ავტომატურად ენიჭება."

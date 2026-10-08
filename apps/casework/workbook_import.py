@@ -372,7 +372,7 @@ def validate_destination(plan, *, actor, center_code, center_name, link_speciali
                 elif "specialist" not in row.issues:
                     row.issues.append("specialist")
         # Validate normalized fields without writing any personal data during preview.
-        person = Beneficiary(beneficiary_code=case_code(plan, row), **row.person)
+        person = Beneficiary(**row.person)
         try:
             person.full_clean(exclude=["center"])
         except ValidationError as exc:
@@ -380,10 +380,6 @@ def validate_destination(plan, *, actor, center_code, center_name, link_speciali
                 f"Row {row.number}: normalized person fields failed validation."
             ) from exc
     return center, services, offerings, matches, existing
-
-
-def case_code(plan, row):
-    return f"WB-{plan.digest[:16]}-{row.number:05d}".upper()
 
 
 @transaction.atomic
@@ -452,7 +448,6 @@ def apply_workbook(
     for row in new_rows:
         try:
             beneficiary = Beneficiary.objects.create(
-                beneficiary_code=case_code(plan, row),
                 center=center,
                 **row.person,
             )

@@ -124,14 +124,14 @@ def test_demo_seed_is_idempotent_and_includes_multiple_service_enrollments():
     call_command("seed_demo_data", verbosity=0)
     call_command("seed_demo_data", verbosity=0)
 
-    beneficiary = Beneficiary.objects.get(beneficiary_code="BEN-DEMO-0002")
+    beneficiary = Beneficiary.objects.get(beneficiary_code="DEMO-ALPHA_B002")
     assert beneficiary.enrollments.count() == 2
     assert (
         ServiceEnrollment.objects.filter(
-            beneficiary__beneficiary_code__startswith="BEN-DEMO-"
+            beneficiary__personal_id__startswith="SYNTHETIC-BEN-DEMO-"
         ).count()
         == 4
     )
     assert not ServiceVisit.objects.filter(
-        beneficiary__beneficiary_code__startswith="BEN-DEMO-", enrollment__isnull=True
+        beneficiary__personal_id__startswith="SYNTHETIC-BEN-DEMO-", enrollment__isnull=True
     ).exists()

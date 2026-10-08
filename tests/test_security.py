@@ -269,7 +269,7 @@ def test_pdf_can_be_uploaded_while_creating_beneficiary(
         },
     )
 
-    beneficiary = Beneficiary.objects.get(beneficiary_code="BEN-CREATE-PDF")
+    beneficiary = Beneficiary.objects.get(beneficiary_code=f"{center_a.code}_B001")
     attachment = PrivateAttachment.objects.get(
         parent_type=AttachmentParentType.BENEFICIARY,
         parent_id=beneficiary.pk,
