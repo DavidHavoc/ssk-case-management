@@ -117,3 +117,35 @@ the year and all 19 people as currently active, and confirmed the adult birth da
 - Temporary test databases, containers, and the test image were removed. Transferred reviewed
   JSON and temporary local extraction files were removed after verification. The original DOCX
   remains in Downloads and was never added to Git or a developer database.
+
+## Approved center beneficiary code deployment
+
+On 2026-10-08 the owner confirmed numbering existing beneficiaries in registration/import
+order and explicitly approved deploying the automatic center sequences to the live website.
+
+- Application code commit `80394a9048edeedbdca0388f132616290a0076a3` was deployed through a
+  code-only Git bundle. No GitHub push was performed. Runtime dependencies were retained from
+  the previous running image.
+- All 176 beneficiaries were numbered within their original center: 114 at `SSK-GOR-HC`,
+  43 at `SSK-GOR-EIC`, and 19 at `SSK-LAG-IEC`. The next codes are `SSK-GOR-HC_B115`,
+  `SSK-GOR-EIC_B044`, and `SSK-LAG-IEC_B020`. Empty centers begin at `B001` when first used.
+- New beneficiary codes are assigned automatically when saved. Each center has a persistent
+  counter serialized by a center row lock. Deleted numbers are not reused, and codes remain
+  stable through person edits, center code changes, and enrollment transfers.
+- Existing codes remain preserved and searchable. Reconciliation verified all 2,288 original
+  rows across 58 models, including automatic relationship tables, with only the requested
+  beneficiary code changes. The new sequence model's Django content type and four permissions
+  were the only expected additions to existing system tables. Case relationships, enrollment
+  codes, imported evidence, staff roles, and account fields were preserved.
+- Restricted database and private-file backups and the previous running image were retained
+  on the VPS. A pre-release database backup restored all 176 beneficiaries successfully in an
+  isolated temporary PostgreSQL container. A final backup was taken while web writes were stopped.
+- The complete synthetic PostgreSQL suite passed 323 tests. Local verification passed 321
+  tests with two PostgreSQL-only skips, Ruff, Django deployment checks, and migration checks.
+  Schema and data migrations are separate so PostgreSQL rollback also passes verification.
+- Hosted Georgian detail pages, previous-code searches, the automatic code field, anonymous
+  redirects, cross-center denial, and public HTTPS health passed. The temporary verification
+  session and isolated restore container were removed. No production test beneficiaries were created.
+- Changed code, test, documentation, and translation files were made readable for deployment.
+  Existing private configuration, backups, SSH credentials, sudo rules, and firewall settings
+  were not changed. No source workbook or production export was transferred to this desktop.
