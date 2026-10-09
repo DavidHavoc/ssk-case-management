@@ -178,3 +178,23 @@ The complete release is live; details are recorded in
 - Temporary restore/test resources and verification sessions were removed. Private-file modes,
   credentials and infrastructure configuration stayed unchanged. No production exports were
   copied to the desktop and `seed_demo_data` was not run on the hosted database.
+
+## Production language-switching hotfix
+
+On 2026-10-09 a reported production language-switching bug was repaired and deployed.
+
+- Application hotfix commit `a8d0208ebff4cc121e04b1204e4ab11966606128` was delivered through a
+  code-only Git bundle. No GitHub push occurred. The running image is `ssk-web:language-20261009`,
+  also tagged `ssk-web:latest`. The preceding company image remains as
+  `ssk-web:before-language-20261009`.
+- Switching now translates Django's validated return URL using its language prefix when the
+  browser language or cookie differs from the page. Language switching is also allowed during
+  mandatory password change, while casework remains blocked until the password is changed.
+- Local verification passed 603 tests with nine PostgreSQL-only skips, 55 targeted synthetic
+  PostgreSQL tests, Ruff lint/format checks, Django deployment checks, and migration checks.
+  There are no new migrations. Candidate and running images each passed 19 runtime checks.
+- Both switching directions passed public HTTPS verification, including translated page content.
+  English and Georgian health endpoints passed. All three changed runtime files match the commit.
+- This code-only hotfix did not write account or case records. Existing recovery backups and
+  private configuration remain unchanged. The temporary synthetic PostgreSQL container and its
+  database were removed; the transferred code bundle was removed after verification.

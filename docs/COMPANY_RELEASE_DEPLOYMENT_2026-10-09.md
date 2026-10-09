@@ -3,6 +3,10 @@
 The owner explicitly authorized this deployment. The complete integrated company release is
 live at `https://0ufkrzj.cserverhost.cloud`.
 
+The later language-switching hotfix below supersedes the running application revision and image
+listed in the original release record. The company database migration and recovery records
+remain applicable.
+
 ## Release identity
 
 - Application commit: `32ffd19192baa815f92a4f7851ad60d20365f521`.
@@ -116,3 +120,36 @@ were removed. Restricted backup archives and the previous image were retained. N
 export, source workbook, password, or private key was copied to the desktop. Private configuration,
 Compose/Nginx configuration, SSH credentials, account roles, sudo rules, and firewall settings
 were preserved. `seed_demo_data` was not run on the hosted database.
+
+## Subsequent language-switching hotfix
+
+The production language selector saved its cookie but could redirect to the old language's URL
+when the page prefix differed from the cookie or browser preference. The mandatory password-change
+middleware also prevented the selector from running for accounts awaiting their first change.
+
+Hotfix commit `a8d0208ebff4cc121e04b1204e4ab11966606128` fixes the return URL after Django validates
+the language and redirect destination, and permits the language endpoint through the password gate.
+CSRF enforcement, safe redirect validation, and the casework password gate remain enforced. Current
+page filters, fragments, and active center selection are preserved.
+
+The hotfix was delivered through a code-only Git bundle without a GitHub push. It changes three
+runtime files and adds 19 regression cases. The image retains the company release's dependencies,
+static assets, and other application files. There are no schema or data migrations and no account
+or case records were written during deployment or verification.
+
+- Running image: `ssk-web:language-20261009`, also tagged `ssk-web:latest`.
+- Running image ID: `sha256:4c4b830d7528c4c8cbee5816a891fc590ddb10c9753b7d0d491b2e3ea053ae52`.
+- Previous image: `ssk-web:before-language-20261009`, retaining the original company release.
+- Complete SQLite suite: 603 passed, nine PostgreSQL-only skips.
+- Targeted synthetic PostgreSQL suite: 55 passed, including language, UI, staff access,
+  deployment, and authorization tests.
+- Ruff lint/format, Django deployment checks, migration drift checks, and applied-migration
+  checks passed. Candidate and running images each passed 19 runtime language/password-gate checks.
+- Public HTTPS language POSTs passed in both directions and returned translated HTML and
+  `Content-Language` headers. Both language health endpoints passed. The three runtime source
+  files match the deployed commit byte for byte; the web container is healthy with zero restarts.
+
+The disposable local synthetic PostgreSQL container/database and transferred code bundle were
+removed after verification. Existing production backups, private files, credentials, and
+infrastructure configuration remain unchanged. The restricted build and verification scripts
+remain under `/home/sskadmin/ssk-private-releases/language-20261009/`.
