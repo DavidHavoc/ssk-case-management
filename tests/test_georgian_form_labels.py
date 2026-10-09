@@ -13,9 +13,12 @@ from apps.casework.forms import (
 
 
 @pytest.mark.django_db
-def test_casework_forms_have_georgian_labels(coordinator_a, center_a):
+def test_casework_forms_have_georgian_labels(coordinator_a, center_a, beneficiary_a):
     with translation.override("ka"):
         beneficiary_form = BeneficiaryForm(user=coordinator_a, center=center_a)
+        beneficiary_update_form = BeneficiaryForm(
+            instance=beneficiary_a, user=coordinator_a, center=center_a
+        )
         intake_form = EnrollmentIntakeForm(center=center_a)
         visit_form = ServiceVisitForm(user=coordinator_a, center=center_a)
         schedule_form = EnrollmentServiceScheduleForm(user=coordinator_a, center=center_a)
@@ -23,7 +26,9 @@ def test_casework_forms_have_georgian_labels(coordinator_a, center_a):
         plan_form = IndividualPlanForm(user=coordinator_a, center=center_a)
         goal_form = IndividualPlanGoalForm()
 
-        assert str(beneficiary_form.fields["beneficiary_code"].label) == "ბენეფიციარის კოდი"
+        assert "beneficiary_code" not in beneficiary_form.fields
+        assert str(beneficiary_update_form.fields["beneficiary_code"].label) == "ბენეფიციარის კოდი"
+        assert beneficiary_update_form.fields["beneficiary_code"].disabled
         assert (
             str(beneficiary_form.fields["guardian_parent"].label) == "მეურვე/მშობელი ან მხარდამჭერი"
         )

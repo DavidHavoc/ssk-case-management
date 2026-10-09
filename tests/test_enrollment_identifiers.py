@@ -297,7 +297,12 @@ def test_operational_pages_have_no_enrollment_code_entry(
             assert 'name="episode_code"' not in body
             assert 'name="enrollment-episode_code"' not in body
             assert ("Enrollment code" if language == "en" else "ჩარიცხვის კოდი") not in body
-            assert ("Beneficiary code" if language == "en" else "ბენეფიციარის კოდი") in body
+            code_label = "Beneficiary code" if language == "en" else "ბენეფიციარის კოდი"
+            if name == "beneficiary_create":
+                assert code_label not in body
+                assert 'name="beneficiary_code"' not in body
+            else:
+                assert code_label in body
             if name != "enrollment_update":
                 assert ("Enrollment date" if language == "en" else "ჩარიცხვის თარიღი") in body
         invalid = EnrollmentIntakeForm(

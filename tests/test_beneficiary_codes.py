@@ -95,7 +95,7 @@ def test_form_assigns_code_and_ignores_submitted_code(center_a, coordinator_a):
         user=coordinator_a,
         center=center_a,
     )
-    assert form.fields["beneficiary_code"].disabled
+    assert "beneficiary_code" not in form.fields
     assert form.is_valid(), form.errors
     assert form.save().beneficiary_code == f"{center_a.code}_B001"
 
@@ -105,6 +105,9 @@ def test_create_view_does_not_require_a_beneficiary_code(
 ):
     client.force_login(coordinator_a)
     set_active_center(client, center_a)
+    response = client.get(reverse("beneficiary_create"))
+    assert response.status_code == 200
+    assert 'name="beneficiary_code"' not in response.content.decode()
     offering = center_a.service_offerings.get(service__code="HOME-CARE")
     response = client.post(
         reverse("beneficiary_create"),
@@ -118,7 +121,11 @@ def test_create_view_does_not_require_a_beneficiary_code(
         },
     )
     assert response.status_code == 302
-    assert Beneficiary.objects.get().beneficiary_code == f"{center_a.code}_B001"
+    person = Beneficiary.objects.get()
+    assert person.beneficiary_code == f"{center_a.code}_B001"
+    response = client.get(response.url)
+    assert response.status_code == 200
+    assert person.beneficiary_code in response.content.decode()
 
 
 def test_previous_code_search_keeps_center_authorization(
