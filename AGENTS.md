@@ -198,3 +198,29 @@ On 2026-10-09 a reported production language-switching bug was repaired and depl
 - This code-only hotfix did not write account or case records. Existing recovery backups and
   private configuration remain unchanged. The temporary synthetic PostgreSQL container and its
   database were removed; the transferred code bundle was removed after verification.
+
+## Beneficiary creation form deployment
+
+On 2026-10-09 the owner confirmed hiding the beneficiary code during creation, showing it after
+saving, and explicitly requested deployment.
+
+- Application commit `a90a1f4ef9c9bd0afa245ee06bf32e5cfa4b4712` was delivered through a code-only
+  Git bundle without a GitHub push. The running image is `ssk-web:beneficiary-form-20261009`,
+  also tagged `ssk-web:latest`. The preceding image remains as
+  `ssk-web:before-beneficiary-form-20261009`.
+- The creation form omits the code field. Saving still assigns the existing automatic center
+  sequence; detail pages show the code, and edit forms show it as a disabled field. Existing
+  codes and sequence counters remained unchanged. There are no migrations.
+- All 64 targeted synthetic PostgreSQL tests passed. The targeted SQLite run passed 32 tests
+  with one PostgreSQL-only skip. Ruff lint/format, Django deployment checks, and migration
+  checks passed. Candidate and running images each passed 22 bilingual form checks and 19
+  language/password-gate checks. All 32 public HTTPS checks passed, including both languages,
+  saved code display, cross-center denial, anonymous redirects, and health endpoints.
+- A restricted pre-release database dump and its archive catalog were verified under
+  `/home/sskadmin/ssk-private-releases/beneficiary-form-20261009/`. The prior recovery artifacts
+  remain retained. The deployed form file matches the committed file; the web container is
+  healthy with zero restarts.
+- No production beneficiaries were created and no account or beneficiary records were changed
+  by verification. Authenticated reads generated normal audit events. The temporary verification
+  session, local synthetic PostgreSQL container/database, and transferred bundle were removed.
+  Private configuration, credentials, sudo rules, and infrastructure settings stayed unchanged.

@@ -153,3 +153,39 @@ The disposable local synthetic PostgreSQL container/database and transferred cod
 removed after verification. Existing production backups, private files, credentials, and
 infrastructure configuration remain unchanged. The restricted build and verification scripts
 remain under `/home/sskadmin/ssk-private-releases/language-20261009/`.
+
+## Beneficiary creation form update
+
+The owner confirmed that the automatic beneficiary code should be hidden during creation and
+shown after saving, then explicitly requested deployment. Application commit
+`a90a1f4ef9c9bd0afa245ee06bf32e5cfa4b4712` removes the code field from new-person forms. The
+existing center sequence assigns the code when saved. Detail pages display the saved code;
+edit forms retain its disabled field. Submitted manual codes remain ignored.
+
+The release was delivered through a code-only Git bundle without a GitHub push. One runtime
+file changed, `apps/casework/forms.py`, and its deployed bytes match the commit. The image retains
+the preceding release's dependencies, static assets, language fix, and other application files.
+There are no schema or data migrations.
+
+- Running image: `ssk-web:beneficiary-form-20261009`, also tagged `ssk-web:latest`.
+- Running image ID: `sha256:9bb65ab2bb820737ff2d3d806a9eca2cdf8c03537e27b247fb6be00094617647`.
+- Previous image: `ssk-web:before-beneficiary-form-20261009`, retaining the language hotfix.
+- Targeted synthetic PostgreSQL tests: 64 passed, including concurrent automatic numbering,
+  form and enrollment behavior, Georgian labels, deployment, authorization, and language checks.
+- Targeted SQLite tests: 32 passed, one PostgreSQL-only skip.
+- Ruff lint/format, Django deployment checks, migration drift checks, and applied-migration
+  checks passed. Candidate and running images each passed 22 bilingual runtime form checks and
+  all 19 existing language/password-gate checks.
+- All 32 public HTTPS checks passed across the four active centers and both languages. Creation
+  hides the code, existing detail and edit pages display it, cross-center access is denied,
+  anonymous creation requests reach login, and both health endpoints respond successfully.
+- Beneficiary codes, center counters, and the administrator's login timestamp stayed unchanged.
+  No production beneficiary or account was created or edited. Authenticated reads generated
+  normal audit events. The temporary verification session was deleted.
+
+A restricted pre-release database dump was taken and its archive catalog verified. The dump,
+checksum, preceding image/revision record, and build/verification scripts remain under
+`/home/sskadmin/ssk-private-releases/beneficiary-form-20261009/`. Existing recovery artifacts,
+private configuration, credentials, and infrastructure settings stayed unchanged. The temporary
+local synthetic PostgreSQL container/database and transferred bundle were removed. The running
+web container is healthy with zero restarts.
