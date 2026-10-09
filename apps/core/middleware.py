@@ -21,7 +21,7 @@ class SecurityHeadersMiddleware:
 
 
 class RequiredPasswordChangeMiddleware:
-    allowed_url_names = {"logout", "password_change_required"}
+    allowed_url_names = {"logout", "password_change_required", "set_language"}
 
     def __init__(self, get_response):
         self.get_response = get_response

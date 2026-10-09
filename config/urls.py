@@ -1,9 +1,9 @@
 from django.conf.urls.i18n import i18n_patterns
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
-from django.views.i18n import set_language
 
 from apps.accounts.views import RateLimitedLoginView, RequiredPasswordChangeView
+from apps.core.i18n import set_language
 
 urlpatterns = [path("i18n/set-language/", set_language, name="set_language")]
 
