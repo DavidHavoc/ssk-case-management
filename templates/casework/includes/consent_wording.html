@@ -1,0 +1,11 @@
+<div class="consent-wording">
+  <p>{{ document.notice }}</p>
+  <dl class="detail-grid">
+    {% for decision in document.decisions %}
+      <div class="detail-item wide"><dt>{{ decision.wording }}</dt><dd><strong>{{ decision.answer }}</strong></dd></div>
+    {% endfor %}
+  </dl>
+  <h2>{{ document.labels.media }}</h2>
+  <p>{{ document.media.0 }}</p>
+  <ul>{% for item in document.media %}{% if not forloop.first %}<li>{{ item }}</li>{% endif %}{% endfor %}</ul>
+</div>

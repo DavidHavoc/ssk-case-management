@@ -97,7 +97,7 @@ def test_report_exports_have_georgian_headers():
         assert report_headers("visits") == [
             "ბენეფიციარის კოდი",
             "ბენეფიციარი",
-            "ჩარიცხვის კოდი",
+            "ჩარიცხვის თარიღი",
             "მომსახურება",
             "სპეციალისტი",
             "ვიზიტის თარიღი",

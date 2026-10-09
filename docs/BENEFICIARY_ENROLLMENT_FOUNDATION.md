@@ -6,6 +6,51 @@
 
 The original beneficiary center, service type, case status, application number, contract number, diagnosis narrative, and geography text remain available as legacy compatibility fields. New workflows do not reinterpret those values. Controlled geography and coded classifications use separate nullable relationships.
 
+## Identifier and date decisions confirmed on 2026-10-08
+
+The automatic `Beneficiary.beneficiary_code` is the only operational case code. Each service
+enrollment displays that person's code. Concurrent home care and food delivery, and successive
+enrollments in the same service, remain independent records with their original UUID primary
+keys. Routes, form choices, mutations, and transaction filters use enrollment primary keys.
+Service, status, and enrollment date distinguish episodes in lists and choices.
+
+`ServiceEnrollment.episode_code` now stores only a read-only legacy enrollment identifier.
+Existing values retain their exact spelling, unique constraint, and old-code search. New
+intake, additional services, re-enrollment, demo seeds, and imports leave it `NULL`; none copy
+the beneficiary code into it. Legacy identifiers appear only in the detail page's explicitly
+labeled legacy section. Operational reports, CSVs, and reminders use the beneficiary code and
+service context. CSV columns previously containing a second code now contain the enrollment
+date; the enrollment CSV has one beneficiary-code column. External CSV consumers must update
+these headers. All search paths apply authorized selectors before matching current beneficiary
+codes, previous beneficiary codes, or legacy enrollment identifiers.
+
+**Enrollment date / ჩარიცხვის თარიღი** is the start of that specific service enrollment.
+`ServiceEnrollment.start_date` remains canonical. It is separate from the person's legacy
+registration information and `first_service_date`, which still cannot precede enrollment.
+Uncertain historical enrollment dates stay unset. Imported placement and state snapshot dates
+do not establish an enrollment date. Regular intake requires an explicit date; legacy POST
+compatibility also requires one and no longer substitutes today. Both languages display and
+parse dates using the existing day-first convention. Offering, assignment, and plan dates
+retain their own meanings and labels. Enrollment update continues to leave lifecycle dates
+outside the editable form, preserving event-time history.
+
+Migration `0015_retire_operational_enrollment_codes` follows the contact migration `0014`.
+It relaxes only the legacy code column's nullability/editability, changes the enrollment date
+label, and changes schedule ordering to beneficiary code plus enrollment primary key. It
+performs no data conversion, no renumbering, and no relationship rewrites. No schema/data
+transaction split is needed because there is no forward data transformation.
+
+Reversing `0015` is lossless while every enrollment still has its preserved legacy identifier.
+A reverse preflight runs before any schema reversal. If an uncoded enrollment exists, it
+refuses reversal without changing records or generating substitute codes. After new writes,
+retain the nullable schema during an application rollback and assess compatibility, or use a
+verified pre-release backup only under a separately authorized rollback plan. Never delete
+new enrollments or invent identifiers merely to satisfy the old required-column constraint.
+The synthetic migration test compares every row across all historical application models,
+including relationship tables, before forward migration, after migration, and after reversal.
+It covers visits, assessments and responses, plans and goals, assignments, transfers,
+placements, lifecycle history, prior-enrollment links, source evidence, and beneficiary counters.
+
 ## Service configuration
 
 `ServiceDefinition` is the organization-wide catalog. It supports home care, food delivery, early intervention, future services, and legacy migration entries. `CenterServiceOffering` explicitly enables a service at a center and sets whether overlapping episodes of the same service are permitted.
@@ -49,16 +94,17 @@ Migration `0006_seed_catalogs_and_backfill_enrollments` creates one legacy enrol
 
 Existing records with missing dates remain missing. Exact legacy assignment intervals are marked as preserved legacy intervals instead of being discarded. New records use validated effective intervals.
 
-Enrollment create and update forms display one optional extra specialist-assignment row. The
-specialist choices are restricted to active specialists assigned to the selected center. Blank
-extra rows are ignored, while completed rows retain the effective-date and authorization
-validation applied by the server.
+Enrollment create, update, and re-enrollment do not edit staffing. A beneficiary-level dated
+period contains one required lead and one optional helper across that person's services.
+Enrollment assignment rows remain preserved evidence. See the
+[staffing handoff](BENEFICIARY_STAFFING_HANDOFF.md) for the bounded unresolved-legacy bridge,
+manager review, date rules, and migration/rollback details.
 
 Legacy transaction callers that omit an enrollment remain compatible only when the beneficiary has exactly one enrollment. Ambiguous multi-enrollment writes are rejected. The user interface and new code always select an enrollment explicitly.
 
 ## Authorization
 
-Center authorization follows the enrollment placement that applies at the record date. Coordinators receive only enrollment episodes owned by their active center. Specialists receive only current, effective enrollment assignments. Restricted person fields remain unavailable to specialists.
+Center authorization follows the enrollment placement that applies at the record date. Coordinators receive only enrollment episodes owned by their active center. Specialists receive only current, effective person-level responsibility for appropriately placed services, or frozen legacy scope during its bounded transition. Restricted person fields remain unavailable to specialists.
 
 Diagnosis and social-status selectors enforce both enrollment assignment and the explicit specialist visibility flag. Transaction relationship choices are built from authorized enrollment selectors and are validated again on the server.
 

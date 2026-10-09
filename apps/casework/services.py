@@ -9,6 +9,7 @@ from django.db import connection, transaction
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from .models import (
     Beneficiary,
@@ -68,6 +69,7 @@ def save_plan_period(
     *,
     has_valid_goals: bool = False,
 ) -> IndividualPlan:
+    Beneficiary.objects.select_for_update().get(pk=plan.enrollment.beneficiary_id)
     ServiceEnrollment.objects.select_for_update().get(pk=plan.enrollment_id)
     if plan.status in {IndividualPlan.Status.ACTIVE, IndividualPlan.Status.COMPLETED}:
         stored_goals_exist = plan.pk and IndividualPlanGoal.objects.filter(plan=plan).exists()
@@ -123,11 +125,11 @@ def _validate_offering(
     effective_date: date,
 ) -> None:
     if offering.service_id != service_id:
-        raise ValueError("Center offering does not match the enrollment service.")
+        raise ValueError(_("Center offering does not match the enrollment service."))
     if offering.center_id != center_id:
-        raise ValueError("Center offering does not match the selected center.")
+        raise ValueError(_("Center offering does not match the selected center."))
     if not offering.is_effective(effective_date):
-        raise ValueError("Center offering is not effective on the selected date.")
+        raise ValueError(_("Center offering is not effective on the selected date."))
 
 
 @transaction.atomic
@@ -135,7 +137,6 @@ def create_enrollment(
     *,
     beneficiary: Beneficiary,
     offering: CenterServiceOffering,
-    episode_code: str,
     start_date: date,
     actor,
     status: str = ServiceEnrollment.Status.PENDING,
@@ -152,11 +153,10 @@ def create_enrollment(
         effective_date=start_date,
     )
     if status not in {ServiceEnrollment.Status.PENDING, ServiceEnrollment.Status.ACTIVE}:
-        raise ValueError("A new enrollment must start as pending or active.")
+        raise ValueError(_("A new enrollment must start as pending or active."))
     enrollment = ServiceEnrollment.objects.create(
         beneficiary=beneficiary,
         service=offering.service,
-        episode_code=episode_code,
         status=status,
         start_date=start_date,
         first_service_date=first_service_date,
@@ -189,14 +189,14 @@ def create_enrollment(
 
 def _validate_transition_date(enrollment: ServiceEnrollment, effective_date: date) -> None:
     if enrollment.start_date and effective_date <= enrollment.start_date:
-        raise ValueError("Transition date must be later than the enrollment start date.")
+        raise ValueError(_("Transition date must be later than the enrollment date."))
     latest = (
         enrollment.state_events.filter(effective_date__isnull=False)
         .order_by("-effective_date", "-created_at")
         .first()
     )
     if latest and latest.effective_date and effective_date < latest.effective_date:
-        raise ValueError("Transition date cannot be earlier than existing enrollment history.")
+        raise ValueError(_("Transition date cannot be earlier than existing enrollment history."))
 
 
 @transaction.atomic
@@ -209,6 +209,7 @@ def transition_enrollment(
     actor,
     notes: str = "",
 ) -> ServiceEnrollment:
+    Beneficiary.objects.select_for_update().get(pk=enrollment.beneficiary_id)
     enrollment = ServiceEnrollment.objects.select_for_update().get(pk=enrollment.pk)
     allowed = {
         ServiceEnrollment.Status.PENDING: {
@@ -227,7 +228,7 @@ def transition_enrollment(
         },
     }
     if new_state not in allowed.get(enrollment.status, set()):
-        raise ValueError(f"Invalid transition from {enrollment.status} to {new_state}.")
+        raise ValueError(_("This enrollment cannot make the requested status transition."))
     _validate_transition_date(enrollment, effective_date)
     kind = {
         ServiceEnrollment.Status.ACTIVE: (
@@ -332,9 +333,10 @@ def transfer_enrollment(
     actor,
     notes: str = "",
 ) -> ServiceEnrollment:
+    Beneficiary.objects.select_for_update().get(pk=enrollment.beneficiary_id)
     enrollment = ServiceEnrollment.objects.select_for_update().get(pk=enrollment.pk)
     if enrollment.is_terminal:
-        raise ValueError("A terminal enrollment cannot be transferred.")
+        raise ValueError(_("A terminal enrollment cannot be transferred."))
     _validate_transition_date(enrollment, effective_date)
     current = (
         EnrollmentCenterPlacement.objects.select_for_update()
@@ -346,9 +348,9 @@ def transfer_enrollment(
         .first()
     )
     if not current:
-        raise ValueError("Enrollment has no placement on the transfer date.")
+        raise ValueError(_("Enrollment has no placement on the transfer date."))
     if current.center_id == destination_offering.center_id:
-        raise ValueError("Destination center must differ from the current center.")
+        raise ValueError(_("Destination center must differ from the current center."))
     _validate_offering(
         destination_offering,
         service_id=enrollment.service_id,
@@ -394,24 +396,24 @@ def reenroll_beneficiary(
     prior_enrollment: ServiceEnrollment,
     *,
     offering: CenterServiceOffering,
-    episode_code: str,
     start_date: date,
     actor,
     status: str = ServiceEnrollment.Status.PENDING,
+    first_service_date: date | None = None,
     application_contract_number: str = "",
     notes: str = "",
 ) -> ServiceEnrollment:
     if not prior_enrollment.is_terminal:
-        raise ValueError("Only a terminal enrollment can be followed by re-enrollment.")
+        raise ValueError(_("Only a terminal enrollment can be followed by re-enrollment."))
     if offering.service_id != prior_enrollment.service_id:
-        raise ValueError("Re-enrollment must use the prior service.")
+        raise ValueError(_("Re-enrollment must use the prior service."))
     return create_enrollment(
         beneficiary=prior_enrollment.beneficiary,
         offering=offering,
-        episode_code=episode_code,
         start_date=start_date,
         actor=actor,
         status=status,
+        first_service_date=first_service_date,
         application_contract_number=application_contract_number,
         notes=notes,
         prior_enrollment=prior_enrollment,
@@ -616,9 +618,62 @@ def monthly_service_delivery_rows(schedule_queryset, visit_queryset):
         key=lambda row: (
             -row.schedule_month.toordinal(),
             row.beneficiary.full_name,
-            row.enrollment.episode_code,
+            row.enrollment.beneficiary.beneficiary_code,
+            str(row.enrollment.pk),
             row.activity.reporting_order,
             row.delivery_location.reporting_order,
             row.participation_format,
         ),
     )
+
+
+@transaction.atomic
+def replace_beneficiary_staffing(*, beneficiary, lead, helper=None, effective_date, center, actor):
+    """Replace the complete pair under a person lock. Future periods remain disjoint."""
+    from django.core.exceptions import PermissionDenied, ValidationError
+
+    from apps.core.authorization import beneficiaries_for_user, can_manage_center
+
+    from .models import BeneficiaryStaffingPeriod
+    from .staffing import eligible_specialists
+
+    beneficiary = Beneficiary.objects.select_for_update().get(pk=beneficiary.pk)
+    if (
+        not can_manage_center(actor, center)
+        or not beneficiaries_for_user(actor, center).filter(pk=beneficiary.pk).exists()
+    ):
+        raise PermissionDenied
+    if not lead:
+        raise ValidationError(_("A lead specialist is required."))
+    if helper and helper.pk == lead.pk:
+        raise ValidationError(_("Lead and helper must be different specialists."))
+    if effective_date < timezone.localdate():
+        raise ValidationError(_("New staffing cannot rewrite past responsibility."))
+    for specialist in (lead, helper):
+        if specialist and not eligible_specialists(center).filter(pk=specialist.pk).exists():
+            raise ValidationError(
+                _("Select active specialists belonging to an ongoing service center.")
+            )
+    periods = beneficiary.staffing_periods.select_for_update()
+    if periods.filter(valid_from=effective_date).exists():
+        raise ValidationError(
+            _("A pair already starts on this date. Choose a later replacement date.")
+        )
+    covering = (
+        periods.filter(valid_from__lt=effective_date)
+        .filter(Q(valid_to__isnull=True) | Q(valid_to__gt=effective_date))
+        .first()
+    )
+    next_period = periods.filter(valid_from__gt=effective_date).order_by("valid_from").first()
+    if covering:
+        covering.valid_to = effective_date
+        covering.save(update_fields=["valid_to", "updated_at"])
+    period = BeneficiaryStaffingPeriod.objects.create(
+        beneficiary=beneficiary,
+        lead=lead,
+        helper=helper,
+        valid_from=effective_date,
+        valid_to=next_period.valid_from if next_period else None,
+        confirmed_by=actor,
+    )
+    return period

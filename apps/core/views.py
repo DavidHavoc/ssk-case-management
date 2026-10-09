@@ -3,12 +3,13 @@ from __future__ import annotations
 import csv
 from datetime import datetime
 from urllib.parse import urlencode
+from uuid import UUID
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import connection
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -156,21 +157,26 @@ def _report_queryset(request, report_type: str):
     query = request.GET.get("q", "").strip()
     if query:
         if report_type == "beneficiaries":
+            authorized_enrollments = enrollments_for_user(request.user, center)
             queryset = queryset.filter(
                 Q(full_name__icontains=query)
                 | Q(beneficiary_code__icontains=query)
                 | Q(legacy_beneficiary_code__icontains=query)
+                | Q(enrollments__in=authorized_enrollments.filter(episode_code__icontains=query))
             )
         elif report_type in {"beneficiary_breakdown", "enrollments"}:
             queryset = queryset.filter(
                 Q(beneficiary__full_name__icontains=query)
                 | Q(beneficiary__beneficiary_code__icontains=query)
+                | Q(beneficiary__legacy_beneficiary_code__icontains=query)
                 | Q(episode_code__icontains=query)
             )
         else:
             queryset = queryset.filter(
                 Q(beneficiary__full_name__icontains=query)
                 | Q(beneficiary__beneficiary_code__icontains=query)
+                | Q(beneficiary__legacy_beneficiary_code__icontains=query)
+                | Q(enrollment__episode_code__icontains=query)
             )
     from_date = _parse_report_date(request.GET.get("from_date", ""))
     to_date = _parse_report_date(request.GET.get("to_date", ""))
@@ -200,7 +206,18 @@ def _report_queryset(request, report_type: str):
     }:
         queryset = queryset.filter(specialist_id=specialist_id)
     if specialist_id and report_type in {"beneficiary_breakdown", "enrollments"}:
-        queryset = queryset.filter(specialist_assignments__specialist_id=specialist_id)
+        from django.db.models import OuterRef
+
+        from apps.casework.staffing import responsibility_expression
+
+        queryset = queryset.filter(
+            responsibility_expression(
+                specialist_id,
+                person_ref=OuterRef("beneficiary_id"),
+                enrollment_ref=OuterRef("pk"),
+                on_date=timezone.localdate(),
+            )
+        )
     status = request.GET.get("status", "")
     status_field = {
         "beneficiaries": None,
@@ -257,11 +274,13 @@ def _service_delivery_rows(request):
         schedule_query = (
             Q(enrollment__beneficiary__full_name__icontains=query)
             | Q(enrollment__beneficiary__beneficiary_code__icontains=query)
+            | Q(enrollment__beneficiary__legacy_beneficiary_code__icontains=query)
             | Q(enrollment__episode_code__icontains=query)
         )
         visit_query = (
             Q(beneficiary__full_name__icontains=query)
             | Q(beneficiary__beneficiary_code__icontains=query)
+            | Q(beneficiary__legacy_beneficiary_code__icontains=query)
             | Q(enrollment__episode_code__icontains=query)
         )
         schedules = schedules.filter(schedule_query)
@@ -288,8 +307,18 @@ def _service_delivery_rows(request):
         visits = visits.filter(enrollment__service_id=service_id)
     specialist_id = request.GET.get("specialist", "")
     if specialist_id:
+        from django.db.models import OuterRef
+
+        from apps.casework.staffing import responsibility_expression
+
         schedules = schedules.filter(
-            enrollment__specialist_assignments__specialist_id=specialist_id
+            responsibility_expression(
+                specialist_id,
+                person_ref=OuterRef("enrollment__beneficiary_id"),
+                enrollment_ref=OuterRef("enrollment_id"),
+                on_date=OuterRef("schedule_month"),
+                historical=True,
+            )
         )
         visits = visits.filter(specialist_id=specialist_id)
     return monthly_service_delivery_rows(schedules, visits)
@@ -306,17 +335,18 @@ def _caseload_rows(request, *, as_of):
     status = request.GET.get("status", "")
     query = request.GET.get("q", "").strip()
     if specialist_id:
-        assignments = assignments.filter(specialist_id=specialist_id)
+        assignments = [row for row in assignments if str(row.specialist_id) == specialist_id]
     if service_id:
-        assignments = assignments.filter(enrollment__service_id=service_id)
+        assignments = [row for row in assignments if str(row.enrollment.service_id) == service_id]
     if status:
-        assignments = assignments.filter(enrollment__status=status)
+        assignments = [row for row in assignments if row.enrollment.status == status]
     if query:
-        assignments = assignments.filter(
-            Q(specialist__staff_profile__user__first_name__icontains=query)
-            | Q(specialist__staff_profile__user__last_name__icontains=query)
-            | Q(specialist__staff_profile__employee_number__icontains=query)
-        )
+        assignments = [
+            row
+            for row in assignments
+            if query.lower() in str(row.specialist).lower()
+            or query.lower() in row.specialist.staff_profile.employee_number.lower()
+        ]
     return specialist_caseload_rows(assignments)
 
 
@@ -358,6 +388,13 @@ def _data_quality_rows(request, *, as_of):
 
 
 def _operational_report_rows(request, report_type: str):
+    for key in ("specialist", "service", "region", "municipality", "activity", "location"):
+        value = request.GET.get(key, "")
+        if value:
+            try:
+                UUID(value)
+            except (ValueError, TypeError, AttributeError) as exc:
+                raise Http404 from exc
     as_of = _parse_report_date(request.GET.get("to_date", "")) or timezone.localdate()
     if report_type == "beneficiary_breakdown":
         return beneficiary_breakdown_rows(

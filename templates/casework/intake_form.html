@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Edit intake information" %}{% endblock %}
+{% block content %}
+  <header class="page-header"><div><h1>{% translate "Edit intake information" %}</h1><p>{{ beneficiary_name }}</p></div></header>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "casework/includes/intake_fields.html" %}
+    <div class="form-actions form-actions-sticky"><button class="button button-primary" type="submit">{% translate "Save beneficiary" %}</button><a class="button button-quiet" href="{% url 'beneficiary_detail' beneficiary_pk %}">{% translate "Cancel" %}</a></div>
+  </form>
+{% endblock %}

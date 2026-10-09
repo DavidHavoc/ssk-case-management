@@ -38,10 +38,12 @@ from apps.core.authorization import (
 )
 
 from .factories import (
+    capture_legacy_assignment,
     ensure_visit_catalogs,
     make_assessment,
     make_plan,
     make_specialist,
+    remove_legacy_assignments,
     set_active_center,
 )
 
@@ -61,15 +63,17 @@ def _enrollment(beneficiary):
 
 
 def _replace_assignments(enrollment, specialist, *intervals):
-    enrollment.specialist_assignments.filter(specialist=specialist).delete()
+    remove_legacy_assignments(enrollment.specialist_assignments.filter(specialist=specialist))
     return [
-        EnrollmentSpecialistAssignment.objects.create(
-            enrollment=enrollment,
-            specialist=specialist,
-            assignment_role=EnrollmentSpecialistAssignment.Role.PRIMARY,
-            valid_from=valid_from,
-            valid_to=valid_to,
-            legacy_dates_incomplete=valid_from is None,
+        capture_legacy_assignment(
+            EnrollmentSpecialistAssignment.objects.create(
+                enrollment=enrollment,
+                specialist=specialist,
+                assignment_role=EnrollmentSpecialistAssignment.Role.PRIMARY,
+                valid_from=valid_from,
+                valid_to=valid_to,
+                legacy_dates_incomplete=valid_from is None,
+            )
         )
         for valid_from, valid_to in intervals
     ]
@@ -124,7 +128,7 @@ def test_assignment_intervals_are_inclusive_from_and_exclusive_to(
 def test_unknown_legacy_start_does_not_grant_current_access(specialist_a, center_a, beneficiary_a):
     enrollment = _enrollment(beneficiary_a)
     user = specialist_a.staff_profile.user
-    enrollment.specialist_assignments.filter(specialist=specialist_a).delete()
+    remove_legacy_assignments(enrollment.specialist_assignments.filter(specialist=specialist_a))
     with pytest.raises(ValidationError, match="Valid from is required"):
         EnrollmentSpecialistAssignment.objects.create(
             enrollment=enrollment,
@@ -193,11 +197,11 @@ def test_removed_current_assignment_does_not_revive_expired_or_legacy_access(
     )
 
     assert enrollments_for_user(user, center_a, as_of=TODAY).filter(pk=enrollment.pk).exists()
-    current.delete()
+    remove_legacy_assignments(enrollment.specialist_assignments.filter(pk=current.pk))
     assert EnrollmentSpecialistAssignment.objects.filter(pk=expired.pk).exists()
     assert not enrollments_for_user(user, center_a, as_of=TODAY).filter(pk=enrollment.pk).exists()
 
-    enrollment.specialist_assignments.all().delete()
+    remove_legacy_assignments(enrollment.specialist_assignments.all())
     assert beneficiary_a.specialist_assignments.filter(specialist=specialist_a).exists()
     assert not enrollments_for_user(user, center_a, as_of=TODAY).filter(pk=enrollment.pk).exists()
 
@@ -215,9 +219,9 @@ def test_overlapping_active_rows_grant_access_only_until_the_last_row_is_removed
     user = specialist_a.staff_profile.user
 
     assert enrollments_for_user(user, center_a, as_of=TODAY).filter(pk=enrollment.pk).exists()
-    first.delete()
+    remove_legacy_assignments(enrollment.specialist_assignments.filter(pk=first.pk))
     assert enrollments_for_user(user, center_a, as_of=TODAY).filter(pk=enrollment.pk).exists()
-    second.delete()
+    remove_legacy_assignments(enrollment.specialist_assignments.filter(pk=second.pk))
     assert not enrollments_for_user(user, center_a, as_of=TODAY).filter(pk=enrollment.pk).exists()
 
 
@@ -241,11 +245,13 @@ def test_current_assignee_reads_history_but_cannot_change_pre_assignment_records
     _replace_assignments(enrollment, specialist_a, (date(2026, 1, 1), TODAY))
 
     current_specialist = make_specialist(center_a, "continuity-current")
-    EnrollmentSpecialistAssignment.objects.create(
-        enrollment=enrollment,
-        specialist=current_specialist,
-        assignment_role=EnrollmentSpecialistAssignment.Role.SECONDARY,
-        valid_from=TODAY,
+    capture_legacy_assignment(
+        EnrollmentSpecialistAssignment.objects.create(
+            enrollment=enrollment,
+            specialist=current_specialist,
+            assignment_role=EnrollmentSpecialistAssignment.Role.SECONDARY,
+            valid_from=TODAY,
+        )
     )
     user = current_specialist.staff_profile.user
 
@@ -329,10 +335,12 @@ def test_expired_and_future_assignees_are_denied_every_routine_path(
     plan = make_plan(beneficiary_a, specialist_a)
     _replace_assignments(enrollment, specialist_a, (date(2026, 1, 1), TODAY))
     future_specialist = make_specialist(center_a, "future-assignee")
-    EnrollmentSpecialistAssignment.objects.create(
-        enrollment=enrollment,
-        specialist=future_specialist,
-        valid_from=TODAY + timedelta(days=1),
+    capture_legacy_assignment(
+        EnrollmentSpecialistAssignment.objects.create(
+            enrollment=enrollment,
+            specialist=future_specialist,
+            valid_from=TODAY + timedelta(days=1),
+        )
     )
 
     with patch("apps.core.authorization.timezone.localdate", return_value=TODAY):
@@ -499,10 +507,12 @@ def test_transferred_current_assignee_can_read_prior_center_record_and_attachmen
         reason="Synthetic authorization transfer",
         actor=coordinator_a,
     )
-    EnrollmentSpecialistAssignment.objects.create(
-        enrollment=enrollment,
-        specialist=specialist_b,
-        valid_from=TODAY,
+    capture_legacy_assignment(
+        EnrollmentSpecialistAssignment.objects.create(
+            enrollment=enrollment,
+            specialist=specialist_b,
+            valid_from=TODAY,
+        )
     )
 
     with patch("apps.core.authorization.timezone.localdate", return_value=TODAY):

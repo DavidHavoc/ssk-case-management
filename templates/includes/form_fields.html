@@ -1,5 +1,5 @@
 {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
-{% for field in form.visible_fields %}
+{% for field in fields|default:form.visible_fields %}
   <div class="form-group{% if field.errors %} has-error{% endif %}">
     {% if field.field.widget.input_type == 'checkbox' %}
       <label class="check-label" for="{{ field.id_for_label }}">{{ field }} <span>{{ field.label }}</span></label>

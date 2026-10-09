@@ -4,7 +4,8 @@
 
 The SSK interface is designed for frequent administrative work with sensitive social-services records. It favors compact information density, obvious working context, predictable actions, and high contrast over decorative presentation.
 
-The frontend remains server-rendered Django. The only client script manages the responsive navigation drawer, synchronizes the compact top-bar title, closes menus with Escape, and asks for confirmation before selected destructive actions.
+The frontend remains server-rendered Django. The navigation script manages the responsive navigation drawer, synchronizes the compact top-bar title, closes menus with Escape, and asks for confirmation before selected destructive actions. A separate consent script handles the handwritten pad,
+clear/redraw controls, and review confirmation; its keyboard alternative is a printable document.
 
 ## Color tokens
 
@@ -24,7 +25,11 @@ Yellow is never used as body text on white and never communicates a status by it
 
 ## Typography and spacing
 
-The system font stack supports English and Georgian without loading third-party assets. Page headings use a compact fluid scale. Labels, table headings, and metadata use smaller sizes with stronger weights to retain hierarchy in dense screens.
+The system font stack supports English and Georgian without remote assets. Consent documents
+embed a locally bundled Noto Sans Georgian font and its SIL Open Font License 1.1 to preserve
+Georgian rendering offline. Provenance and the license are included in `static/fonts/`.
+Page headings use a compact fluid scale. Labels, table headings, and metadata use smaller sizes
+with stronger weights to retain hierarchy in dense screens.
 
 Spacing follows quarter-rem increments. Components use three restrained radius tokens and two subtle shadow tokens. Shadows are limited to the user menu, mobile drawer, and authentication panel.
 

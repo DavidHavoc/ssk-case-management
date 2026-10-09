@@ -104,6 +104,7 @@ def test_person_snapshot_and_source_without_invented_history(
     assert person.enrollment_date is None
     assert person.first_service_date is None
     assert person.application_contract_number == "00042"
+    assert enrollment.episode_code is None
     assert enrollment.start_date is None
     assert enrollment.legacy_dates_incomplete
     assert enrollment.current_center == center_a
@@ -322,9 +323,18 @@ def test_source_display_is_restricted(
     plan = read(register_path(tmp_path))
     apply_workbook(plan, **destination(manager, center_a), allow_incomplete=True)
     enrollment = ServiceEnrollment.objects.get()
-    EnrollmentSpecialistAssignment.objects.create(
-        enrollment=enrollment, specialist=specialist_a, valid_from=plan.snapshot_on
+    from django.utils import timezone
+
+    from apps.casework.services import replace_beneficiary_staffing
+
+    replace_beneficiary_staffing(
+        beneficiary=enrollment.beneficiary,
+        lead=specialist_a,
+        effective_date=timezone.localdate(),
+        center=center_a,
+        actor=manager,
     )
+
     url = reverse("beneficiary_detail", kwargs={"pk": enrollment.beneficiary_id})
     for user in (manager, coordinator_a):
         client.force_login(user)

@@ -203,19 +203,19 @@ def make_beneficiary(
     enrollment = create_enrollment(
         beneficiary=beneficiary,
         offering=offering,
-        episode_code=f"{beneficiary.beneficiary_code}-E01",
         start_date=date(2026, 1, 1),
         status=ServiceEnrollment.Status.ACTIVE,
         application_contract_number=beneficiary.application_contract_number,
         notes="Synthetic enrollment note.",
         actor=specialist.staff_profile.user,
     )
-    EnrollmentSpecialistAssignment.objects.create(
+    assignment = EnrollmentSpecialistAssignment.objects.create(
         enrollment=enrollment,
         specialist=specialist,
         assignment_role=EnrollmentSpecialistAssignment.Role.PRIMARY,
         valid_from=date(2026, 1, 1),
     )
+    capture_legacy_assignment(assignment)
     return beneficiary
 
 
@@ -353,3 +353,73 @@ def set_active_center(client, center: Center) -> None:
     session = client.session
     session["ssk_active_center"] = str(center.pk)
     session.save()
+
+
+def capture_legacy_assignment(assignment):
+    """Build a pre-release snapshot fixture, then restore the frozen bridge guard.
+
+    Ordinary application writers cannot create these grants. Historical fixtures
+    deliberately use migration models with the insertion guard temporarily removed.
+    """
+    from datetime import timedelta
+
+    from django.db import connection
+    from django.db.migrations.executor import MigrationExecutor
+    from django.utils import timezone
+
+    if assignment.valid_from is None:
+        return assignment
+    today = timezone.localdate()
+    if assignment.valid_from > today or (assignment.valid_to and assignment.valid_to <= today):
+        return assignment
+    Grant = (
+        MigrationExecutor(connection)
+        .loader.project_state([("casework", "0016_beneficiary_staffing_periods")])
+        .apps.get_model("casework", "LegacyStaffingGrant")
+    )
+    with connection.cursor() as cursor:
+        if connection.vendor == "postgresql":
+            cursor.execute(
+                "ALTER TABLE casework_legacystaffinggrant DISABLE TRIGGER legacy_grant_guard"
+            )
+        else:
+            cursor.execute("DROP TRIGGER legacy_grant_insert")
+        try:
+            Grant.objects.get_or_create(
+                assignment_id=assignment.pk,
+                defaults={
+                    "center_id": assignment.enrollment.placement_on(today).center_id,
+                    "placement_id": assignment.enrollment.placement_on(today).pk,
+                    "enrollment_id": assignment.enrollment_id,
+                    "specialist_id": assignment.specialist_id,
+                    "valid_from": assignment.valid_from,
+                    "valid_to": assignment.valid_to,
+                    "captured_on": today,
+                    "expires_on": today + timedelta(days=90),
+                },
+            )
+        finally:
+            if connection.vendor == "postgresql":
+                cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+                cursor.execute(
+                    "ALTER TABLE casework_legacystaffinggrant ENABLE TRIGGER legacy_grant_guard"
+                )
+                cursor.execute("SET CONSTRAINTS ALL DEFERRED")
+            else:
+                cursor.execute("""CREATE TRIGGER legacy_grant_insert BEFORE INSERT
+                    ON casework_legacystaffinggrant BEGIN SELECT RAISE(ABORT,
+                    'Legacy staffing access is a frozen migration snapshot'); END;""")
+    return assignment
+
+
+def remove_legacy_assignments(queryset):
+    """Synthetic pre-release fixture editing, never an operational staffing API."""
+    from django.db import connection
+    from django.db.migrations.executor import MigrationExecutor
+
+    Assignment = (
+        MigrationExecutor(connection)
+        .loader.project_state([("casework", "0016_beneficiary_staffing_periods")])
+        .apps.get_model("casework", "EnrollmentSpecialistAssignment")
+    )
+    return Assignment.objects.filter(pk__in=queryset.values("pk")).delete()

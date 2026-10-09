@@ -38,7 +38,7 @@
                 <div class="enrollment-card-main">
                   <div>
                     <h3 id="enrollment-{{ row.enrollment.pk }}"><a href="{% url 'beneficiary_detail' beneficiary.pk %}?enrollment={{ row.enrollment.pk }}">{{ row.enrollment.service }}</a></h3>
-                    <p>{{ row.enrollment.episode_code }} <span class="status status-{{ row.enrollment.status }}">{{ row.enrollment.get_status_display }}</span></p>
+                    <p>{{ row.enrollment.beneficiary.beneficiary_code }} · {{ row.enrollment.start_date|date:"SHORT_DATE_FORMAT"|default:_('Unknown') }} <span class="status status-{{ row.enrollment.status }}">{{ row.enrollment.get_status_display }}</span></p>
                   </div>
                   <a class="button button-primary button-small" href="{% url 'beneficiary_detail' beneficiary.pk %}?enrollment={{ row.enrollment.pk }}">{% translate "Open workspace" %}</a>
                 </div>

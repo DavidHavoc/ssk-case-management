@@ -55,9 +55,9 @@ Given one identity with two enrollments, when a coordinator records an applicati
 
 Given an identity document and a service-enrollment document, when a specialist has enrollment access but no identity-document permission, then the enrollment document follows its parent policy and the identity document is absent from list, timeline, template context, and direct download.
 
-### AC-ID-011: Person and enrollment codes
+### AC-ID-011: Beneficiary code and exact enrollment identity
 
-Given one person has two service enrollments, when lists, cards, documents, and reports render, then person code and enrollment code follow D-039, are clearly labeled, remain stable through transfer and re-enrollment, and are never reused for another identity or episode.
+Given one person has two service enrollments, when lists, cards, documents, and reports render, then the same beneficiary code appears for both under confirmed D-039. Their UUID primary keys, service, status, and enrollment dates distinguish episodes, and links and mutations target the exact enrollment. Preserved legacy identifiers remain searchable within authorized scope, and no second case code is entered or generated.
 
 ## 3. Enrollment transitions, suspension, exit, and re-enrollment
 
@@ -405,7 +405,7 @@ Given any out-of-scope enrollment or event, when tested through list, detail, re
 
 ### AC-AUTH-014: Primary specialist responsibility
 
-Given an Active enrollment that requires specialist delivery, when assignments are changed, then current Primary and Secondary assignment counts follow D-038, effective intervals do not create conflicting primary responsibility, and an assignment role never exposes another service.
+Given a beneficiary, creation requires one lead and permits one distinct helper across all services. Staffing changes replace a complete dated pair through the manager/coordinator service. Overlapping pairs, inactive or cross-center choices, forged extra rows, and concurrent extra appointments are rejected. Services still require appropriate placements and center membership. Unresolved imported cases retain bounded legacy access and unrelated edit rights, with an explicit review flag; no lead is inferred from name order. Historical authorship and restricted fields/files remain protected.
 
 ## 11. Specialist landing page and beneficiary card
 
@@ -545,7 +545,7 @@ Given current staff memberships, role groups, and specialist center assignments,
 
 ### AC-MIG-002B: Beneficiary-code migration
 
-Given current beneficiary codes, when migration runs, then every original code is preserved as the approved person code, enrollment code, or legacy alias under D-039, and external reconciliation can resolve the old code without exposing another person's record.
+Given current beneficiary codes, when migration runs, then every original code is preserved as the beneficiary code or a read-only legacy alias under confirmed D-039, and external reconciliation can resolve the old code without exposing another person's record.
 
 ### AC-MIG-003: Assignment migration
 

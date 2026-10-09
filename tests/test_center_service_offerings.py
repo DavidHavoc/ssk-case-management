@@ -218,19 +218,18 @@ def test_enrollment_forms_show_optional_extra_assignment_limited_to_active_cente
     create_response = client.get(
         reverse("enrollment_create", kwargs={"beneficiary_pk": beneficiary_a.pk})
     )
-    create_formset = create_response.context["formset"]
-    assert create_formset.total_form_count() == 1
-    specialist_choices = create_formset.forms[0].fields["specialist"].queryset
+    assert "formset" not in create_response.context
+    assert 'name="assignments-' not in create_response.content.decode()
+    staffing = client.get(reverse("beneficiary_staffing_update", args=[beneficiary_a.pk]))
+    specialist_choices = staffing.context["form"].fields["lead"].queryset
     assert specialist_a in specialist_choices
     assert specialist_b not in specialist_choices
-    assert create_formset.forms[0].empty_permitted
-
     existing = beneficiary_a.enrollments.get(service__code="LEGACY-OTHER")
     update_response = client.get(reverse("enrollment_update", kwargs={"pk": existing.pk}))
-    assert update_response.context["formset"].total_form_count() == 2
+    assert "formset" not in update_response.context
 
 
-def test_submitting_first_assignment_row_creates_enrollment_assignment(
+def test_forged_enrollment_assignment_rows_do_not_change_person_staffing(
     client,
     manager,
     center_a,
@@ -246,7 +245,6 @@ def test_submitting_first_assignment_row_creates_enrollment_assignment(
         reverse("enrollment_create", kwargs={"beneficiary_pk": beneficiary_a.pk}),
         {
             "offering": str(offering.pk),
-            "episode_code": "SYNTHETIC-ASSIGNMENT-E01",
             "status": ServiceEnrollment.Status.ACTIVE,
             "start_date": today.strftime("%d/%m/%Y"),
             "first_service_date": "",
@@ -264,8 +262,8 @@ def test_submitting_first_assignment_row_creates_enrollment_assignment(
     )
 
     assert response.status_code == 302
-    enrollment = ServiceEnrollment.objects.get(episode_code="SYNTHETIC-ASSIGNMENT-E01")
-    assert enrollment.specialist_assignments.filter(specialist=specialist_a).exists()
+    enrollment = ServiceEnrollment.objects.get(beneficiary=beneficiary_a, service=offering.service)
+    assert not enrollment.specialist_assignments.exists()
 
 
 def test_casework_creation_guidance_requires_effective_active_enrollment(client, manager):
@@ -277,7 +275,6 @@ def test_casework_creation_guidance_requires_effective_active_enrollment(client,
     enrollment = create_enrollment(
         beneficiary=beneficiary,
         offering=offering,
-        episode_code="SYNTHETIC-PENDING-E01",
         start_date=today - timedelta(days=1),
         status=ServiceEnrollment.Status.PENDING,
         actor=manager,

@@ -12,6 +12,7 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q, Subquery
 from django.http import FileResponse, Http404
+from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -108,6 +109,12 @@ def _staff_parent_adapter(parent_type: str, parent_id, user, center, action: str
     return parent
 
 
+def _consent_parent_adapter(parent_type: str, parent_id, user, center, action: str):
+    from .consent_signing import authorized_signed_consent
+
+    return authorized_signed_consent(parent_id, user, center)
+
+
 def _case_center(parent):
     return parent.center
 
@@ -117,6 +124,13 @@ def _staff_center(parent):
 
 
 _ATTACHMENT_PARENT_POLICIES = {
+    AttachmentParentType.SIGNED_CONSENT: _AttachmentParentPolicy(
+        parent_type=AttachmentParentType.SIGNED_CONSENT,
+        model_label="casework.SignedConsent",
+        detail_route="consent_document",
+        authorization_adapter=_consent_parent_adapter,
+        center_adapter=_case_center,
+    ),
     AttachmentParentType.BENEFICIARY: _AttachmentParentPolicy(
         parent_type=AttachmentParentType.BENEFICIARY,
         model_label="casework.Beneficiary",
@@ -204,7 +218,29 @@ def _authorize_parent(
         raise Http404
     if policy.requires_active_center and center is None:
         raise Http404
+    if action == "change":
+        from django.contrib.auth import get_user_model
+
+        user = get_user_model().objects.get(pk=user.pk)
     return policy.authorization_adapter(parent_type, parent_id, user, center, action)
+
+
+def _lock_case_attachment_parent(parent_type, parent_id):
+    if parent_type == AttachmentParentType.SIGNED_CONSENT:
+        from .models import Beneficiary, SignedConsent
+
+        parent = get_object_or_404(SignedConsent, pk=parent_id)
+        Beneficiary.objects.select_for_update().get(pk=parent.beneficiary_id)
+        return
+    if parent_type not in _CASE_ATTACHMENT_PARENT_TYPES:
+        return
+    from .models import Beneficiary
+
+    parent = get_object_or_404(_parent_model(parent_type), pk=parent_id)
+    person_id = (
+        parent.pk if parent_type == AttachmentParentType.BENEFICIARY else parent.beneficiary_id
+    )
+    Beneficiary.objects.select_for_update().get(pk=person_id)
 
 
 def _attachments_for_parent(
@@ -360,7 +396,30 @@ class _AttachmentUploader:
     def save(self, attachment: PrivateAttachment, *, actor) -> PrivateAttachment:
         attachment.uploaded_by = actor
         try:
-            attachment.save()
+            with transaction.atomic():
+                _lock_case_attachment_parent(attachment.parent_type, attachment.parent_id)
+                _authorize_parent(
+                    attachment.parent_type,
+                    attachment.parent_id,
+                    actor,
+                    center=attachment.center,
+                    action="change",
+                )
+                if attachment.parent_type == AttachmentParentType.SIGNED_CONSENT:
+                    # Reserve the randomized path before writing so even a storage error
+                    # after writing bytes can be cleaned up. Normal uploads retain their flow.
+                    attachment.full_clean()
+                    field_file = attachment.file
+                    storage = field_file.storage
+                    name = field_file.field.generate_filename(attachment, field_file.name)
+                    try:
+                        stored_name = storage.save(name, field_file.file)
+                    except Exception:
+                        storage.delete(name)
+                        raise
+                    field_file.name = stored_name
+                    field_file._committed = True
+                attachment.save()
         except Exception:
             _cleanup_attachment_file(attachment)
             raise
@@ -524,6 +583,15 @@ def _delete_attachment(
     attachment_id = attachment.pk
     attachment_center = attachment.center
     with transaction.atomic():
+        _lock_case_attachment_parent(attachment.parent_type, attachment.parent_id)
+        # Staffing may have changed since the initial lookup. Recheck under the person lock.
+        attachment = _authorized_attachment(
+            pk,
+            user,
+            center=center,
+            action="change",
+            allowed_parent_types=allowed_parent_types,
+        )
         attachment.delete()
         record_event(
             actor=user,
@@ -677,6 +745,15 @@ def staff_attachments(actor) -> _AttachmentWorkflow:
         actor=actor,
         center=None,
         allowed_parent_types=_STAFF_ATTACHMENT_PARENT_TYPES,
+    )
+
+
+def signed_consent_attachments(actor, center) -> _AttachmentWorkflow:
+    """Generated evidence only. Excluded from ordinary case upload/delete routes."""
+    return _AttachmentWorkflow(
+        actor=actor,
+        center=center,
+        allowed_parent_types=frozenset({AttachmentParentType.SIGNED_CONSENT}),
     )
 
 

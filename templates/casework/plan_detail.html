@@ -21,7 +21,7 @@
 
   <dl class="detail-grid">
     <div class="detail-item"><dt>{% translate "Beneficiary" %}</dt><dd><a href="{% url 'beneficiary_detail' plan.beneficiary.pk %}?enrollment={{ plan.enrollment.pk }}">{{ plan.beneficiary.full_name }}</a></dd></div>
-    <div class="detail-item"><dt>{% translate "Enrollment" %}</dt><dd>{{ plan.enrollment.episode_code }} · {{ plan.enrollment.service }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Enrollment" %}</dt><dd>{{ plan.beneficiary.beneficiary_code }} · {{ plan.enrollment.start_date|date:"SHORT_DATE_FORMAT"|default:_('Unknown') }} · {{ plan.enrollment.service }}</dd></div>
     <div class="detail-item"><dt>{% translate "Responsible specialist" %}</dt><dd>{{ plan.specialist }}</dd></div>
     <div class="detail-item"><dt>{% translate "Status" %}</dt><dd><span class="status status-{{ plan.status }}">{{ plan.get_status_display }}</span></dd></div>
     <div class="detail-item"><dt>{% translate "Plan version" %}</dt><dd>{{ plan.version_number }}</dd></div>

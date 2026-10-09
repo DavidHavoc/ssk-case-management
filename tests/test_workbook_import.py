@@ -167,6 +167,7 @@ def test_two_services_one_person_and_repeat_is_noop(tmp_path, manager, center_a)
     assert person.enrollments.count() == 2
     assert Assessment.objects.count() == ServiceVisit.objects.count() == 0
     for enrollment in person.enrollments.all():
+        assert enrollment.episode_code is None
         assert enrollment.center_placements.get().center == center_a
         assert enrollment.status_on(date(2025, 3, 1)) == "active"
         assert enrollment.service.valid_from == date(2025, 2, 13)
@@ -216,6 +217,16 @@ def test_matching_staff_gets_current_service_access_only(tmp_path, manager, spec
     plan = read_workbook(workbook_path(tmp_path, source_row(specialist=name)))
     result = apply_workbook(plan, **destination(manager, center_a, link_specialists=True))
     assert result["assignments_created"] == 2
+    assert enrollments_for_user(specialist_a.staff_profile.user, center_a).count() == 0
+    from apps.casework.services import replace_beneficiary_staffing
+
+    replace_beneficiary_staffing(
+        beneficiary=Beneficiary.objects.get(),
+        lead=specialist_a,
+        effective_date=timezone.localdate(),
+        center=center_a,
+        actor=manager,
+    )
     assert enrollments_for_user(specialist_a.staff_profile.user, center_a).count() == 2
     for assignment in EnrollmentSpecialistAssignment.objects.all():
         assert assignment.valid_from == timezone.localdate()
@@ -235,7 +246,7 @@ def test_multiple_named_specialists_share_access_without_duplicate_links(
     assert result["assignments_created"] == 4
     assert "specialist" not in BeneficiaryWorkbookImport.objects.get().review_issues
     for specialist in (specialist_a, second):
-        assert enrollments_for_user(specialist.staff_profile.user, center_a).count() == 2
+        assert enrollments_for_user(specialist.staff_profile.user, center_a).count() == 0
     assert set(
         EnrollmentSpecialistAssignment.objects.values_list("assignment_role", flat=True)
     ) == {"primary"}
@@ -321,6 +332,15 @@ def test_restricted_source_is_not_in_specialist_context_or_html(
     )
     apply_workbook(plan, **destination(manager, center_a, link_specialists=True))
     person = Beneficiary.objects.get()
+    from apps.casework.services import replace_beneficiary_staffing
+
+    replace_beneficiary_staffing(
+        beneficiary=person,
+        lead=specialist_a,
+        effective_date=timezone.localdate(),
+        center=center_a,
+        actor=manager,
+    )
     url = reverse("beneficiary_detail", kwargs={"pk": person.pk})
     for user in (manager, coordinator_a):
         client.force_login(user)

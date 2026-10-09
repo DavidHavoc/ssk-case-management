@@ -191,13 +191,16 @@ def test_specialist_workspace_context_excludes_unassigned_service_on_same_identi
     hidden_enrollment = create_enrollment(
         beneficiary=beneficiary_a,
         offering=offering,
-        episode_code=f"{beneficiary_a.beneficiary_code}-HIDDEN",
         start_date=date(2026, 1, 1),
         status=ServiceEnrollment.Status.ACTIVE,
         application_contract_number="SYNTHETIC-HIDDEN-CONTRACT",
         notes="Synthetic hidden service notes.",
         actor=coordinator_a,
     )
+    ServiceEnrollment.objects.filter(pk=hidden_enrollment.pk).update(
+        episode_code="SYNTHETIC-HIDDEN-LEGACY"
+    )
+    hidden_enrollment.refresh_from_db()
     EnrollmentSpecialistAssignment.objects.create(
         enrollment=hidden_enrollment,
         specialist=other_specialist,
@@ -217,8 +220,11 @@ def test_specialist_workspace_context_excludes_unassigned_service_on_same_identi
     assert response.status_code == 200
     assert context_enrollment_ids == {visible_enrollment.pk}
     assert hidden_enrollment.episode_code not in body
+    assert f"?enrollment={hidden_enrollment.pk}" not in body
     assert hidden_enrollment.application_contract_number not in body
     assert hidden_enrollment.notes not in body
+    hidden_search = client.get(reverse("beneficiary_list"), {"q": hidden_enrollment.episode_code})
+    assert not list(hidden_search.context["page_obj"])
     denied = client.get(
         reverse("beneficiary_detail", kwargs={"pk": beneficiary_a.pk}),
         {"enrollment": hidden_enrollment.pk},

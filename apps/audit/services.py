@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from uuid import UUID
 
 from .models import AuditEvent
 
@@ -26,6 +27,12 @@ def record_event(
     outcome: str = AuditEvent.Outcome.SUCCESS,
     metadata: Mapping[str, object] | None = None,
 ) -> AuditEvent:
+    if target_id is not None:
+        try:
+            target_id = UUID(str(target_id))
+        except (ValueError, TypeError, AttributeError):
+            # Malformed request IDs must not break denial logging or enter metadata.
+            target_id = None
     safe_metadata = {
         key: value for key, value in (metadata or {}).items() if key in SAFE_METADATA_KEYS
     }

@@ -97,7 +97,7 @@ The next implementation shall therefore introduce stable identity, service enrol
 - One beneficiary identity may have several enrollments at the same time when the enrollments use different services.
 - Every enrollment has exactly one service and at most one current center placement.
 - Every service event, assessment, plan, and goal belongs to exactly one enrollment, never only to the person.
-- A specialist assignment belongs to an enrollment, not directly to the person. Assignment to one service does not expose another service.
+- The confirmed D-038 lead/helper pair belongs to the person across services. Each service independently requires appropriate center membership, placement, and business-date responsibility. Legacy enrollment assignment rows remain evidence.
 - Staff center roles and enrollment specialist assignments use inclusive `valid_from` and exclusive `valid_to` intervals. A null `valid_to` is open-ended.
 - Event-time center and specialist values are retained on transactional records even after later transfers or assignment changes.
 - Published master and template versions are retired, not deleted or edited in place.
@@ -108,8 +108,8 @@ The next implementation shall therefore introduce stable identity, service enrol
 ### 6.1 Beneficiary identity and privacy
 
 - `ID-001` The platform shall create one stable BeneficiaryIdentity for a person and shall not require a new identity for each service or center.
-- `ID-002` Service status, center, enrollment date, first service date, exit date, exit reason, application or contract number, and assigned specialists shall not be stored as person-level attributes.
-- `ID-003` Subject to D-039, the platform shall issue an internal non-meaningful organization-wide person code and a separate immutable service-enrollment code. Neither code shall be recycled.
+- `ID-002` Service status, center placement, enrollment date, first service date, exit date, exit reason, and application or contract number remain enrollment attributes. The confirmed lead/helper pair is a separate person-level dated responsibility record.
+- `ID-003` Under confirmed D-039, the automatic center-sequenced beneficiary code is the only operational case code. Enrollments use their UUID primary keys internally, display the beneficiary code, and preserve previous enrollment identifiers as read-only aliases. Codes and sequence numbers are never recycled.
 - `ID-004` A personal identification number shall remain optional. When collected, the implementation shall support exact duplicate detection without exposing the value to unauthorized roles. The recommended implementation is encrypted value storage plus a keyed normalized lookup hash.
 - `ID-005` The platform shall not automatically merge possible duplicate identities. It shall create a restricted review task and require an authorized human decision with an audit trail.
 - `ID-006` Identity-level and enrollment-level attachments shall be distinct. Identity evidence shall not become visible merely because a user can access one service enrollment.
@@ -118,10 +118,10 @@ The next implementation shall therefore introduce stable identity, service enrol
 ### 6.2 Services, enrollments, and simultaneous participation
 
 - `ENR-001` ServiceDefinition shall be master data with stable code, names in supported languages, description, active state, effective dates, service family, and reporting order.
-- `ENR-002` A Center may accept an enrollment only when an effective CenterServiceOffering exists for the service on the enrollment start date.
+- `ENR-002` A Center may accept an enrollment only when an effective CenterServiceOffering exists for the service on the enrollment date.
 - `ENR-003` A person may hold simultaneous non-terminal enrollments in different services.
 - `ENR-004` The recommended default prohibits overlapping non-terminal enrollments for the same person and service. An approved exception mechanism may permit overlap for explicitly configured service programs.
-- `ENR-005` Every enrollment shall have an immutable episode identifier, service, start date, current status, current placement, and append-only state history.
+- `ENR-005` Every enrollment shall have an immutable UUID primary key, service, enrollment date when known, current status, current placement, and append-only state history. Enrollment date is `ServiceEnrollment.start_date`; first delivered service remains separate.
 - `ENR-006` The platform shall distinguish first-ever service date for the person and first service date within each enrollment. Both are derived or validated from source events.
 - `ENR-007` A service enrollment shall own its application or contract reference, supporting documents, first assessment, service schedule, exit data, and service notes.
 - `ENR-008` Re-enrollment after exit shall create a new enrollment linked to the same identity and prior enrollment. Prior records shall remain unchanged.
@@ -191,7 +191,7 @@ The following shall be master data rather than free-text choices:
 - `AGE-001` Age shall be calculated from birth date and an explicit reference date, never stored as a mutable integer.
 - `AGE-002` The calculation shall return completed years and remaining completed months.
 - `AGE-003` Completed months shall be calculated as `(reference_year - birth_year) * 12 + reference_month - birth_month`, reduced by one when the reference day precedes the applicable monthly anniversary. Completed years equal completed months divided by 12 using integer division, and remaining months equal completed months modulo 12. A documented last-day-of-February rule shall apply to 29 February births.
-- `AGE-004` Current screens shall use the user's local current date. Historical reports shall use the event date, enrollment start date, or report as-of date named in the report.
+- `AGE-004` Current screens shall use the user's local current date. Historical reports shall use the event date, enrollment date, or report as-of date named in the report.
 - `AGE-005` Future birth dates shall be rejected. Missing birth dates shall display and report as unknown, not as zero.
 - `AGE-006` Recommended early-intervention age bands are 0 to 35 completed months, 36 to 59 months, and 60 to 83 months. A beneficiary reaches the next band on the exact 3rd and 5th birthdays and leaves the early-intervention band on the 7th birthday.
 - `AGE-007` Age-band boundaries and the 29 February rule require owner approval before implementation because they can affect eligibility and external reporting.
@@ -243,8 +243,8 @@ The following shall be master data rather than free-text choices:
 ### 6.10 Assignment dates and authorization
 
 - `AUTH-001` Every selector, relationship field, form, view, report, export, timeline, and private-file operation shall apply the same effective-dated authorization policy.
-- `AUTH-002` Current specialist access shall require an active user, active staff profile, current center assignment, selected current center, current enrollment placement, and enrollment assignment effective today.
-- `AUTH-003` A specialist assignment to one enrollment shall not authorize another enrollment for the same person.
+- `AUTH-002` Current specialist access shall require an active user, active staff profile, current center assignment, selected current center, current enrollment placement, and person-level responsibility effective today, with only frozen legacy scope during the bounded transition.
+- `AUTH-003` A confirmed person-level lead/helper pair covers appropriately placed services for the same person, including later enrollments. An unresolved legacy grant remains limited to its original enrollment, specialist, and center.
 - `AUTH-004` Creating or editing a dated service record shall require assignment and center placement effective on that record's business date.
 - `AUTH-005` The recommended default grants a currently assigned specialist read access to the approved continuity history of that enrollment, including records before the assignment start, because safe service delivery often requires prior context.
 - `AUTH-006` When an assignment ends, routine beneficiary-card access shall end. Being the historical author of a record shall not by itself preserve indefinite card access.
@@ -254,7 +254,7 @@ The following shall be master data rather than free-text choices:
 - `AUTH-010` Diagnosis and case notes shall not be assumed visible to every specialist. Their visibility requires explicit owner and privacy approval.
 - `AUTH-011` Out-of-scope identifiers shall return not found where existence disclosure would be unsafe. Role-level action denial may return forbidden.
 - `AUTH-012` Coordinator and specialist center membership shall be effective-dated. A role group without an effective StaffCenterRoleAssignment shall not grant center access.
-- `AUTH-013` Subject to D-038, an active enrollment that requires specialist delivery shall have one current Primary specialist and may have several current Secondary specialists. Responsibility labels do not widen authorization beyond each effective assignment.
+- `AUTH-013` Subject to D-038, a beneficiary shall have one lead and zero or one helper across services, with a bounded review transition for unresolved imported cases. Responsibility labels never bypass center membership or enrollment placement.
 
 ### 6.11 Role scope
 
@@ -338,7 +338,7 @@ Reporting rules:
 |---|---|
 | StaffProfile center memberships and role groups | Create effective StaffCenterRoleAssignments for coordinator scope. Do not infer historical start dates when source evidence is absent |
 | SpecialistCenterAssignment | Create effective specialist center-role assignments, preserving primary-center meaning and recording unknown historical dates as migration exceptions or approved defaults |
-| Beneficiary beneficiary code | Map to person code, enrollment code, or legacy alias exactly as approved in D-039. Preserve the original value and never recycle it |
+| Beneficiary beneficiary code | Keep as the operational beneficiary code under confirmed D-039, with previous beneficiary codes and enrollment identifiers retained as read-only aliases. Preserve the original value and never recycle it |
 | Beneficiary identity fields | Create or map to BeneficiaryIdentity |
 | Beneficiary service type and status | Create ServiceDefinition and one ServiceEnrollment |
 | Beneficiary center | Create initial EnrollmentCenterPlacement |

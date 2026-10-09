@@ -1,0 +1,15 @@
+{% load i18n %}
+{% if intake_sections %}
+  <div class="actions">{% if can_edit_intake %}<a class="button button-secondary" href="{% url 'beneficiary_intake_update' beneficiary.pk %}">{% translate "Edit intake information" %}</a>{% endif %}</div>
+  {% for section in intake_sections %}
+    <section class="section-block workspace-section" aria-labelledby="intake-{{ section.key }}-detail-heading">
+      <div class="section-heading"><h2 id="intake-{{ section.key }}-detail-heading">{{ section.title }}</h2></div>
+      {% if section.key == 'consent' %}<p class="privacy-note">{% translate "These are staff-recorded answers, not an executed signature. Signing and versioned signed evidence are handled separately." %}</p>{% include "casework/includes/media_declaration.html" %}{% endif %}
+      <dl class="detail-grid">
+        {% for row in section.rows %}
+          <div class="detail-item wide"><dt>{{ row.label }}</dt><dd>{% if row.multiple and row.value %}<ul>{% for value in row.value %}<li>{{ value }}</li>{% endfor %}</ul>{% elif row.value %}{{ row.value|linebreaksbr }}{% else %}{% translate "No intake information recorded." %}{% endif %}</dd></div>
+        {% endfor %}
+      </dl>
+    </section>
+  {% endfor %}
+{% endif %}

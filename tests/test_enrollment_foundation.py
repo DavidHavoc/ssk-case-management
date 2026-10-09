@@ -48,7 +48,6 @@ def _create_assigned_enrollment(
     beneficiary,
     specialist,
     offering,
-    episode_code,
     actor,
     *,
     status=ServiceEnrollment.Status.ACTIVE,
@@ -57,7 +56,6 @@ def _create_assigned_enrollment(
     enrollment = create_enrollment(
         beneficiary=beneficiary,
         offering=offering,
-        episode_code=episode_code,
         start_date=start_date,
         status=status,
         actor=actor,
@@ -78,14 +76,12 @@ def test_beneficiary_supports_multiple_simultaneous_service_enrollments(
         beneficiary_a,
         specialist_a,
         _offering(center_a, "EARLY-INTERVENTION"),
-        "SYN-EARLY-001",
         coordinator_a,
     )
     food = _create_assigned_enrollment(
         beneficiary_a,
         specialist_a,
         _offering(center_a, "FOOD-DELIVERY"),
-        "SYN-FOOD-001",
         coordinator_a,
     )
 
@@ -96,7 +92,6 @@ def test_beneficiary_supports_multiple_simultaneous_service_enrollments(
         create_enrollment(
             beneficiary=beneficiary_a,
             offering=_offering(center_a, "FOOD-DELIVERY"),
-            episode_code="SYN-FOOD-DUPLICATE",
             start_date=date(2026, 3, 1),
             status=ServiceEnrollment.Status.ACTIVE,
             actor=coordinator_a,
@@ -115,7 +110,6 @@ def test_enrollment_history_transfer_completion_and_reenrollment(
         beneficiary_a,
         specialist_a,
         offering,
-        "SYN-HISTORY-001",
         coordinator_a,
         status=ServiceEnrollment.Status.PENDING,
         start_date=date(2026, 2, 1),
@@ -173,7 +167,6 @@ def test_enrollment_history_transfer_completion_and_reenrollment(
     new_enrollment = reenroll_beneficiary(
         enrollment,
         offering=_offering(center_b, "HOME-CARE"),
-        episode_code="SYN-HISTORY-002",
         start_date=date(2026, 6, 1),
         actor=coordinator_a,
     )
@@ -300,7 +293,6 @@ def test_diagnosis_and_social_status_visibility_is_enrollment_scoped(
     other_center_enrollment = create_enrollment(
         beneficiary=beneficiary_a,
         offering=_offering(center_b, "HOME-CARE"),
-        episode_code="SYN-CLASSIFICATION-B",
         start_date=date(2026, 2, 1),
         status=ServiceEnrollment.Status.ACTIVE,
         actor=coordinator_b,

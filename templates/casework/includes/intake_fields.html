@@ -1,0 +1,27 @@
+{% load i18n %}
+{% if intake_form.fields %}
+  <input type="hidden" name="intake-present" value="1">
+  {% include "includes/form_error_summary.html" with form=intake_form %}
+  {% for section in intake_form.sections %}
+    <section class="form-card intake-section" aria-labelledby="intake-{{ section.key }}-heading">
+      <div class="form-section-heading"><h2 id="intake-{{ section.key }}-heading">{{ section.title }}</h2></div>
+      {% if section.key == 'health' or section.key == 'care' %}<p class="help-text">{% translate "Reported intake information does not create coded diagnoses, enrollments, visits, or formal individual plans." %}</p>{% endif %}
+      {% if section.key == 'consent' %}<p class="privacy-note">{% translate "These are staff-recorded answers, not an executed signature. Signing and versioned signed evidence are handled separately." %}</p>{% endif %}
+      {% for field in section.fields %}
+        {% if field.name == 'media_consent' %}{% include "casework/includes/media_declaration.html" %}{% endif %}
+        <div class="form-group{% if field.errors %} has-error{% endif %}">
+          {% if field.field.widget.allow_multiple_selected %}
+            <fieldset class="intake-checklist" id="{{ field.auto_id }}" aria-describedby="{{ field.auto_id }}-help{% if field.errors %} {{ field.auto_id }}-error{% endif %}">
+              <legend>{{ field.label }}</legend>
+              <div class="intake-options">{% for option in field %}<label class="check-label" for="{{ option.id_for_label }}">{{ option.tag }} <span>{{ option.choice_label }}</span></label>{% endfor %}</div>
+            </fieldset>
+          {% else %}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
+          {% endif %}
+          {% if field.help_text %}<div class="help-text" id="{{ field.auto_id }}-help">{{ field.help_text }}</div>{% endif %}
+          {% if field.errors %}<div class="field-error" id="{{ field.auto_id }}-error" role="alert">{% for error in field.errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
+        </div>
+      {% endfor %}
+    </section>
+  {% endfor %}
+{% endif %}

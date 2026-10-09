@@ -8,7 +8,7 @@
   </header>
   <dl class="detail-grid">
     <div class="detail-item"><dt>{% translate "Beneficiary" %}</dt><dd><a href="{% url 'beneficiary_detail' visit.beneficiary.pk %}?enrollment={{ visit.enrollment.pk }}">{{ visit.beneficiary.full_name }}</a></dd></div>
-    <div class="detail-item"><dt>{% translate "Enrollment" %}</dt><dd>{{ visit.enrollment.episode_code }} · {{ visit.enrollment.service }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Enrollment" %}</dt><dd>{{ visit.beneficiary.beneficiary_code }} · {{ visit.enrollment.start_date|date:"SHORT_DATE_FORMAT"|default:_('Unknown') }} · {{ visit.enrollment.service }}</dd></div>
     <div class="detail-item"><dt>{% translate "Specialist" %}</dt><dd>{{ visit.specialist }}</dd></div>
     <div class="detail-item"><dt>{% translate "Status" %}</dt><dd><span class="status status-{{ visit.status }}">{{ visit.get_status_display }}</span></dd></div>
     <div class="detail-item"><dt>{% translate "Activity" %}</dt><dd>{{ visit.activity }}</dd></div>

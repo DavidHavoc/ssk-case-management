@@ -10,6 +10,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
 from django.test import Client, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.accounts.models import LoginThrottle
 from apps.audit.models import AuditEvent
@@ -241,10 +242,7 @@ def test_every_case_parent_type_uploads_downloads_and_redirects(
 
 
 def test_pdf_can_be_uploaded_while_creating_beneficiary(
-    client,
-    coordinator_a,
-    center_a,
-    private_media_root,
+    client, coordinator_a, center_a, private_media_root, specialist_a
 ):
     client.force_login(coordinator_a)
     set_active_center(client, center_a)
@@ -257,10 +255,9 @@ def test_pdf_can_be_uploaded_while_creating_beneficiary(
             "service_type": Beneficiary.ServiceType.OTHER,
             "service_status": Beneficiary.ServiceStatus.ACTIVE,
             "full_name": "Synthetic Created Beneficiary",
-            "assignments-TOTAL_FORMS": "0",
-            "assignments-INITIAL_FORMS": "0",
-            "assignments-MIN_NUM_FORMS": "0",
-            "assignments-MAX_NUM_FORMS": "1000",
+            "enrollment_date": "01/01/2026",
+            "staffing-lead": str(specialist_a.pk),
+            "staffing-effective_date": timezone.localdate().isoformat(),
             "attachment-file": SimpleUploadedFile(
                 "beneficiary-create.pdf",
                 content,

@@ -244,8 +244,16 @@ def test_current_assignee_can_append_only_on_an_effective_record_date(
     plan = make_plan(beneficiary_a, specialist_a)
     goal = plan.goals.get()
     assignment = plan.enrollment.specialist_assignments.get(specialist=specialist_a)
-    assignment.valid_from = date(2026, 2, 1)
-    assignment.save()
+    # Simulate pre-release dated evidence rather than editing operational history.
+    from django.db import connection
+    from django.db.migrations.executor import MigrationExecutor
+
+    Assignment = (
+        MigrationExecutor(connection)
+        .loader.project_state([("casework", "0016_beneficiary_staffing_periods")])
+        .apps.get_model("casework", "EnrollmentSpecialistAssignment")
+    )
+    Assignment.objects.filter(pk=assignment.pk).update(valid_from=date(2026, 2, 1))
     client.force_login(specialist_a.staff_profile.user)
     set_active_center(client, center_a)
     url = reverse(

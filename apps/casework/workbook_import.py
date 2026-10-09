@@ -462,15 +462,9 @@ def apply_workbook(
             audit_create(actor, center, source_record)
             for code in row.services:
                 incomplete = row.start is None or (row.status == "exited" and row.end is None)
-                suffix = {
-                    "HOME-CARE": "HC",
-                    "FOOD-DELIVERY": "FD",
-                    "EARLY-INTERVENTION": "EI",
-                }[code]
                 enrollment = ServiceEnrollment.objects.create(
                     beneficiary=beneficiary,
                     service=services[code],
-                    episode_code=f"{beneficiary.beneficiary_code}-{suffix}",
                     status=row.status,
                     start_date=row.start,
                     end_date=row.end,

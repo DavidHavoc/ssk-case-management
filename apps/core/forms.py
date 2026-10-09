@@ -1,4 +1,5 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 DAY_FIRST_DATE_FORMAT = "%d/%m/%Y"
@@ -33,10 +34,11 @@ FORM_FIELD_LABELS = {
     "duration_minutes": _("Duration minutes"),
     "effective_date": _("Effective from"),
     "email": _("Email"),
+    "emergency_contact_name": _("Emergency contact name"),
+    "emergency_contact_phone": _("Emergency contact phone number"),
     "evidence": _("Evidence"),
     "employee_number": _("Employee number"),
     "enrollment": _("Enrollment"),
-    "episode_code": _("Enrollment code"),
     "expected_participants": _("Expected participants"),
     "family_status": _("Family status"),
     "first_name": _("First name"),
@@ -44,7 +46,7 @@ FORM_FIELD_LABELS = {
     "full_name": _("Full name"),
     "goal": _("Goal"),
     "goals_worked_on": _("Goals worked on"),
-    "guardian_parent": _("Guardian or parent"),
+    "guardian_parent": _("Guardian/parent or supporter"),
     "is_active": _("Active"),
     "is_primary": _("Primary center"),
     "interpretation": _("Interpretation"),
@@ -115,6 +117,18 @@ class DayFirstDateInput(forms.DateInput):
 
 
 class StyledFormMixin:
+    def add_service_error(self, error, *, field_aliases=None):
+        """Render service/model errors even when their fields are absent from this form."""
+        if not isinstance(error, ValidationError):
+            error = ValidationError(str(error))
+        if not hasattr(error, "error_dict"):
+            self.add_error(None, error)
+            return
+        aliases = field_aliases or {}
+        for name, errors in error.error_dict.items():
+            target = aliases.get(name, name)
+            self.add_error(target if target in self.fields else None, errors)
+
     def apply_styles(self) -> None:
         for name, field in self.fields.items():
             if name in FORM_FIELD_LABELS and (field.label is None or isinstance(field.label, str)):
@@ -124,7 +138,9 @@ class StyledFormMixin:
                     field.input_formats = DAY_FIRST_DATE_INPUT_FORMATS
                     field.widget = DayFirstDateInput(attrs=field.widget.attrs)
             widget = field.widget
-            if isinstance(widget, (forms.CheckboxInput, forms.RadioSelect)):
+            if isinstance(
+                widget, (forms.CheckboxInput, forms.CheckboxSelectMultiple, forms.RadioSelect)
+            ):
                 css_class = "form-check-input"
             elif isinstance(widget, forms.Select):
                 css_class = "form-select"

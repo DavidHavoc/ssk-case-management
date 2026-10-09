@@ -15,7 +15,6 @@ from apps.casework.models import (
     Assessment,
     Beneficiary,
     BeneficiaryWorkbookImport,
-    EnrollmentSpecialistAssignment,
     ServiceEnrollment,
     ServiceVisit,
 )
@@ -104,6 +103,7 @@ def test_person_snapshot_and_restricted_evidence_without_fabricated_history(
     assert person.sex == ""
     assert person.address == ""
     assert enrollment.service.code == "EARLY-INTERVENTION"
+    assert enrollment.episode_code is None
     assert enrollment.start_date is None
     assert enrollment.legacy_dates_incomplete
     assert enrollment.current_center == center_a
@@ -261,9 +261,18 @@ def test_source_information_remains_restricted_in_beneficiary_page(
     plan = read(register_path(tmp_path))
     apply_workbook(plan, **destination(manager, center_a), allow_incomplete=True)
     enrollment = ServiceEnrollment.objects.get()
-    EnrollmentSpecialistAssignment.objects.create(
-        enrollment=enrollment, specialist=specialist_a, valid_from=plan.snapshot_on
+    from django.utils import timezone
+
+    from apps.casework.services import replace_beneficiary_staffing
+
+    replace_beneficiary_staffing(
+        beneficiary=enrollment.beneficiary,
+        lead=specialist_a,
+        effective_date=timezone.localdate(),
+        center=center_a,
+        actor=manager,
     )
+
     url = reverse("beneficiary_detail", kwargs={"pk": enrollment.beneficiary_id})
     for user in (manager, coordinator_a):
         client.force_login(user)

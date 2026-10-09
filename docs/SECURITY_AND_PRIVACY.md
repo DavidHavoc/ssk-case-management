@@ -71,7 +71,8 @@ Gunicorn and the included Nginx configuration log URL paths without query string
 
 - personal ID;
 - address;
-- guardian or parent information;
+- guardian/parent or supporter information;
+- optional emergency contact name and phone number;
 - phone;
 - email;
 - application or contract number;
@@ -142,3 +143,55 @@ These items remain future work until business, legal, security, and operational 
 4. Keep sensitive values out of general tickets and chat.
 5. Record containment, investigation, remediation, recovery, and approval decisions.
 6. Route notification and legal decisions to approved organizational owners.
+
+
+## Person-level staffing amendment, 2026-10-08
+
+The required lead and optional helper share ordinary assigned-specialist permissions within
+already authorized centers and appropriately placed enrollments for this person. The current
+pair's names and role labels may be shown on an authorized case page. Historical staffing and
+source evidence remain restricted; contacts, guardian data, personal IDs, and beneficiary files
+remain denied to both specialists. Each event writer and recorded specialist is checked on the
+business date. Readable continuity history does not by itself permit changes.
+
+The migration snapshots only already legitimate current access as evidence. The owner chose
+to end legacy access at deployment on 2026-10-09: snapshots have `expires_on = captured_on`
+and authorize no release-day access. They cannot be created by import or normal ORM writers. Confirmed periods take precedence and never revive legacy access after
+expiry. Grants stay bound to the original placement, so return transfers cannot revive them.
+Casework and attachment writes recheck the acting account and scope after taking the same
+beneficiary lock used by staffing, transfers, and lifecycle changes. PostgreSQL also enforces
+non-overlapping complete periods and immutable history against writers that bypass forms.
+No Django admin is installed or routed; existing model protections also reject independent
+staffing edits. See [staffing handoff](BENEFICIARY_STAFFING_HANDOFF.md) for resolution and rollback.
+
+## Recorded handwritten consent evidence, 2026-10-09
+
+`SignedConsent` and its generated `signed_consent` private-attachment parent policy preserve
+an executed snapshot separately from editable intake answers. PNG and UTF-8 artifact storage
+reuse the randomized private storage, digests, scoped authorization, atomic upload cleanup, and
+audited downloads. Ordinary upload/delete endpoints exclude this generated evidence parent.
+The HTML artifact is stored privately as a validated UTF-8 `.txt` file and served only by the
+consent document routes as escaped, self-contained HTML with an `.html` download filename.
+Allowed ordinary upload extensions remain unchanged; arbitrary HTML uploads are not enabled.
+
+Finalization is POST with CSRF. A staff/center/person/language-bound timestamped token lasts one
+hour, fingerprints exact displayed terms and current identity/answers, and has a unique execution
+UUID. Current intake changes conservatively invalidate an unfinished review, including answers
+changed and restored. A completed token retry returns the original authorized record. Failed
+submissions clear the drawing and confirmation and require a new deliberate review/signature.
+
+PNG input is bounded to 128 KiB and dimensions 200 to 1400 by 80 to 600 pixels. Pillow verifies
+and fully decodes it, rejects animation and empty/invisible or implausibly filled canvases, flattens
+transparency onto white, and rewrites PNG without source metadata. Neither signatures nor signed
+snapshot values enter audit metadata, operational exports, or specialist timelines.
+
+Stored HTML embeds the normalized PNG, the licensed Noto Sans Georgian font, and its full OFL
+license. It uses no external styles, scripts, fonts, or images. HTTP and embedded content policies
+restrict active content and network loads. Authorized responses use no-store and nosniff headers.
+Later reads stream the stored bytes, with no current-template substitution or translation.
+
+Normal ORM evidence updates/deletes are refused. PostgreSQL triggers also block raw row updates
+and deletes, including attachment reparenting. SQLite development triggers block updates; ordinary
+ORM deletes are blocked by signals, while SQLite SQL DELETE remains available for test flush.
+This does not create external immutable storage or protect against a database/storage administrator.
+The new guard migration refuses reversal when signed evidence exists, preserving the schema.

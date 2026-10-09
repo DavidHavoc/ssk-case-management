@@ -39,13 +39,15 @@ from .assessment_engine import (
     complete_assessment,
     replace_draft_responses,
 )
+from .consent_signing import signed_consent_status
 from .forms import (
     AssessmentForm,
     AssessmentResponseFormSet,
     BeneficiaryDiagnosisFormSet,
     BeneficiaryForm,
+    BeneficiaryIntakeForm,
     BeneficiarySocialStatusFormSet,
-    EnrollmentAssignmentFormSet,
+    BeneficiaryStaffingForm,
     EnrollmentIntakeForm,
     EnrollmentServiceScheduleForm,
     EnrollmentTransferForm,
@@ -80,6 +82,7 @@ from .services import (
     record_goal_status_transition,
     record_service_visit_correction,
     reenroll_beneficiary,
+    replace_beneficiary_staffing,
     save_plan_period,
     service_visit_snapshot,
     transfer_enrollment,
@@ -153,14 +156,13 @@ def _legacy_intake_post(request, beneficiary):
     data = request.POST.copy()
     if offering:
         data["enrollment-offering"] = str(offering.pk)
-    data["enrollment-episode_code"] = f"{beneficiary.pk}-E01"
     legacy_status = request.POST.get("service_status", "applied")
     data["enrollment-status"] = {
         "active": ServiceEnrollment.Status.ACTIVE,
         "on_hold": ServiceEnrollment.Status.PENDING,
         "exited": ServiceEnrollment.Status.PENDING,
     }.get(legacy_status, ServiceEnrollment.Status.PENDING)
-    data["enrollment-start_date"] = request.POST.get("enrollment_date") or str(timezone.localdate())
+    data["enrollment-start_date"] = request.POST.get("enrollment_date", "")
     return data
 
 
@@ -184,6 +186,7 @@ def _beneficiary_list(request, *, specialist_workspace=False):
             Q(full_name__icontains=query)
             | Q(beneficiary_code__icontains=query)
             | Q(legacy_beneficiary_code__icontains=query)
+            | Q(enrollments__in=authorized_enrollments.filter(episode_code__icontains=query))
         )
     if status:
         queryset = queryset.filter(enrollments__in=authorized_enrollments.filter(status=status))
@@ -248,8 +251,9 @@ def beneficiary_detail(request, pk):
     selected_enrollment = None
     selected_id = request.GET.get("enrollment")
     if selected_id:
-        selected_enrollment = authorized_enrollments.filter(pk=selected_id).first()
-        if selected_enrollment is None:
+        try:
+            selected_enrollment = get_authorized_object(authorized_enrollments, selected_id)
+        except Http404:
             record_event(
                 actor=request.user,
                 event_type=AuditEvent.EventType.SENSITIVE_READ,
@@ -257,7 +261,7 @@ def beneficiary_detail(request, pk):
                 outcome=AuditEvent.Outcome.DENIED,
                 center=request.ssk_center,
             )
-            raise Http404
+            raise
     if selected_enrollment is None:
         selected_enrollment = authorized_enrollments.first()
     if selected_enrollment is None:
@@ -322,6 +326,11 @@ def beneficiary_detail(request, pk):
         selected_enrollment,
         timezone.localdate(),
     )
+    intake_form = BeneficiaryIntakeForm(
+        user=request.user, center=request.ssk_center, beneficiary=beneficiary, prefix="intake"
+    )
+    from .staffing import current_staffing, staffing_needs_review
+
     return render(
         request,
         "casework/beneficiary_detail.html",
@@ -340,7 +349,17 @@ def beneficiary_detail(request, pk):
                 enrollment=selected_enrollment,
             ),
             "show_restricted": restricted,
+            "intake_sections": intake_form.detail_sections,
+            "can_edit_intake": bool(intake_form.fields),
+            **signed_consent_status(beneficiary, request.user, request.ssk_center),
             "workbook_details": workbook_details,
+            "staffing_pair": current_staffing(beneficiary),
+            "staffing_needs_review": staffing_needs_review(beneficiary, request.ssk_center),
+            "staffing_history": beneficiary.staffing_periods.select_related(
+                "lead__staff_profile__user", "helper__staff_profile__user"
+            )
+            if restricted
+            else [],
             "workspace_summary": workspace_summary,
             "workspace_visits": authorized_visits[:10],
             "workspace_schedules": authorized_schedules[:10],
@@ -355,6 +374,17 @@ def beneficiary_detail(request, pk):
     )
 
 
+def _intake_form(request, beneficiary):
+    submitted = request.method == "POST" and any(key.startswith("intake-") for key in request.POST)
+    return BeneficiaryIntakeForm(
+        request.POST if submitted else None,
+        user=request.user,
+        center=request.ssk_center,
+        beneficiary=beneficiary,
+        prefix="intake",
+    )
+
+
 @active_center_required
 def beneficiary_create(request):
     if not _can_manage_restricted(request.user):
@@ -363,18 +393,17 @@ def beneficiary_create(request):
     form = BeneficiaryForm(
         request.POST or None, instance=beneficiary, user=request.user, center=request.ssk_center
     )
+    intake_form = _intake_form(request, beneficiary)
     intake_data = _legacy_intake_post(request, beneficiary)
     enrollment_form = EnrollmentIntakeForm(
         intake_data,
         prefix="enrollment",
         center=request.ssk_center,
     )
-    enrollment_draft = ServiceEnrollment(beneficiary=beneficiary)
-    formset = EnrollmentAssignmentFormSet(
+    staffing_form = BeneficiaryStaffingForm(
         request.POST or None,
-        instance=enrollment_draft,
-        prefix="assignments",
-        form_kwargs={"center": request.ssk_center},
+        prefix="staffing",
+        center=request.ssk_center,
     )
     attachment_workflow = case_attachments(request.user, request.ssk_center)
     attachment_form = attachment_workflow.optional_form(
@@ -385,52 +414,61 @@ def beneficiary_create(request):
     if request.method == "POST":
         form_valid = form.is_valid()
         enrollment_valid = enrollment_form.is_valid()
-        formset_valid = formset.is_valid()
+        staffing_valid = staffing_form.is_valid()
         attachment_valid = attachment_form.is_valid()
-        if form_valid and enrollment_valid and formset_valid and attachment_valid:
-            with attachment_workflow.atomic_uploads() as attachment_uploader:
-                beneficiary = form.save()
-                enrollment = create_enrollment(
-                    beneficiary=beneficiary,
-                    offering=enrollment_form.cleaned_data["offering"],
-                    episode_code=(
-                        enrollment_form.cleaned_data["episode_code"]
-                        if "enrollment-offering" in request.POST
-                        else f"{beneficiary.beneficiary_code}-E01"
-                    ),
-                    start_date=enrollment_form.cleaned_data["start_date"],
-                    status=enrollment_form.cleaned_data["status"],
-                    first_service_date=enrollment_form.cleaned_data["first_service_date"],
-                    application_contract_number=enrollment_form.cleaned_data[
-                        "application_contract_number"
-                    ],
-                    notes=enrollment_form.cleaned_data["notes"],
-                    actor=request.user,
-                )
-                formset.instance = enrollment
-                formset.save()
-                record_event(
-                    actor=request.user,
-                    event_type=AuditEvent.EventType.CREATE,
-                    target_type="Beneficiary",
-                    target_id=beneficiary.pk,
-                    center=beneficiary.center,
-                )
-                attachment_uploader.create(
-                    parent=beneficiary,
-                    parent_type=AttachmentParentType.BENEFICIARY,
-                    upload=attachment_form.cleaned_data.get("file"),
-                )
-            messages.success(request, _("Beneficiary created."))
-            return redirect("beneficiary_detail", pk=beneficiary.pk)
+        intake_valid = not intake_form.is_bound or intake_form.is_valid()
+        if form_valid and enrollment_valid and staffing_valid and attachment_valid and intake_valid:
+            try:
+                with attachment_workflow.atomic_uploads() as attachment_uploader:
+                    beneficiary = form.save()
+                    create_enrollment(
+                        beneficiary=beneficiary,
+                        offering=enrollment_form.cleaned_data["offering"],
+                        start_date=enrollment_form.cleaned_data["start_date"],
+                        status=enrollment_form.cleaned_data["status"],
+                        first_service_date=enrollment_form.cleaned_data["first_service_date"],
+                        application_contract_number=enrollment_form.cleaned_data[
+                            "application_contract_number"
+                        ],
+                        notes=enrollment_form.cleaned_data["notes"],
+                        actor=request.user,
+                    )
+                    replace_beneficiary_staffing(
+                        beneficiary=beneficiary,
+                        lead=staffing_form.cleaned_data["lead"],
+                        helper=staffing_form.cleaned_data["helper"],
+                        effective_date=staffing_form.cleaned_data["effective_date"],
+                        center=request.ssk_center,
+                        actor=request.user,
+                    )
+                    if intake_form.is_bound:
+                        intake_form.save()
+                    record_event(
+                        actor=request.user,
+                        event_type=AuditEvent.EventType.CREATE,
+                        target_type="Beneficiary",
+                        target_id=beneficiary.pk,
+                        center=beneficiary.center,
+                    )
+                    attachment_uploader.create(
+                        parent=beneficiary,
+                        parent_type=AttachmentParentType.BENEFICIARY,
+                        upload=attachment_form.cleaned_data.get("file"),
+                    )
+            except (ValidationError, ValueError) as exc:
+                staffing_form.add_service_error(exc)
+            else:
+                messages.success(request, _("Beneficiary created."))
+                return redirect("beneficiary_detail", pk=beneficiary.pk)
     return render(
         request,
         "casework/beneficiary_form.html",
         {
             "form": form,
             "enrollment_form": enrollment_form,
-            "formset": formset,
+            "staffing_form": staffing_form,
             "attachment_form": attachment_form,
+            "intake_form": intake_form,
             "title": _("New beneficiary"),
         },
     )
@@ -451,6 +489,9 @@ def beneficiary_update(request, pk):
         user=request.user,
         center=request.ssk_center,
     )
+    intake_form = _intake_form(request, beneficiary)
+    if request.method == "GET" and intake_form.fields:
+        _audit_read(request, beneficiary, "BeneficiaryIntake")
     diagnosis_formset = None
     social_status_formset = None
     if _can_manage_restricted(request.user):
@@ -496,8 +537,26 @@ def beneficiary_update(request, pk):
         if request.method == "POST" and social_status_formset and social_status_formset.is_bound
         else True
     )
-    if request.method == "POST" and form.is_valid() and diagnosis_valid and status_valid:
+    intake_valid = not intake_form.is_bound or intake_form.is_valid()
+    if (
+        request.method == "POST"
+        and form.is_valid()
+        and diagnosis_valid
+        and status_valid
+        and intake_valid
+    ):
         with transaction.atomic():
+            Beneficiary.objects.select_for_update().get(pk=beneficiary.pk)
+            from django.contrib.auth import get_user_model
+
+            actor = get_user_model().objects.get(pk=request.user.pk)
+            get_authorized_object(beneficiaries_for_user(actor, request.ssk_center), pk)
+            if form.restricted_fields and not can_view_restricted_beneficiary_fields(
+                actor, beneficiary, request.ssk_center
+            ):
+                raise PermissionDenied
+            if intake_form.is_bound:
+                intake_form.save()
             form.save()
             if diagnosis_formset and diagnosis_formset.is_bound:
                 rows = diagnosis_formset.save(commit=False)
@@ -529,7 +588,87 @@ def beneficiary_update(request, pk):
             "form": form,
             "diagnosis_formset": diagnosis_formset,
             "social_status_formset": social_status_formset,
+            "intake_form": intake_form,
             "title": _("Update beneficiary"),
+        },
+    )
+
+
+@active_center_required
+def beneficiary_intake_update(request, pk):
+    beneficiary = _authorized_request_object(
+        request,
+        beneficiaries_for_user(request.user, request.ssk_center).only(
+            "id", "beneficiary_code", "full_name", "center", "region_ref", "municipality_ref"
+        ),
+        pk,
+        "BeneficiaryIntake",
+        event_type=AuditEvent.EventType.UPDATE,
+    )
+    form = BeneficiaryIntakeForm(
+        request.POST if request.method == "POST" else None,
+        user=request.user,
+        center=request.ssk_center,
+        beneficiary=beneficiary,
+        prefix="intake",
+    )
+    if not form.fields:
+        raise PermissionDenied
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, _("Intake information updated."))
+        return redirect("beneficiary_detail", pk=beneficiary.pk)
+    if request.method == "GET":
+        _audit_read(request, beneficiary, "BeneficiaryIntake")
+    return render(
+        request,
+        "casework/intake_form.html",
+        {
+            "intake_form": form,
+            "beneficiary_name": beneficiary.full_name,
+            "beneficiary_pk": beneficiary.pk,
+        },
+    )
+
+
+@active_center_required
+def beneficiary_staffing_update(request, pk):
+    if not _can_manage_restricted(request.user):
+        raise PermissionDenied
+    beneficiary = get_authorized_object(
+        beneficiaries_for_user(request.user, request.ssk_center), pk
+    )
+    form = BeneficiaryStaffingForm(request.POST or None, center=request.ssk_center)
+    if request.method == "POST" and form.is_valid():
+        try:
+            with transaction.atomic():
+                replace_beneficiary_staffing(
+                    beneficiary=beneficiary,
+                    lead=form.cleaned_data["lead"],
+                    helper=form.cleaned_data["helper"],
+                    effective_date=form.cleaned_data["effective_date"],
+                    center=request.ssk_center,
+                    actor=request.user,
+                )
+                record_event(
+                    actor=request.user,
+                    event_type=AuditEvent.EventType.UPDATE,
+                    target_type="BeneficiaryStaffingPeriod",
+                    target_id=beneficiary.pk,
+                    center=request.ssk_center,
+                )
+        except (ValidationError, ValueError) as exc:
+            form.add_service_error(exc)
+        else:
+            messages.success(request, _("Beneficiary staffing updated."))
+            return redirect("beneficiary_detail", pk=beneficiary.pk)
+    return render(
+        request,
+        "casework/simple_form.html",
+        {
+            "form": form,
+            "title": _("Update beneficiary staffing"),
+            "beneficiary": beneficiary,
         },
     )
 
@@ -567,20 +706,12 @@ def enrollment_create(request, beneficiary_pk):
         request.POST or None,
         center=request.ssk_center,
     )
-    draft = ServiceEnrollment(beneficiary=beneficiary)
-    formset = EnrollmentAssignmentFormSet(
-        request.POST or None,
-        instance=draft,
-        prefix="assignments",
-        form_kwargs={"center": request.ssk_center},
-    )
-    if request.method == "POST" and form.is_valid() and formset.is_valid():
+    if request.method == "POST" and form.is_valid():
         try:
             with transaction.atomic():
                 enrollment = create_enrollment(
                     beneficiary=beneficiary,
                     offering=form.cleaned_data["offering"],
-                    episode_code=form.cleaned_data["episode_code"],
                     start_date=form.cleaned_data["start_date"],
                     status=form.cleaned_data["status"],
                     first_service_date=form.cleaned_data["first_service_date"],
@@ -588,8 +719,6 @@ def enrollment_create(request, beneficiary_pk):
                     notes=form.cleaned_data["notes"],
                     actor=request.user,
                 )
-                formset.instance = enrollment
-                formset.save()
                 record_event(
                     actor=request.user,
                     event_type=AuditEvent.EventType.CREATE,
@@ -598,7 +727,15 @@ def enrollment_create(request, beneficiary_pk):
                     center=request.ssk_center,
                 )
         except (ValidationError, ValueError) as exc:
-            form.add_error(None, exc)
+            form.add_service_error(
+                exc,
+                field_aliases={
+                    "service": "offering",
+                    "valid_from": "effective_date",
+                    "valid_to": "effective_date",
+                    "end_date": "effective_date",
+                },
+            )
         else:
             messages.success(request, _("Service enrollment created."))
             return redirect(
@@ -610,7 +747,6 @@ def enrollment_create(request, beneficiary_pk):
         "casework/enrollment_form.html",
         {
             "form": form,
-            "formset": formset,
             "beneficiary": beneficiary,
             "title": _("New service enrollment"),
         },
@@ -623,16 +759,9 @@ def enrollment_update(request, pk):
         raise PermissionDenied
     enrollment = _authorized_enrollment(request, pk)
     form = EnrollmentUpdateForm(request.POST or None, instance=enrollment)
-    formset = EnrollmentAssignmentFormSet(
-        request.POST or None,
-        instance=enrollment,
-        prefix="assignments",
-        form_kwargs={"center": request.ssk_center},
-    )
-    if request.method == "POST" and form.is_valid() and formset.is_valid():
+    if request.method == "POST" and form.is_valid():
         with transaction.atomic():
             form.save()
-            formset.save()
             record_event(
                 actor=request.user,
                 event_type=AuditEvent.EventType.UPDATE,
@@ -650,7 +779,6 @@ def enrollment_update(request, pk):
         "casework/enrollment_form.html",
         {
             "form": form,
-            "formset": formset,
             "beneficiary": enrollment.beneficiary,
             "enrollment": enrollment,
             "title": _("Update service enrollment"),
@@ -686,7 +814,15 @@ def enrollment_transition(request, pk, action):
                 actor=request.user,
             )
         except (ValidationError, ValueError) as exc:
-            form.add_error(None, exc)
+            form.add_service_error(
+                exc,
+                field_aliases={
+                    "service": "offering",
+                    "valid_from": "effective_date",
+                    "valid_to": "effective_date",
+                    "end_date": "effective_date",
+                },
+            )
         else:
             record_event(
                 actor=request.user,
@@ -724,7 +860,15 @@ def enrollment_transfer(request, pk):
                 actor=request.user,
             )
         except (ValidationError, ValueError) as exc:
-            form.add_error(None, exc)
+            form.add_service_error(
+                exc,
+                field_aliases={
+                    "service": "offering",
+                    "valid_from": "effective_date",
+                    "valid_to": "effective_date",
+                    "end_date": "effective_date",
+                },
+            )
         else:
             record_event(
                 actor=request.user,
@@ -752,30 +896,29 @@ def enrollment_reenroll(request, pk):
         center=request.ssk_center,
         service=prior.service,
     )
-    draft = ServiceEnrollment(beneficiary=prior.beneficiary, service=prior.service)
-    formset = EnrollmentAssignmentFormSet(
-        request.POST or None,
-        instance=draft,
-        prefix="assignments",
-        form_kwargs={"center": request.ssk_center},
-    )
-    if request.method == "POST" and form.is_valid() and formset.is_valid():
+    if request.method == "POST" and form.is_valid():
         try:
             with transaction.atomic():
                 enrollment = reenroll_beneficiary(
                     prior,
                     offering=form.cleaned_data["offering"],
-                    episode_code=form.cleaned_data["episode_code"],
                     start_date=form.cleaned_data["start_date"],
                     status=form.cleaned_data["status"],
+                    first_service_date=form.cleaned_data["first_service_date"],
                     application_contract_number=form.cleaned_data["application_contract_number"],
                     notes=form.cleaned_data["notes"],
                     actor=request.user,
                 )
-                formset.instance = enrollment
-                formset.save()
         except (ValidationError, ValueError) as exc:
-            form.add_error(None, exc)
+            form.add_service_error(
+                exc,
+                field_aliases={
+                    "service": "offering",
+                    "valid_from": "effective_date",
+                    "valid_to": "effective_date",
+                    "end_date": "effective_date",
+                },
+            )
         else:
             messages.success(request, _("Beneficiary re-enrolled."))
             return redirect(
@@ -787,7 +930,6 @@ def enrollment_reenroll(request, pk):
         "casework/enrollment_form.html",
         {
             "form": form,
-            "formset": formset,
             "beneficiary": prior.beneficiary,
             "enrollment": prior,
             "title": _("Re-enroll beneficiary"),
@@ -797,12 +939,21 @@ def enrollment_reenroll(request, pk):
 
 def _case_list(request, *, model, selector, template_name, choices):
     queryset = selector(request.user, request.ssk_center)
+    enrollment_id = request.GET.get("enrollment", "")
+    enrollment = None
+    if enrollment_id:
+        try:
+            enrollment = _authorized_enrollment(request, enrollment_id)
+        except (ValidationError, ValueError) as exc:
+            raise Http404 from exc
+        queryset = queryset.filter(enrollment=enrollment)
     query = request.GET.get("q", "").strip()
     status = request.GET.get("status", "").strip()
     if query:
         queryset = queryset.filter(
             Q(beneficiary__full_name__icontains=query)
             | Q(beneficiary__beneficiary_code__icontains=query)
+            | Q(beneficiary__legacy_beneficiary_code__icontains=query)
             | Q(enrollment__episode_code__icontains=query)
         )
     if status:
@@ -815,6 +966,7 @@ def _case_list(request, *, model, selector, template_name, choices):
             "page_obj": page_obj,
             "query": query,
             "selected_status": status,
+            "selected_enrollment": enrollment,
             "status_choices": choices[1],
             "can_create": _has_effective_active_enrollment(request.user, request.ssk_center),
             "can_manage_enrollments": _can_manage_restricted(request.user),
@@ -985,6 +1137,7 @@ def schedule_list(request):
         queryset = queryset.filter(
             Q(enrollment__beneficiary__full_name__icontains=query)
             | Q(enrollment__beneficiary__beneficiary_code__icontains=query)
+            | Q(enrollment__beneficiary__legacy_beneficiary_code__icontains=query)
             | Q(enrollment__episode_code__icontains=query)
         )
     page_obj = _page(request, queryset)

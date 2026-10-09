@@ -357,3 +357,25 @@ td a { font-weight: 680; }
   .page-shell { padding: 0; }
   .panel, .section-block, .form-card, .table-wrap { break-inside: avoid; border-color: #aaa; }
 }
+
+/* Reported intake checklists use the existing form and focus tokens. */
+.intake-checklist { margin: 0; padding: 0; border: 0; min-width: 0; }
+.intake-checklist legend { margin-bottom: 0.5rem; font-weight: 700; }
+.intake-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.25rem 1rem; }
+.intake-options .check-label { align-items: flex-start; font-weight: 500; padding: 0.5rem 0; }
+.intake-options input { flex: 0 0 auto; margin-top: 0.25rem; width: 1.25rem; height: 1.25rem; }
+.intake-section .form-group { max-width: 100%; }
+.intake-declaration { padding: 1rem; margin-bottom: 1rem; border: 1px solid var(--color-border); }
+@media (max-width: 768px) { .intake-options { grid-template-columns: 1fr; } }
+
+/* Assisted consent signing uses the existing form and detail surfaces. */
+.consent-review, .consent-sign-form { max-width: 60rem; }
+.consent-wording dd { margin-top: .5rem; }
+.signature-pad { display: block; width: 100%; height: auto; background: var(--color-surface); border: 2px solid var(--color-border); border-radius: var(--radius-sm); touch-action: none; cursor: crosshair; }
+.signature-confirmation { display: flex; align-items: flex-start; gap: .75rem; margin: 1.5rem 0; }
+.signature-confirmation input { flex: 0 0 auto; width: 1.25rem; height: 1.25rem; margin-top: .25rem; }
+.consent-sign-form .form-actions { flex-wrap: wrap; }
+.consent-wording .detail-grid { grid-template-columns: 1fr; }
+.consent-wording .detail-item.wide { grid-column: auto; }
+.consent-wording dt { font-size: .95rem; letter-spacing: normal; text-transform: none; }
+.consent-sign-form button:disabled { opacity: .55; cursor: default; }

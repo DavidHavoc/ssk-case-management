@@ -53,10 +53,7 @@ def authorized_reminders(user, center, *, as_of: date) -> list[InApplicationRemi
                 category_label=str(_("Assessments")),
                 urgency="danger",
                 title=str(_("Assessment review overdue")),
-                detail=(
-                    f"{assessment.beneficiary.beneficiary_code}"
-                    f" | {assessment.enrollment.episode_code}"
-                ),
+                detail=str(assessment.enrollment),
                 due_date=assessment.next_review_date,
                 url=reverse("assessment_detail", kwargs={"pk": assessment.pk}),
             )
@@ -77,7 +74,7 @@ def authorized_reminders(user, center, *, as_of: date) -> list[InApplicationRemi
                     if plan.review_due_date < as_of
                     else str(_("Plan review upcoming"))
                 ),
-                detail=f"{plan.beneficiary.beneficiary_code} | {plan.enrollment.episode_code}",
+                detail=str(plan.enrollment),
                 due_date=plan.review_due_date,
                 url=reverse("plan_detail", kwargs={"pk": plan.pk}),
             )
@@ -102,7 +99,7 @@ def authorized_reminders(user, center, *, as_of: date) -> list[InApplicationRemi
                     if enrollment.end_date < as_of
                     else str(_("Enrollment expires soon"))
                 ),
-                detail=f"{enrollment.beneficiary.beneficiary_code} | {enrollment.episode_code}",
+                detail=str(enrollment),
                 due_date=enrollment.end_date,
                 url=reverse(
                     "beneficiary_detail",
@@ -151,7 +148,7 @@ def authorized_reminders(user, center, *, as_of: date) -> list[InApplicationRemi
                 category_label=str(_("Data quality")),
                 urgency=exception.severity,
                 title=exception.issue,
-                detail=f"{exception.beneficiary_code} | {exception.enrollment_code}",
+                detail=exception.enrollment_label,
                 due_date=exception.due_date,
                 url=exception.url,
             )

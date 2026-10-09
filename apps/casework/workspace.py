@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.urls import reverse
 from django.utils.translation import gettext as _
 
@@ -106,17 +106,10 @@ def build_enrollment_workspace_rows(
         row for row in scoped_plans if row.status == IndividualPlan.Status.ACTIVE
     )
 
+    from .staffing import responsibility_rows
+
     current_assignments = {}
-    assignments = (
-        EnrollmentSpecialistAssignment.objects.filter(
-            enrollment_id__in=enrollment_ids,
-            valid_from__lte=as_of,
-        )
-        .filter(Q(valid_to__isnull=True) | Q(valid_to__gt=as_of))
-        .select_related("specialist__staff_profile__user")
-        .order_by("assignment_role", "specialist__staff_profile__user__last_name")
-    )
-    for assignment in assignments:
+    for assignment in responsibility_rows(enrollment_rows, as_of):
         current_assignments.setdefault(assignment.enrollment_id, []).append(assignment)
 
     results = []

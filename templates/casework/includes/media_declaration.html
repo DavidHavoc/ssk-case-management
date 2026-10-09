@@ -1,0 +1,10 @@
+{% load consent_tags %}
+{% consent_media_wording as media %}
+<div class="intake-declaration" role="note">
+  <p>{{ media.0 }}</p>
+  <ul>
+    <li>{{ media.1 }}</li>
+    <li>{{ media.2 }}</li>
+    <li>{{ media.3 }}</li>
+  </ul>
+</div>

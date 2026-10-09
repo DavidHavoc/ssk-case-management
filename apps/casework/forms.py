@@ -48,6 +48,8 @@ RESTRICTED_BENEFICIARY_FIELDS = (
     "personal_id",
     "address",
     "guardian_parent",
+    "emergency_contact_name",
+    "emergency_contact_phone",
     "phone",
     "email",
     "application_contract_number",
@@ -67,11 +69,17 @@ class BeneficiaryForm(StyledModelForm):
             "municipality_ref",
             "address",
             "guardian_parent",
+            "emergency_contact_name",
+            "emergency_contact_phone",
             "phone",
             "email",
             "family_status",
             "notes",
         )
+        labels = {
+            "emergency_contact_name": _("Emergency contact name"),
+            "emergency_contact_phone": _("Emergency contact phone number"),
+        }
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
             "notes": forms.Textarea(attrs={"rows": 4}),
@@ -91,11 +99,35 @@ class BeneficiaryForm(StyledModelForm):
             for field in RESTRICTED_BENEFICIARY_FIELDS:
                 self.fields.pop(field, None)
 
+    @property
+    def person_fields(self):
+        return [
+            field
+            for field in self.visible_fields()
+            if field.name not in RESTRICTED_BENEFICIARY_FIELDS
+        ]
+
+    @property
+    def restricted_fields(self):
+        return [
+            field for field in self.visible_fields() if field.name in RESTRICTED_BENEFICIARY_FIELDS
+        ]
+
     def save(self, commit=True):
         if self.instance._state.adding and not self.instance.center_id:
             self.instance.center = self.center
         if not self.instance.service_type:
             self.instance.service_type = Beneficiary.ServiceType.OTHER
+        if commit and not self.instance._state.adding:
+            instance = super().save(commit=False)
+            # Excluded fields may have changed since the form loaded. Only write
+            # this actor's editable fields, preserving restricted data and history.
+            instance.save(
+                update_fields=[name for name, field in self.fields.items() if not field.disabled]
+                + ["updated_at"]
+            )
+            self.save_m2m()
+            return instance
         return super().save(commit=commit)
 
 
@@ -104,14 +136,15 @@ class EnrollmentIntakeForm(StyledForm):
         queryset=CenterServiceOffering.objects.none(),
         label=_("Service and center offering"),
     )
-    episode_code = forms.CharField(max_length=48, label=_("Enrollment code"))
     status = forms.ChoiceField(
         choices=(
             (ServiceEnrollment.Status.PENDING, _("Pending")),
             (ServiceEnrollment.Status.ACTIVE, _("Active")),
         )
     )
-    start_date = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
+    start_date = forms.DateField(
+        label=_("Enrollment date"), widget=forms.DateInput(attrs={"type": "date"})
+    )
     first_service_date = forms.DateField(
         required=False,
         widget=forms.DateInput(attrs={"type": "date"}),
@@ -134,9 +167,6 @@ class EnrollmentIntakeForm(StyledForm):
                 "class", "form-select" if isinstance(field.widget, forms.Select) else "form-control"
             )
 
-    def clean_episode_code(self):
-        return self.cleaned_data["episode_code"].strip().upper()
-
     def clean(self):
         cleaned = super().clean()
         start_date = cleaned.get("start_date")
@@ -145,12 +175,12 @@ class EnrollmentIntakeForm(StyledForm):
         if first_service_date and start_date and first_service_date < start_date:
             self.add_error(
                 "first_service_date",
-                _("First service date cannot be before enrollment start date."),
+                _("First service date cannot be before enrollment date."),
             )
         if offering and start_date and not offering.is_effective(start_date):
             self.add_error(
                 "offering",
-                _("The center offering is not effective on the enrollment start date."),
+                _("The center offering is not effective on the enrollment date."),
             )
         return cleaned
 
@@ -194,15 +224,59 @@ class EnrollmentAssignmentForm(StyledModelForm):
             )
         self.fields["specialist"].queryset = queryset
 
+        for field in self.fields.values():
+            field.disabled = True
 
-EnrollmentAssignmentFormSet = inlineformset_factory(
-    ServiceEnrollment,
-    EnrollmentSpecialistAssignment,
-    form=EnrollmentAssignmentForm,
-    fields=("specialist", "assignment_role", "valid_from", "valid_to"),
-    extra=1,
-    can_delete=True,
-)
+    def save(self, *args, **kwargs):
+        raise ValidationError(_("Enrollment assignments are preserved as read-only history."))
+
+
+class BeneficiaryStaffingForm(StyledForm):
+    lead = forms.ModelChoiceField(
+        queryset=SpecialistProfile.objects.none(), label=_("Lead specialist")
+    )
+    helper = forms.ModelChoiceField(
+        queryset=SpecialistProfile.objects.none(), required=False, label=_("Helper specialist")
+    )
+    effective_date = forms.DateField(
+        label=_("Effective from"), widget=forms.DateInput(attrs={"type": "date"})
+    )
+
+    def __init__(self, *args, center, **kwargs):
+        from django.utils import timezone
+
+        super().__init__(*args, **kwargs)
+        for field in ("lead", "helper"):
+            self.fields[field].queryset = specialists_for_center(center)
+        self.initial.setdefault("effective_date", timezone.localdate())
+        self.fields["lead"].help_text = _(
+            "One lead and an optional helper cover all of this person's services."
+        )
+
+    def clean(self):
+        from django.utils import timezone
+
+        cleaned = super().clean()
+        if cleaned.get("lead") and cleaned.get("helper") == cleaned["lead"]:
+            self.add_error("helper", _("Lead and helper must be different specialists."))
+        if cleaned.get("effective_date") and cleaned["effective_date"] < timezone.localdate():
+            self.add_error("effective_date", _("New staffing cannot rewrite past responsibility."))
+        if self.is_bound and any(key.startswith("assignments-") for key in self.data):
+            self.add_error(
+                None, _("Submit one beneficiary staffing pair, without assignment rows.")
+            )
+        return cleaned
+
+    def add_service_error(self, error):
+        """Keep model date errors on the submitted date and unknown fields non-field."""
+        if not isinstance(error, ValidationError):
+            error = ValidationError(str(error))
+        if not hasattr(error, "error_dict"):
+            self.add_error(None, error)
+            return
+        for field, errors in error.error_dict.items():
+            target = "effective_date" if field in {"valid_from", "valid_to"} else field
+            self.add_error(target if target in self.fields else None, errors)
 
 
 class BeneficiaryDiagnosisForm(StyledModelForm):
@@ -324,8 +398,12 @@ class EnrollmentTransferForm(EnrollmentTransitionForm):
 def _apply_legacy_beneficiary_enrollment(form, enrollment_queryset) -> None:
     if not form.is_bound or form.data.get("enrollment") or not form.data.get("beneficiary"):
         return
-    matches = enrollment_queryset.filter(beneficiary_id=form.data.get("beneficiary"))
-    if matches.count() == 1:
+    try:
+        matches = enrollment_queryset.filter(beneficiary_id=form.data.get("beneficiary"))
+        count = matches.count()
+    except (ValidationError, TypeError, ValueError):
+        return
+    if count == 1:
         data = form.data.copy()
         data["enrollment"] = str(matches.first().pk)
         form.data = data
@@ -379,33 +457,27 @@ def _specialists_for_record(
     business_date,
     existing_specialist_id=None,
 ):
-    queryset = specialists_for_center(center)
-    if enrollment:
-        assignment = Q(enrollment_assignments__enrollment=enrollment)
-        if business_date:
-            assignment &= Q(enrollment_assignments__valid_from__lte=business_date) & (
-                Q(enrollment_assignments__valid_to__isnull=True)
-                | Q(enrollment_assignments__valid_to__gt=business_date)
-            )
-        queryset = queryset.filter(assignment)
-    if existing_specialist_id:
-        queryset = SpecialistProfile.objects.filter(
-            Q(pk__in=queryset) | Q(pk=existing_specialist_id)
+    from .staffing import responsible_specialists
+
+    # Existing inactive authors remain on saved history but are not appointment choices.
+    if enrollment and business_date:
+        return (
+            responsible_specialists(enrollment, business_date)
+            .filter(center_assignments__center=center)
+            .distinct()
         )
-    return queryset.distinct()
+    return specialists_for_center(center)
 
 
 def _validate_enrollment_has_assignment(form, cleaned_data, date_field: str):
     enrollment = cleaned_data.get("enrollment")
     business_date = cleaned_data.get(date_field)
+    from .staffing import responsible_specialists
+
     if (
         enrollment
         and business_date
-        and not enrollment.specialist_assignments.filter(
-            valid_from__lte=business_date,
-        )
-        .filter(Q(valid_to__isnull=True) | Q(valid_to__gt=business_date))
-        .exists()
+        and not responsible_specialists(enrollment, business_date).exists()
     ):
         form.add_error(
             "enrollment",
@@ -414,7 +486,15 @@ def _validate_enrollment_has_assignment(form, cleaned_data, date_field: str):
     return cleaned_data
 
 
-class ServiceVisitForm(StyledModelForm):
+class AuthorizedCaseworkForm(StyledModelForm):
+    def save(self, commit=True):
+        # Carry the actor into the model's locked write, including commit=False callers.
+        if self.user is not None and self.center is not None:
+            self.instance._casework_actor_context = (self.user.pk, self.center.pk)
+        return super().save(commit=commit)
+
+
+class ServiceVisitForm(AuthorizedCaseworkForm):
     correction_reason = forms.CharField(
         required=False,
         max_length=240,
@@ -568,7 +648,7 @@ class ServiceVisitForm(StyledModelForm):
         return cleaned
 
 
-class EnrollmentServiceScheduleForm(StyledModelForm):
+class EnrollmentServiceScheduleForm(AuthorizedCaseworkForm):
     schedule_month = forms.DateField(
         input_formats=["%Y-%m"],
         widget=forms.DateInput(format="%Y-%m", attrs={"type": "month"}),
@@ -632,7 +712,7 @@ class EnrollmentServiceScheduleForm(StyledModelForm):
         return _validate_enrollment_has_assignment(self, cleaned, "schedule_month")
 
 
-class AssessmentForm(StyledModelForm):
+class AssessmentForm(AuthorizedCaseworkForm):
     class Meta:
         model = Assessment
         exclude = (
@@ -1005,7 +1085,7 @@ AssessmentDomainScoreFormSet = inlineformset_factory(
 )
 
 
-class IndividualPlanForm(StyledModelForm):
+class IndividualPlanForm(AuthorizedCaseworkForm):
     class Meta:
         model = IndividualPlan
         exclude = ("center", "beneficiary")
@@ -1060,7 +1140,7 @@ class IndividualPlanForm(StyledModelForm):
         return _validate_actor_assignment(self, super().clean(), "plan_start_date")
 
 
-class IndividualPlanGoalForm(StyledModelForm):
+class IndividualPlanGoalForm(AuthorizedCaseworkForm):
     status_change_date = forms.DateField(
         required=False,
         label=_("Status change date"),
@@ -1248,7 +1328,7 @@ def validate_plan_goals(form: IndividualPlanForm, formset) -> None:
         raise ValidationError(_("At least one goal is required for an active or completed plan."))
 
 
-class GoalOutcomeMeasurementForm(StyledModelForm):
+class GoalOutcomeMeasurementForm(AuthorizedCaseworkForm):
     class Meta:
         model = GoalOutcomeMeasurement
         exclude = ("goal", "recorded_by")
@@ -1284,7 +1364,7 @@ class GoalOutcomeMeasurementForm(StyledModelForm):
         return cleaned
 
 
-class IndividualPlanReviewForm(StyledModelForm):
+class IndividualPlanReviewForm(AuthorizedCaseworkForm):
     class Meta:
         model = IndividualPlanReview
         exclude = ("plan", "recorded_by")
@@ -1317,3 +1397,127 @@ class IndividualPlanReviewForm(StyledModelForm):
                 _("Your assignment is not effective on the selected record date."),
             )
         return cleaned
+
+
+class IntakeCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
+    def id_for_label(self, id_, index=None):
+        return id_ if index is None else super().id_for_label(id_, index)
+
+
+class BeneficiaryIntakeForm(StyledForm):
+    """Only authorized fields are built, loaded, validated, and submitted."""
+
+    def __init__(self, *args, user, center, beneficiary, **kwargs):
+        from apps.core.authorization import beneficiary_intake_capabilities
+
+        from .intake import intake_field_names, intake_initial
+        from .intake_schema import MULTI_CHOICES
+        from .models import BeneficiaryIntake
+
+        self.user, self.center, self.beneficiary = user, center, beneficiary
+        self.capabilities = beneficiary_intake_capabilities(user, center, beneficiary)
+        names = intake_field_names(self.capabilities)
+        kwargs.setdefault("initial", intake_initial(beneficiary, names))
+        super().__init__(*args, **kwargs)
+        for name in names:
+            if name in MULTI_CHOICES:
+                self.fields[name] = forms.MultipleChoiceField(
+                    choices=MULTI_CHOICES[name],
+                    required=False,
+                    widget=IntakeCheckboxSelectMultiple,
+                    label={
+                        "general_conditions": _("General condition"),
+                        "health_problems": _("Main health problems"),
+                        "functional_conditions": _("Functional condition"),
+                        "cognitive_conditions": _("Cognitive condition"),
+                        "initial_care_services": _(
+                            "Verified service types (select all that apply)"
+                        ),
+                    }[name],
+                    help_text=_("Select all that apply."),
+                )
+            else:
+                model_field = BeneficiaryIntake._meta.get_field(name)
+                self.fields[name] = model_field.formfield()
+                self.fields[name].label = model_field.verbose_name
+                if isinstance(self.fields[name], forms.CharField):
+                    self.fields[name].strip = False
+                if isinstance(self.fields[name].widget, forms.Textarea):
+                    self.fields[name].widget.attrs["rows"] = 3
+        if "health_condition" in self.fields:
+            self.fields["health_condition"].help_text = _(
+                "Include the main condition or problem addressed."
+            )
+            self.fields["treating_doctor_contact"].help_text = _(
+                "Enter a telephone number, email address, or both."
+            )
+        self.apply_styles()
+
+    def clean(self):
+        from .intake_schema import validate_intake_values
+
+        cleaned = super().clean()
+        try:
+            validate_intake_values(cleaned)
+        except ValidationError as exc:
+            for name, errors in exc.error_dict.items():
+                self.add_error(name, errors)
+        for name in self.errors:
+            if name in self.fields:
+                widget = self.fields[name].widget
+                widget.attrs["aria-invalid"] = "true"
+                widget.attrs["aria-describedby"] = (
+                    widget.attrs.get("aria-describedby", "") + f" {self[name].auto_id}-error"
+                ).strip()
+        return cleaned
+
+    @property
+    def sections(self):
+        from .intake_schema import CARE_FIELDS, CONSENT_FIELDS, HEALTH_FIELDS, SOCIAL_FIELDS
+
+        return [
+            {
+                "key": key,
+                "title": title,
+                "fields": [self[name] for name in names if name in self.fields],
+            }
+            for key, title, names in (
+                ("health", _("Health information"), HEALTH_FIELDS),
+                ("social", _("Social and support information"), SOCIAL_FIELDS),
+                ("consent", _("Consent and confidentiality"), CONSENT_FIELDS),
+                ("care", _("Initial care plan"), CARE_FIELDS),
+            )
+            if any(name in self.fields for name in names)
+        ]
+
+    def save(self):
+        from .intake import save_beneficiary_intake
+
+        if not self.is_valid():
+            raise ValueError("Cannot save invalid intake data.")
+        return save_beneficiary_intake(
+            beneficiary=self.beneficiary,
+            actor=self.user,
+            center=self.center,
+            values={name: self.cleaned_data[name] for name in self.fields},
+        )
+
+    @property
+    def detail_sections(self):
+        from .intake_schema import MULTI_CHOICES
+
+        sections = self.sections
+        for section in sections:
+            section["rows"] = []
+            for field in section["fields"]:
+                value = self.initial.get(field.name)
+                if field.name in MULTI_CHOICES:
+                    labels = dict(MULTI_CHOICES[field.name])
+                    value = [labels[code] for code in (value or []) if code in labels]
+                elif isinstance(field.field, forms.ChoiceField):
+                    value = dict(field.field.choices).get(value or "", _("Unanswered"))
+                section["rows"].append(
+                    {"label": field.label, "value": value, "multiple": field.name in MULTI_CHOICES}
+                )
+            del section["fields"]
+        return sections

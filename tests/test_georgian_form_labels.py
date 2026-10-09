@@ -24,7 +24,27 @@ def test_casework_forms_have_georgian_labels(coordinator_a, center_a):
         goal_form = IndividualPlanGoalForm()
 
         assert str(beneficiary_form.fields["beneficiary_code"].label) == "ბენეფიციარის კოდი"
+        assert (
+            str(beneficiary_form.fields["guardian_parent"].label) == "მეურვე/მშობელი ან მხარდამჭერი"
+        )
+        assert (
+            str(beneficiary_form.fields["emergency_contact_name"].label)
+            == "სასწრაფო კავშირის პირის სახელი"
+        )
+        assert (
+            str(beneficiary_form.fields["emergency_contact_phone"].label)
+            == "სასწრაფო კავშირის პირის ტელეფონის ნომერი"
+        )
+        assert str(beneficiary_form.fields["emergency_contact_name"].help_text) == (
+            "არასავალდებულო. შეიყვანეთ იმ პირის სახელი, "
+            "რომელსაც საგანგებო შემთხვევის დროს უნდა დაუკავშირდეთ."
+        )
+        assert str(beneficiary_form.fields["emergency_contact_phone"].help_text) == (
+            "არასავალდებულო. საერთაშორისო ნომრები შეიძლება იწყებოდეს + ნიშნით და ქვეყნის კოდით."
+        )
         assert str(beneficiary_form.fields["notes"].label) == "შენიშვნები"
+        assert str(intake_form.fields["start_date"].label) == "ჩარიცხვის თარიღი"
+        assert "episode_code" not in intake_form.fields
         assert str(intake_form.fields["status"].label) == "სტატუსი"
         assert str(intake_form.fields["first_service_date"].label) == "მომსახურების პირველი თარიღი"
         assert str(visit_form.fields["enrollment"].label) == "ჩარიცხვა"

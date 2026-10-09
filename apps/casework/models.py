@@ -14,6 +14,7 @@ from django.db.models import F, Q
 from django.db.models.signals import m2m_changed, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
+from django.utils.formats import date_format
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 
@@ -22,8 +23,49 @@ from apps.core.models import ValidatedModel
 from apps.core.validators import phone_number_validator
 
 from .age import CompletedAge, calculate_completed_age, ssk_age_band
+from .intake_schema import (
+    ALLERGY_CHOICES,
+    INTAKE_FIELDS,
+    LIVING_CHOICES,
+    MEDIA_CHOICES,
+    YES_NO,
+    validate_intake_values,
+)
 from .storage import private_file_storage
 from .validators import validate_private_upload
+
+
+class DatedCaseworkModel(ValidatedModel):
+    authorization_date_field = None
+
+    class Meta:
+        abstract = True
+
+    def casework_enrollment(self):
+        if hasattr(self, "enrollment_id"):
+            return self.enrollment if self.enrollment_id else None
+        if hasattr(self, "assessment_id"):
+            return self.assessment.enrollment
+        if hasattr(self, "plan_id"):
+            return self.plan.enrollment
+        return self.goal.plan.enrollment
+
+    def save(self, *args, **kwargs):
+        enrollment = self.casework_enrollment()
+        using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
+        with transaction.atomic(using=using):
+            if enrollment:
+                Beneficiary.objects.using(using).select_for_update().get(
+                    pk=enrollment.beneficiary_id
+                )
+                # Drop prefetched lifecycle state from form validation before checking the write.
+                enrollment = ServiceEnrollment.objects.using(using).get(pk=enrollment.pk)
+                if hasattr(self, "enrollment_id"):
+                    self.enrollment = enrollment
+                from .staffing import validate_casework_actor
+
+                validate_casework_actor(self, enrollment, using=using)
+            return super().save(*args, **kwargs)
 
 
 class EffectiveDatedCatalogModel(ValidatedModel):
@@ -286,6 +328,19 @@ class Beneficiary(ValidatedModel):
     )
     address = models.TextField(blank=True)
     guardian_parent = models.CharField(max_length=180, blank=True)
+    emergency_contact_name = models.CharField(
+        _("Emergency contact name"),
+        max_length=180,
+        blank=True,
+        help_text=_("Optional. Enter the name of the person to contact in an emergency."),
+    )
+    emergency_contact_phone = models.CharField(
+        _("Emergency contact phone number"),
+        max_length=40,
+        blank=True,
+        validators=[phone_number_validator],
+        help_text=_("Optional. International numbers may start with + and a country code."),
+    )
     phone = models.CharField(max_length=40, blank=True, validators=[phone_number_validator])
     email = models.EmailField(blank=True)
     diagnosis_status = models.TextField(blank=True)
@@ -401,6 +456,8 @@ class Beneficiary(ValidatedModel):
         self.municipality = self.municipality.strip()
         self.address = self.address.strip()
         self.guardian_parent = self.guardian_parent.strip()
+        self.emergency_contact_name = self.emergency_contact_name.strip()
+        self.emergency_contact_phone = self.emergency_contact_phone.strip()
         self.phone = self.phone.strip()
         self.email = self.email.strip().lower()
         self.diagnosis_status = self.diagnosis_status.strip()
@@ -443,6 +500,96 @@ class Beneficiary(ValidatedModel):
             raise ValidationError(errors)
 
 
+class BeneficiaryIntake(ValidatedModel):
+    """Optional reported intake, independent of imports and formal clinical records."""
+
+    beneficiary = models.OneToOneField(Beneficiary, on_delete=models.PROTECT, related_name="intake")
+    health_condition = models.TextField(_("Health condition / main problem"), blank=True)
+    general_conditions = models.JSONField(default=list, blank=True)
+    health_problems = models.JSONField(default=list, blank=True)
+    health_problems_other = models.TextField(_("Other health problem details"), blank=True)
+    functional_conditions = models.JSONField(default=list, blank=True)
+    cognitive_conditions = models.JSONField(default=list, blank=True)
+    cognitive_other = models.TextField(_("Other cognitive condition details"), blank=True)
+    allergies = models.CharField(
+        _("Allergies, if any"), max_length=3, blank=True, choices=ALLERGY_CHOICES
+    )
+    allergies_description = models.TextField(_("Allergy description"), blank=True)
+    current_medications = models.TextField(_("Current medications"), blank=True)
+    treating_doctor_name = models.CharField(
+        _("Treating doctor's name, if any"), max_length=240, blank=True
+    )
+    treating_doctor_contact = models.CharField(
+        _("Treating doctor's contact information"), max_length=240, blank=True
+    )
+    other_services = models.CharField(
+        _("Does the beneficiary receive assistance from other services?"),
+        max_length=3,
+        blank=True,
+        choices=YES_NO,
+    )
+    other_services_details = models.TextField(_("If yes, provide details"), blank=True)
+    living_situation = models.CharField(
+        _("Living situation (for example, alone, with family, or another arrangement)"),
+        max_length=6,
+        blank=True,
+        choices=LIVING_CHOICES,
+    )
+    living_situation_notes = models.TextField(_("Living situation notes"), blank=True)
+    service_consent = models.CharField(
+        _("Do you consent to receiving SSK services?"), max_length=3, blank=True, choices=YES_NO
+    )
+    care_sharing_consent = models.CharField(
+        _(
+            "Do you consent to receiving care services and sharing necessary information "
+            "with the home care/mobile care team?"
+        ),
+        max_length=3,
+        blank=True,
+        choices=YES_NO,
+    )
+    confidentiality_consent = models.CharField(
+        _(
+            "Do you agree that information will remain confidential, except where disclosure "
+            "is necessary by law or for the beneficiary's welfare?"
+        ),
+        max_length=3,
+        blank=True,
+        choices=YES_NO,
+    )
+    media_consent = models.CharField(
+        _("Media declaration decision"), max_length=7, blank=True, choices=MEDIA_CHOICES
+    )
+    initial_care_services = models.JSONField(default=list, blank=True)
+
+    def clean(self):
+        values = {name: getattr(self, name) for name in INTAKE_FIELDS}
+        validate_intake_values(values)
+        for name, value in values.items():
+            setattr(self, name, value)
+
+
+class BeneficiaryIntakeRevision(ValidatedModel):
+    """Restricted prior/current values, following the casework correction pattern."""
+
+    intake = models.ForeignKey(
+        BeneficiaryIntake, on_delete=models.PROTECT, related_name="revisions"
+    )
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    before_values = models.JSONField(default=dict, blank=True)
+    after_values = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def clean(self):
+        if self.pk and type(self).objects.filter(pk=self.pk).exists():
+            raise ValidationError(_("Intake revision records are append-only."))
+
+    def delete(self, *args, **kwargs):
+        raise TypeError("Intake revision records are append-only.")
+
+
 class BeneficiaryWorkbookImport(ValidatedModel):
     """Restricted source evidence. Never include this record in ordinary case exports."""
 
@@ -479,11 +626,19 @@ class ServiceEnrollment(ValidatedModel):
     service = models.ForeignKey(
         ServiceDefinition, on_delete=models.PROTECT, related_name="enrollments"
     )
-    episode_code = models.CharField(max_length=48, unique=True)
+    # Preserved identifiers only. New enrollments use the person's beneficiary code.
+    episode_code = models.CharField(
+        _("Legacy enrollment identifier"),
+        max_length=48,
+        unique=True,
+        null=True,
+        blank=True,
+        editable=False,
+    )
     status = models.CharField(
         max_length=16, choices=Status.choices, default=Status.PENDING, db_index=True
     )
-    start_date = models.DateField(null=True, blank=True, db_index=True)
+    start_date = models.DateField(_("Enrollment date"), null=True, blank=True, db_index=True)
     end_date = models.DateField(null=True, blank=True, db_index=True)
     first_service_date = models.DateField(null=True, blank=True)
     application_contract_number = models.CharField(max_length=80, blank=True)
@@ -517,7 +672,13 @@ class ServiceEnrollment(ValidatedModel):
         ]
 
     def __str__(self) -> str:
-        return f"{self.episode_code} | {self.service}"
+        enrollment_date = (
+            date_format(self.start_date, "SHORT_DATE_FORMAT") if self.start_date else _("Unknown")
+        )
+        return (
+            f"{self.beneficiary.beneficiary_code} | {self.service}"
+            f" | {self.get_status_display()} | {enrollment_date}"
+        )
 
     @property
     def is_terminal(self) -> bool:
@@ -563,7 +724,6 @@ class ServiceEnrollment(ValidatedModel):
         return placement.center if placement else None
 
     def clean(self) -> None:
-        self.episode_code = self.episode_code.strip().upper()
         self.application_contract_number = self.application_contract_number.strip()
         self.exit_reason = self.exit_reason.strip()
         self.notes = self.notes.strip()
@@ -574,15 +734,13 @@ class ServiceEnrollment(ValidatedModel):
             and self.end_date <= self.start_date
             and not (self.legacy_source_id and self.end_date == self.start_date)
         ):
-            errors["end_date"] = _("End date must be later than start date.")
+            errors["end_date"] = _("End date must be later than enrollment date.")
         if (
             self.first_service_date
             and self.start_date
             and self.first_service_date < self.start_date
         ):
-            errors["first_service_date"] = _(
-                "First service date cannot be before enrollment start date."
-            )
+            errors["first_service_date"] = _("First service date cannot be before enrollment date.")
         if self.prior_enrollment_id:
             prior = self.prior_enrollment
             if prior.pk == self.pk:
@@ -656,7 +814,7 @@ class EnrollmentStateEvent(ValidatedModel):
         indexes = [models.Index(fields=["enrollment", "effective_date"])]
 
     def __str__(self) -> str:
-        return f"{self.enrollment.episode_code} | {self.get_kind_display()}"
+        return f"{self.enrollment} | {self.get_kind_display()}"
 
     def clean(self) -> None:
         self.reason = self.reason.strip()
@@ -699,7 +857,7 @@ class EnrollmentCenterPlacement(ValidatedModel):
         ]
 
     def __str__(self) -> str:
-        return f"{self.enrollment.episode_code} at {self.center}"
+        return f"{self.enrollment} at {self.center}"
 
     def clean(self) -> None:
         self.transfer_reason = self.transfer_reason.strip()
@@ -740,6 +898,22 @@ class EnrollmentCenterPlacement(ValidatedModel):
             raise ValidationError(errors)
 
 
+class EnrollmentHistoryQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        end = kwargs.get("valid_to")
+        if set(kwargs) - {"valid_to", "updated_at"} or end is None:
+            raise ValidationError(_("Enrollment assignments are preserved as read-only history."))
+        if self.filter(valid_to__lt=end).exists() or self.filter(valid_from__gt=end).exists():
+            raise ValidationError(_("Historical assignment intervals may only be shortened."))
+        return super().update(**kwargs)
+
+    def bulk_update(self, *args, **kwargs):
+        raise ValidationError(_("Enrollment assignments are preserved as read-only history."))
+
+    def delete(self):
+        raise ValidationError(_("Enrollment assignments are preserved as read-only history."))
+
+
 class EnrollmentSpecialistAssignment(ValidatedModel):
     class Role(models.TextChoices):
         PRIMARY = "primary", _("Primary")
@@ -758,6 +932,8 @@ class EnrollmentSpecialistAssignment(ValidatedModel):
     valid_to = models.DateField(null=True, blank=True, db_index=True)
     legacy_dates_incomplete = models.BooleanField(default=False, editable=False)
 
+    objects = EnrollmentHistoryQuerySet.as_manager()
+
     class Meta:
         ordering = ["assignment_role", "specialist__staff_profile__user__last_name"]
         constraints = [
@@ -774,7 +950,7 @@ class EnrollmentSpecialistAssignment(ValidatedModel):
         ]
 
     def __str__(self) -> str:
-        return f"{self.specialist} | {self.enrollment.episode_code}"
+        return f"{self.specialist} | {self.enrollment}"
 
     def is_effective(self, on_date: date) -> bool:
         return (
@@ -796,6 +972,23 @@ class EnrollmentSpecialistAssignment(ValidatedModel):
 
     def clean(self) -> None:
         errors = {}
+        if not self._state.adding:
+            stored = type(self).objects.get(pk=self.pk)
+            if any(
+                getattr(self, field) != getattr(stored, field)
+                for field in (
+                    "enrollment_id",
+                    "specialist_id",
+                    "assignment_role",
+                    "valid_from",
+                    "legacy_dates_incomplete",
+                )
+            ):
+                errors["__all__"] = _("Enrollment assignments are preserved as read-only history.")
+            if self.valid_to != stored.valid_to and (
+                self.valid_to is None or (stored.valid_to and self.valid_to > stored.valid_to)
+            ):
+                errors["valid_to"] = _("Historical assignment intervals may only be shortened.")
         if self.valid_from is None and not self.legacy_dates_incomplete:
             errors["valid_from"] = _("Valid from is required for a new specialist assignment.")
         if (
@@ -825,6 +1018,122 @@ class EnrollmentSpecialistAssignment(ValidatedModel):
                 )
         if errors:
             raise ValidationError(errors)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError(_("Enrollment assignments are preserved as read-only history."))
+
+    def save(self, *args, **kwargs):
+        using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
+        with transaction.atomic(using=using):
+            Beneficiary.objects.using(using).select_for_update().get(
+                pk=self.enrollment.beneficiary_id
+            )
+            return super().save(*args, **kwargs)
+
+
+@receiver(pre_delete, sender=EnrollmentSpecialistAssignment)
+def preserve_enrollment_assignment_history(sender, instance, **kwargs):
+    raise models.ProtectedError(
+        _("Enrollment assignments are preserved as read-only history."), {instance}
+    )
+
+
+class StaffingHistoryQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        raise ValidationError(_("Staffing history must be changed through the staffing service."))
+
+    def bulk_create(self, *args, **kwargs):
+        raise ValidationError(_("Staffing history must be changed through the staffing service."))
+
+    def bulk_update(self, *args, **kwargs):
+        raise ValidationError(_("Staffing history must be changed through the staffing service."))
+
+    def delete(self):
+        raise ValidationError(_("Staffing history is preserved."))
+
+
+class BeneficiaryStaffingPeriod(ValidatedModel):
+    beneficiary = models.ForeignKey(
+        Beneficiary, on_delete=models.PROTECT, related_name="staffing_periods"
+    )
+    lead = models.ForeignKey(
+        SpecialistProfile,
+        on_delete=models.PROTECT,
+        related_name="lead_staffing_periods",
+        verbose_name=_("Lead specialist"),
+    )
+    helper = models.ForeignKey(
+        SpecialistProfile,
+        on_delete=models.PROTECT,
+        related_name="helper_staffing_periods",
+        null=True,
+        blank=True,
+        verbose_name=_("Helper specialist"),
+    )
+    valid_from = models.DateField(_("Effective from"))
+    valid_to = models.DateField(_("Effective until"), null=True, blank=True)
+    confirmed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        editable=False,
+        related_name="confirmed_beneficiary_staffing",
+    )
+    migration_backfill = models.BooleanField(default=False, editable=False)
+    objects = StaffingHistoryQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["valid_from", "created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(helper__isnull=True) | ~Q(lead=F("helper")),
+                name="staffing_different_people",
+            ),
+            models.CheckConstraint(
+                condition=Q(valid_to__isnull=True) | Q(valid_to__gt=F("valid_from")),
+                name="staffing_dates_ordered",
+            ),
+        ]
+
+    def clean(self):
+        from .staffing import validate_staffing_period
+
+        validate_staffing_period(self)
+
+    def save(self, *args, **kwargs):
+        using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
+        with transaction.atomic(using=using):
+            Beneficiary.objects.using(using).select_for_update().get(pk=self.beneficiary_id)
+            return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError(_("Staffing history is preserved."))
+
+
+class LegacyStaffingGrant(ValidatedModel):
+    """Frozen migration snapshot. New evidence never creates routine access."""
+
+    assignment = models.OneToOneField(
+        EnrollmentSpecialistAssignment,
+        on_delete=models.CASCADE,
+        related_name="transition_grant",
+    )
+    enrollment = models.ForeignKey(ServiceEnrollment, on_delete=models.PROTECT)
+    specialist = models.ForeignKey(SpecialistProfile, on_delete=models.PROTECT)
+    center = models.ForeignKey(Center, on_delete=models.PROTECT)
+    placement = models.ForeignKey(EnrollmentCenterPlacement, on_delete=models.PROTECT)
+    captured_on = models.DateField()
+    expires_on = models.DateField()
+    valid_from = models.DateField()
+    valid_to = models.DateField(null=True, blank=True)
+    objects = StaffingHistoryQuerySet.as_manager()
+
+    def save(self, *args, **kwargs):
+        raise ValidationError(_("Legacy staffing access is a read-only migration snapshot."))
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError(_("Legacy staffing access is a read-only migration snapshot."))
 
 
 class BeneficiaryDiagnosis(ValidatedModel):
@@ -1043,7 +1352,8 @@ class ParticipationFormat(models.TextChoices):
     GROUP = "group", _("Group")
 
 
-class EnrollmentServiceSchedule(ValidatedModel):
+class EnrollmentServiceSchedule(DatedCaseworkModel):
+    authorization_date_field = "schedule_month"
     enrollment = models.ForeignKey(
         ServiceEnrollment,
         on_delete=models.PROTECT,
@@ -1079,7 +1389,12 @@ class EnrollmentServiceSchedule(ValidatedModel):
     notes = models.TextField(blank=True)
 
     class Meta:
-        ordering = ["-schedule_month", "enrollment__episode_code", "activity__reporting_order"]
+        ordering = [
+            "-schedule_month",
+            "enrollment__beneficiary__beneficiary_code",
+            "enrollment_id",
+            "activity__reporting_order",
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=[
@@ -1110,7 +1425,7 @@ class EnrollmentServiceSchedule(ValidatedModel):
         ]
 
     def __str__(self) -> str:
-        return f"{self.enrollment.episode_code} | {self.schedule_month:%Y-%m} | {self.activity}"
+        return f"{self.enrollment} | {self.schedule_month:%Y-%m} | {self.activity}"
 
     def clean(self) -> None:
         self.notes = self.notes.strip()
@@ -1129,10 +1444,9 @@ class EnrollmentServiceSchedule(ValidatedModel):
                 errors["enrollment"] = _(
                     "Enrollment has no center placement in this schedule month."
                 )
-            has_specialist = self.enrollment.specialist_assignments.filter(
-                Q(valid_to__isnull=True) | Q(valid_to__gt=self.schedule_month),
-                valid_from__lte=self.schedule_month,
-            ).exists()
+            from .staffing import responsible_specialists
+
+            has_specialist = responsible_specialists(self.enrollment, self.schedule_month).exists()
             if not has_specialist:
                 errors["enrollment"] = _(
                     "The enrollment has no specialist assignment effective on the selected date."
@@ -1160,7 +1474,9 @@ class EnrollmentServiceSchedule(ValidatedModel):
             raise ValidationError(errors)
 
 
-class ServiceVisit(ValidatedModel):
+class ServiceVisit(DatedCaseworkModel):
+    authorization_date_field = "visit_date"
+
     class LegacyVisitType(models.TextChoices):
         CENTER = "center_visit", _("Center Visit")
         HOME = "home_visit", _("Home Visit")
@@ -1339,16 +1655,12 @@ class ServiceVisit(ValidatedModel):
         if self.activity_id and self.activity.code == "OTHER" and not self.notes:
             errors["notes"] = _("Notes are required when the activity is Other.")
         if self.enrollment_id and self.specialist_id and self.visit_date:
-            assigned = (
-                EnrollmentSpecialistAssignment.objects.filter(
-                    enrollment_id=self.enrollment_id,
-                    specialist_id=self.specialist_id,
-                )
-                .filter(
-                    Q(valid_to__isnull=True) | Q(valid_to__gt=self.visit_date),
-                    valid_from__lte=self.visit_date,
-                )
-                .exists()
+            from .staffing import specialist_responsible
+
+            assigned = specialist_responsible(
+                ServiceEnrollment.objects.get(pk=self.enrollment_id),
+                self.specialist_id,
+                self.visit_date,
             )
             if not assigned:
                 errors["specialist"] = _(
@@ -1887,7 +2199,9 @@ class AssessmentScoreBand(ValidatedModel):
         return super().delete(*args, **kwargs)
 
 
-class Assessment(ValidatedModel):
+class Assessment(DatedCaseworkModel):
+    authorization_date_field = "assessment_date"
+
     class AssessmentType(models.TextChoices):
         INITIAL = "initial", _("Initial")
         REPEATED = "repeated", _("Repeated")
@@ -2048,16 +2362,12 @@ class Assessment(ValidatedModel):
                 )
             self.center_id = self.beneficiary.center_id
         if self.enrollment_id and self.specialist_id and self.assessment_date:
-            assigned = (
-                EnrollmentSpecialistAssignment.objects.filter(
-                    enrollment_id=self.enrollment_id,
-                    specialist_id=self.specialist_id,
-                )
-                .filter(
-                    Q(valid_to__isnull=True) | Q(valid_to__gt=self.assessment_date),
-                    valid_from__lte=self.assessment_date,
-                )
-                .exists()
+            from .staffing import specialist_responsible
+
+            assigned = specialist_responsible(
+                ServiceEnrollment.objects.get(pk=self.enrollment_id),
+                self.specialist_id,
+                self.assessment_date,
             )
             if not assigned:
                 raise ValidationError(
@@ -2434,7 +2744,8 @@ class AssessmentResponse(ValidatedModel):
         return super().delete(*args, **kwargs)
 
 
-class AssessmentResponsibleSpecialist(ValidatedModel):
+class AssessmentResponsibleSpecialist(DatedCaseworkModel):
+    authorization_date_field = "assessment_date"
     assessment = models.ForeignKey(
         Assessment,
         on_delete=models.CASCADE,
@@ -2462,14 +2773,12 @@ class AssessmentResponsibleSpecialist(ValidatedModel):
             raise ValidationError(
                 {"assessment": _("Completed assessment responsibility is immutable.")}
             )
-        assigned = (
-            EnrollmentSpecialistAssignment.objects.filter(
-                enrollment_id=self.assessment.enrollment_id,
-                specialist_id=self.specialist_id,
-                valid_from__lte=self.assessment.assessment_date,
-            )
-            .filter(Q(valid_to__isnull=True) | Q(valid_to__gt=self.assessment.assessment_date))
-            .exists()
+        from .staffing import specialist_responsible
+
+        assigned = specialist_responsible(
+            ServiceEnrollment.objects.get(pk=self.assessment.enrollment_id),
+            self.specialist_id,
+            self.assessment.assessment_date,
         )
         if not assigned:
             raise ValidationError(
@@ -2580,18 +2889,17 @@ def protect_assessment_responsibility(sender, instance, action, reverse, pk_set,
     else:
         assessments = Assessment.objects.filter(pk=instance.pk)
     for assessment in assessments:
+        Beneficiary.objects.select_for_update().get(pk=assessment.beneficiary_id)
         if assessment.status != Assessment.Status.DRAFT:
             raise ValidationError(_("Completed assessment responsibility is immutable."))
         if action == "pre_add":
             specialist_ids = {instance.pk} if reverse else pk_set
+            from .staffing import responsible_specialists
+
             assigned_ids = set(
-                EnrollmentSpecialistAssignment.objects.filter(
-                    enrollment_id=assessment.enrollment_id,
-                    specialist_id__in=specialist_ids,
-                    valid_from__lte=assessment.assessment_date,
-                )
-                .filter(Q(valid_to__isnull=True) | Q(valid_to__gt=assessment.assessment_date))
-                .values_list("specialist_id", flat=True)
+                responsible_specialists(assessment.enrollment, assessment.assessment_date)
+                .filter(pk__in=specialist_ids)
+                .values_list("pk", flat=True)
             )
             if assigned_ids != set(specialist_ids):
                 raise ValidationError(
@@ -2642,7 +2950,9 @@ class GoalCategory(EffectiveDatedCatalogModel):
         )
 
 
-class IndividualPlan(ValidatedModel):
+class IndividualPlan(DatedCaseworkModel):
+    authorization_date_field = "plan_start_date"
+
     class Status(models.TextChoices):
         DRAFT = "draft", _("Draft")
         ACTIVE = "active", _("Active")
@@ -2741,16 +3051,12 @@ class IndividualPlan(ValidatedModel):
                 )
             self.center_id = self.beneficiary.center_id
         if self.enrollment_id and self.specialist_id and self.plan_start_date:
-            assigned = (
-                EnrollmentSpecialistAssignment.objects.filter(
-                    enrollment_id=self.enrollment_id,
-                    specialist_id=self.specialist_id,
-                )
-                .filter(
-                    Q(valid_to__isnull=True) | Q(valid_to__gt=self.plan_start_date),
-                    valid_from__lte=self.plan_start_date,
-                )
-                .exists()
+            from .staffing import specialist_responsible
+
+            assigned = specialist_responsible(
+                ServiceEnrollment.objects.get(pk=self.enrollment_id),
+                self.specialist_id,
+                self.plan_start_date,
             )
             if not assigned:
                 raise ValidationError(
@@ -2834,7 +3140,9 @@ class IndividualPlan(ValidatedModel):
         return self.goals.values("status").annotate(total=models.Count("id")).order_by()
 
 
-class IndividualPlanGoal(ValidatedModel):
+class IndividualPlanGoal(DatedCaseworkModel):
+    authorization_date_field = "plan_start_date"
+
     class Status(models.TextChoices):
         PLANNED = "planned", _("Planned")
         IN_PROGRESS = "in_progress", _("In Progress")
@@ -2922,14 +3230,12 @@ class IndividualPlanGoal(ValidatedModel):
             errors["target_date"] = _("Target date cannot be before the plan start date.")
         if self.responsible_specialist_id and self.plan_id:
             on_date = self.target_date or self.plan.plan_start_date
-            assigned = (
-                EnrollmentSpecialistAssignment.objects.filter(
-                    enrollment_id=self.plan.enrollment_id,
-                    specialist_id=self.responsible_specialist_id,
-                    valid_from__lte=on_date,
-                )
-                .filter(Q(valid_to__isnull=True) | Q(valid_to__gt=on_date))
-                .exists()
+            from .staffing import specialist_responsible
+
+            assigned = specialist_responsible(
+                ServiceEnrollment.objects.get(pk=self.plan.enrollment_id),
+                self.responsible_specialist_id,
+                on_date,
             )
             if not assigned:
                 errors["responsible_specialist"] = _(
@@ -3033,7 +3339,8 @@ class GoalStatusTransition(ValidatedModel):
         raise TypeError("Goal status history is append-only.")
 
 
-class GoalOutcomeMeasurement(ValidatedModel):
+class GoalOutcomeMeasurement(DatedCaseworkModel):
+    authorization_date_field = "measurement_date"
     goal = models.ForeignKey(
         IndividualPlanGoal,
         on_delete=models.CASCADE,
@@ -3085,7 +3392,9 @@ class GoalOutcomeMeasurement(ValidatedModel):
         raise TypeError("Goal outcome measurements are append-only.")
 
 
-class IndividualPlanReview(ValidatedModel):
+class IndividualPlanReview(DatedCaseworkModel):
+    authorization_date_field = "review_date"
+
     class ConditionOutcome(models.TextChoices):
         IMPROVED = "improved", _("Improved")
         WORSENED = "worsened", _("Worsened")
@@ -3210,6 +3519,7 @@ class AttachmentParentType(models.TextChoices):
     ASSESSMENT = "assessment", _("Assessment")
     INDIVIDUAL_PLAN = "individual_plan", _("Individual Plan")
     STAFF_PROFILE = "staff_profile", _("Staff Profile")
+    SIGNED_CONSENT = "signed_consent", _("Signed consent")
 
 
 ATTACHMENT_CONTENT_TYPES = {
@@ -3259,6 +3569,13 @@ class PrivateAttachment(ValidatedModel):
             models.Index(fields=["parent_type", "parent_id"]),
             models.Index(fields=["center", "created_at"]),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["parent_id", "original_filename"],
+                condition=Q(parent_type=AttachmentParentType.SIGNED_CONSENT),
+                name="unique_signed_consent_file",
+            )
+        ]
 
     def __str__(self) -> str:
         return self.original_filename
@@ -3273,6 +3590,13 @@ class PrivateAttachment(ValidatedModel):
         return model.objects.filter(pk=self.parent_id).first()
 
     def clean(self) -> None:
+        if self.parent_type == AttachmentParentType.SIGNED_CONSENT and not self._state.adding:
+            raise ValidationError(_("Signed consent evidence cannot be changed."))
+        if self.parent_type == AttachmentParentType.SIGNED_CONSENT and (
+            self.original_filename not in {"signature.png", "signed-consent.txt"}
+            or Path(self.file.name).suffix != Path(self.original_filename).suffix
+        ):
+            raise ValidationError(_("Select a valid signed consent evidence file."))
         self.original_filename = Path(self.original_filename.replace("\\", "/")).name[:255]
         parent = self.parent_object
         if not parent:
@@ -3326,3 +3650,35 @@ class PrivateAttachment(ValidatedModel):
             self.size = self.file.size
             self.file.seek(0)
         return super().save(*args, **kwargs)
+
+
+class SignedConsent(ValidatedModel):
+    """Restricted, append-only execution evidence, separate from current intake answers."""
+
+    beneficiary = models.ForeignKey(
+        Beneficiary, on_delete=models.PROTECT, related_name="signed_consents"
+    )
+    center = models.ForeignKey(Center, on_delete=models.PROTECT)
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    signed_at = models.DateTimeField(default=timezone.now, editable=False)
+    language = models.CharField(max_length=2, choices=(("en", "English"), ("ka", "ქართული")))
+    template_version = models.CharField(max_length=48)
+    submission_id = models.UUIDField(unique=True, editable=False)
+    snapshot = models.JSONField()
+
+    class Meta:
+        ordering = ["-signed_at", "-id"]
+
+    def clean(self):
+        if not self._state.adding:
+            raise ValidationError(_("Signed consent evidence cannot be changed."))
+
+    def delete(self, *args, **kwargs):
+        raise TypeError("Signed consent evidence cannot be deleted.")
+
+
+@receiver(pre_delete, sender=SignedConsent)
+@receiver(pre_delete, sender=PrivateAttachment)
+def preserve_signed_consent_evidence(sender, instance, **kwargs):
+    if sender is SignedConsent or instance.parent_type == AttachmentParentType.SIGNED_CONSENT:
+        raise TypeError("Signed consent evidence cannot be deleted.")

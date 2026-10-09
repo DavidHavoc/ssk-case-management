@@ -106,7 +106,8 @@ class DataQualityExceptionReportRow:
     severity: str
     record_type: str
     beneficiary_code: str
-    enrollment_code: str
+    enrollment_date: date | None
+    enrollment_label: str
     service: object | str
     due_date: date | None
     url: str
@@ -459,7 +460,8 @@ def data_quality_exception_rows(
                 severity=severity,
                 record_type=str(record_type),
                 beneficiary_code=enrollment.beneficiary.beneficiary_code,
-                enrollment_code=enrollment.episode_code,
+                enrollment_date=enrollment.start_date,
+                enrollment_label=str(enrollment),
                 service=enrollment.service,
                 due_date=due_date,
                 url=url
@@ -478,6 +480,31 @@ def data_quality_exception_rows(
                 center=center,
             ).values_list("parent_id", flat=True)
         )
+    from django.db.models import Min, Q
+
+    from apps.casework.models import BeneficiaryStaffingPeriod, LegacyStaffingGrant
+    from apps.casework.staffing import eligible_specialists
+
+    staffing_by_person = {}
+    bridge_deadlines = {}
+    eligible_ids = set()
+    if include_restricted_operations:
+        eligible_ids = set(eligible_specialists(center).values_list("pk", flat=True))
+        staffing_by_person = {
+            row.beneficiary_id: row
+            for row in BeneficiaryStaffingPeriod.objects.filter(
+                beneficiary_id__in=beneficiary_ids,
+                valid_from__lte=as_of,
+            ).filter(Q(valid_to__isnull=True) | Q(valid_to__gt=as_of))
+        }
+        bridge_deadlines = {
+            row["enrollment__beneficiary_id"]: row["deadline"]
+            for row in LegacyStaffingGrant.objects.filter(
+                enrollment__beneficiary_id__in=beneficiary_ids
+            )
+            .values("enrollment__beneficiary_id")
+            .annotate(deadline=Min("expires_on"))
+        }
     checked_beneficiaries = set()
     for enrollment in enrollment_rows:
         detail_url = (
@@ -506,6 +533,22 @@ def data_quality_exception_rows(
         if not include_restricted_operations or beneficiary.pk in checked_beneficiaries:
             continue
         checked_beneficiaries.add(beneficiary.pk)
+        pair = staffing_by_person.get(beneficiary.pk)
+        needs_review = (
+            not pair
+            or pair.lead_id not in eligible_ids
+            or (pair.helper_id is not None and pair.helper_id not in eligible_ids)
+        )
+        if not enrollment.is_terminal and needs_review:
+            add(
+                "staffing_review",
+                _("Specialist assignment needs review"),
+                "warning",
+                _("Beneficiary"),
+                enrollment,
+                due_date=bridge_deadlines.get(beneficiary.pk),
+                url=reverse("beneficiary_staffing_update", kwargs={"pk": beneficiary.pk}),
+            )
         if not beneficiary.birth_date:
             add(
                 "birth_date",
@@ -710,7 +753,7 @@ def report_headers(report_type: str) -> list[str]:
             _("Month"),
             _("Beneficiary code"),
             _("Beneficiary"),
-            _("Enrollment code"),
+            _("Enrollment date"),
             _("Service"),
             _("Activity"),
             _("Delivery location"),
@@ -727,7 +770,7 @@ def report_headers(report_type: str) -> list[str]:
         ],
         "visit_exceptions": [
             _("Beneficiary code"),
-            _("Enrollment code"),
+            _("Enrollment date"),
             _("Service"),
             _("Specialist"),
             _("Visit date"),
@@ -739,7 +782,7 @@ def report_headers(report_type: str) -> list[str]:
         ],
         "assessment_progress": [
             _("Beneficiary code"),
-            _("Enrollment code"),
+            _("Enrollment date"),
             _("Service"),
             _("Assessment date"),
             _("Type"),
@@ -762,7 +805,7 @@ def report_headers(report_type: str) -> list[str]:
         "beneficiary_outcomes": [
             _("Beneficiary code"),
             _("Beneficiary"),
-            _("Enrollment code"),
+            _("Enrollment date"),
             _("Service"),
             _("Plan status"),
             _("Child condition outcome"),
@@ -784,7 +827,7 @@ def report_headers(report_type: str) -> list[str]:
             _("Issue"),
             _("Record type"),
             _("Beneficiary code"),
-            _("Enrollment code"),
+            _("Enrollment date"),
             _("Service"),
             _("Due date"),
         ],
@@ -797,18 +840,17 @@ def report_headers(report_type: str) -> list[str]:
             _("Municipality"),
         ],
         "enrollments": [
-            _("Enrollment code"),
-            _("Person code"),
+            _("Beneficiary code"),
             _("Beneficiary"),
             _("Service"),
             _("Status"),
-            _("Start date"),
+            _("Enrollment date"),
             _("End date"),
         ],
         "visits": [
             _("Beneficiary code"),
             _("Beneficiary"),
-            _("Enrollment code"),
+            _("Enrollment date"),
             _("Service"),
             _("Specialist"),
             _("Visit date"),
@@ -824,7 +866,7 @@ def report_headers(report_type: str) -> list[str]:
         "assessments": [
             _("Beneficiary code"),
             _("Beneficiary"),
-            _("Enrollment code"),
+            _("Enrollment date"),
             _("Service"),
             _("Specialist"),
             _("Date"),
@@ -838,7 +880,7 @@ def report_headers(report_type: str) -> list[str]:
         "plans": [
             _("Beneficiary code"),
             _("Beneficiary"),
-            _("Enrollment code"),
+            _("Enrollment date"),
             _("Service"),
             _("Specialist"),
             _("Status"),
@@ -849,7 +891,7 @@ def report_headers(report_type: str) -> list[str]:
         "plan_outcomes": [
             _("Beneficiary code"),
             _("Beneficiary"),
-            _("Enrollment code"),
+            _("Enrollment date"),
             _("Service"),
             _("Plan version"),
             _("Plan status"),
@@ -894,7 +936,7 @@ def report_rows(report_type: str, source) -> Iterable[list[str]]:
                 row.schedule_month.strftime("%Y-%m"),
                 row.beneficiary.beneficiary_code,
                 row.beneficiary.full_name,
-                row.enrollment.episode_code,
+                row.enrollment.start_date,
                 row.enrollment.service,
                 row.activity,
                 row.delivery_location,
@@ -913,7 +955,7 @@ def report_rows(report_type: str, source) -> Iterable[list[str]]:
             visit = row.visit
             values = [
                 visit.beneficiary.beneficiary_code,
-                visit.enrollment.episode_code,
+                visit.enrollment.start_date,
                 visit.enrollment.service,
                 visit.specialist,
                 visit.visit_date,
@@ -927,7 +969,7 @@ def report_rows(report_type: str, source) -> Iterable[list[str]]:
             assessment = row.assessment
             values = [
                 assessment.beneficiary.beneficiary_code,
-                assessment.enrollment.episode_code,
+                assessment.enrollment.start_date,
                 assessment.enrollment.service,
                 assessment.assessment_date,
                 assessment.get_assessment_type_display(),
@@ -952,7 +994,7 @@ def report_rows(report_type: str, source) -> Iterable[list[str]]:
             values = [
                 row.plan.beneficiary.beneficiary_code,
                 row.plan.beneficiary.full_name,
-                row.plan.enrollment.episode_code,
+                row.plan.enrollment.start_date,
                 row.plan.enrollment.service,
                 row.plan.get_status_display(),
                 row.condition_outcome,
@@ -976,7 +1018,7 @@ def report_rows(report_type: str, source) -> Iterable[list[str]]:
                 row.issue,
                 row.record_type,
                 row.beneficiary_code,
-                row.enrollment_code,
+                row.enrollment_date,
                 row.service,
                 row.due_date,
             ]
@@ -984,7 +1026,7 @@ def report_rows(report_type: str, source) -> Iterable[list[str]]:
             values = [
                 row.plan.beneficiary.beneficiary_code,
                 row.plan.beneficiary.full_name,
-                row.plan.enrollment.episode_code,
+                row.plan.enrollment.start_date,
                 row.plan.enrollment.service,
                 row.plan.version_number,
                 row.plan.get_status_display(),
@@ -1008,7 +1050,6 @@ def report_rows(report_type: str, source) -> Iterable[list[str]]:
             ]
         elif report_type == "enrollments":
             values = [
-                row.episode_code,
                 row.beneficiary.beneficiary_code,
                 row.beneficiary.full_name,
                 row.service,
@@ -1020,7 +1061,7 @@ def report_rows(report_type: str, source) -> Iterable[list[str]]:
             values = [
                 row.beneficiary.beneficiary_code,
                 row.beneficiary.full_name,
-                row.enrollment.episode_code,
+                row.enrollment.start_date,
                 row.enrollment.service,
                 str(row.specialist),
                 row.visit_date,
@@ -1037,7 +1078,7 @@ def report_rows(report_type: str, source) -> Iterable[list[str]]:
             values = [
                 row.beneficiary.beneficiary_code,
                 row.beneficiary.full_name,
-                row.enrollment.episode_code,
+                row.enrollment.start_date,
                 row.enrollment.service,
                 str(row.specialist),
                 row.assessment_date,
@@ -1052,7 +1093,7 @@ def report_rows(report_type: str, source) -> Iterable[list[str]]:
             values = [
                 row.beneficiary.beneficiary_code,
                 row.beneficiary.full_name,
-                row.enrollment.episode_code,
+                row.enrollment.start_date,
                 row.enrollment.service,
                 str(row.specialist),
                 row.get_status_display(),

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% translate "Sign consent" %}{% endblock %}
+{% block content %}
+<div class="page-header"><div><p class="eyebrow">{{ beneficiary.beneficiary_code }}</p><h1>{% translate "Sign consent" %}</h1><p>{{ beneficiary.full_name }}</p></div><a class="button button-secondary" href="{% url 'consent_print' beneficiary.pk %}">{% translate "Printable alternative" %}</a></div>
+<div class="consent-review section-block">
+  <h2>{{ document.labels.title }}</h2>
+  <p>{{ document.labels.version }}: <strong>{{ document.template_version }}</strong> · {{ document.labels.language }}: {{ document.language }}</p>
+  {% include "casework/includes/consent_wording.html" %}
+  <a href="{% url 'beneficiary_intake_update' beneficiary.pk %}">{% translate "Edit recorded decisions before signing" %}</a>
+</div>
+<form method="post" class="consent-sign-form section-block" id="consent-sign-form">
+  {% csrf_token %}
+  {{ form.review_token }}{{ form.signature_data }}
+  {% if form.errors %}<div class="alert alert-error" role="alert"><h2>{% translate "Please correct the errors below." %}</h2>{{ form.non_field_errors }}{% for field in form %}{% if field.errors %}<p>{{ field.label }}: {{ field.errors|striptags }}</p>{% endif %}{% endfor %}<p>{% translate "Review the document again and draw a fresh signature." %}</p></div>{% endif %}
+  <h2>{% translate "Signer and signature" %}</h2>
+  <p>{{ document.authority_notice }}</p>
+  <div class="form-grid">
+    {% for field in form.visible_fields %}{% if field.name != 'reviewed' %}<div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<p class="help-text">{{ field.help_text }}</p>{% endif %}{{ field.errors }}</div>{% endif %}{% endfor %}
+  </div>
+  <p id="signature-instructions">{% translate "Use a mouse, finger, or stylus to draw inside the box. Clear or redraw before saving. Nothing is saved until you select Save signed consent. For keyboard or paper signing, use the printable alternative." %}</p>
+  <canvas id="signature-pad" class="signature-pad" width="1000" height="360" role="img" aria-label="{% translate 'Handwritten signature pad' %}" aria-describedby="signature-instructions"></canvas>
+  <p id="signature-status" role="status" data-empty="{% translate 'No signature drawn.' %}" data-drawn="{% translate 'Signature drawn. Review before saving.' %}">{% translate "No signature drawn." %}</p>
+  <div class="actions"><button type="button" class="button button-secondary" id="signature-clear">{% translate "Clear signature" %}</button><button type="button" class="button button-quiet" id="signature-redraw">{% translate "Redraw signature" %}</button></div>
+  <p class="signature-confirmation">{{ form.reviewed }} <label for="{{ form.reviewed.id_for_label }}">{{ form.reviewed.label }}</label></p>
+  <noscript><p>{% translate "JavaScript is required for the signature pad. Use the printable alternative to sign on paper." %}</p></noscript>
+  <div class="form-actions"><button type="submit" class="button button-primary" id="signature-save" disabled>{% translate "Save signed consent" %}</button><a class="button button-quiet" href="{% url 'beneficiary_detail' beneficiary.pk %}">{% translate "Cancel" %}</a></div>
+</form>
+<script src="{% static 'js/consent-signature.js' %}" defer></script>
+{% endblock %}

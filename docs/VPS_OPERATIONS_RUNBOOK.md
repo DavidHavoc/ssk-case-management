@@ -8,7 +8,12 @@ The target deployment is a small organization with approximately 10 employees. T
 application load is low, but the confidentiality and recoverability requirements are high
 because the system can hold beneficiary and case information.
 
-## Current staged deployment record
+## Historical deployment record, superseded
+
+This September 4 snapshot is historical. Hosting readiness was subsequently confirmed by the
+owner, and the approved imports and October 8 release are recorded in `AGENTS.md`. Do not
+treat the staging restrictions, database counts, or missing-control claims below as current
+verified facts. This local review did not access or reverify the hosted system.
 
 Last verified on 2026-09-04:
 
@@ -23,9 +28,9 @@ Last verified on 2026-09-04:
 - Configured TEST offerings: `HOME-CARE`, `FOOD-DELIVERY`, `EARLY-INTERVENTION`, and
   `FUTURE-GENERAL`
 
-This remains a staged deployment. It is not approved for real users or beneficiary data.
-Encrypted off-host backups, backup monitoring, a separate-host restore, external uptime and
-alert monitoring, and provider firewall verification remain incomplete.
+At that historical date this was a staged deployment, with real-data use not yet approved and
+several operational controls unverified. Those statements were superseded by owner confirmation
+and the later records in `AGENTS.md`; current external controls were not reverified here.
 
 This is technical guidance, not legal advice. The organization remains responsible for its
 lawful basis, privacy notices, processor agreements, retention rules, incident notification,
@@ -745,7 +750,7 @@ anonymous users cannot manage offerings. Creation and updates are recorded in th
 audit log.
 
 After configuration, verify that the offering appears in the beneficiary enrollment form. An
-enrollment start date must fall inside the active offering period. A beneficiary needs an active,
+enrollment date must fall inside the active offering period. A beneficiary needs an active,
 effective enrollment before visit, schedule, assessment, or plan creation actions are available.
 
 ## 13. Verify the production deployment

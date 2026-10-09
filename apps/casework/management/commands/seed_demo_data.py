@@ -136,7 +136,6 @@ class Command(BaseCommand):
                 beneficiary_multi,
                 specialist_multi,
                 offerings[(alpha.pk, "FOOD-DELIVERY")],
-                "BEN-DEMO-0002-E02",
             )
             beneficiary_b, enrollment_b = self._beneficiary(
                 "BEN-DEMO-0003",
@@ -276,8 +275,17 @@ class Command(BaseCommand):
             beneficiary,
             specialist,
             offering,
-            f"{code}-E01",
         )
+        from apps.casework.services import replace_beneficiary_staffing
+
+        if not beneficiary.staffing_periods.exists():
+            replace_beneficiary_staffing(
+                beneficiary=beneficiary,
+                lead=specialist,
+                effective_date=date.today(),
+                center=center,
+                actor=User.objects.get(username="synthetic.manager@example.invalid"),
+            )
         return beneficiary, enrollment
 
     def _enrollment(
@@ -285,14 +293,13 @@ class Command(BaseCommand):
         beneficiary: Beneficiary,
         specialist: SpecialistProfile,
         offering: CenterServiceOffering,
-        episode_code: str,
     ) -> ServiceEnrollment:
         start_date = date.today() - timedelta(days=60)
         enrollment, _ = ServiceEnrollment.objects.update_or_create(
-            episode_code=episode_code,
+            beneficiary=beneficiary,
+            service=offering.service,
+            prior_enrollment=None,
             defaults={
-                "beneficiary": beneficiary,
-                "service": offering.service,
                 "status": ServiceEnrollment.Status.ACTIVE,
                 "start_date": start_date,
                 "notes": "Synthetic service enrollment.",

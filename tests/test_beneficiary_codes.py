@@ -5,6 +5,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db import close_old_connections, connection, transaction
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.casework.forms import BeneficiaryForm
 from apps.casework.models import Beneficiary, BeneficiaryCodeSequence
@@ -99,7 +100,9 @@ def test_form_assigns_code_and_ignores_submitted_code(center_a, coordinator_a):
     assert form.save().beneficiary_code == f"{center_a.code}_B001"
 
 
-def test_create_view_does_not_require_a_beneficiary_code(client, coordinator_a, center_a):
+def test_create_view_does_not_require_a_beneficiary_code(
+    client, coordinator_a, center_a, specialist_a
+):
     client.force_login(coordinator_a)
     set_active_center(client, center_a)
     offering = center_a.service_offerings.get(service__code="HOME-CARE")
@@ -108,13 +111,10 @@ def test_create_view_does_not_require_a_beneficiary_code(client, coordinator_a, 
         {
             "full_name": "Synthetic view beneficiary",
             "enrollment-offering": str(offering.pk),
-            "enrollment-episode_code": "SYNTHETIC-AUTO-E01",
             "enrollment-status": "active",
             "enrollment-start_date": "2026-10-01",
-            "assignments-TOTAL_FORMS": "0",
-            "assignments-INITIAL_FORMS": "0",
-            "assignments-MIN_NUM_FORMS": "0",
-            "assignments-MAX_NUM_FORMS": "1000",
+            "staffing-lead": str(specialist_a.pk),
+            "staffing-effective_date": timezone.localdate().isoformat(),
         },
     )
     assert response.status_code == 302
@@ -135,7 +135,7 @@ def test_previous_code_search_keeps_center_authorization(
 
 
 def test_legacy_creation_requests_without_codes_get_distinct_enrollments(
-    client, coordinator_a, center_a
+    client, coordinator_a, center_a, specialist_a
 ):
     client.force_login(coordinator_a)
     set_active_center(client, center_a)
@@ -146,15 +146,14 @@ def test_legacy_creation_requests_without_codes_get_distinct_enrollments(
                 "full_name": f"Synthetic legacy intake {number}",
                 "service_type": "other",
                 "service_status": "active",
-                "assignments-TOTAL_FORMS": "0",
-                "assignments-INITIAL_FORMS": "0",
-                "assignments-MIN_NUM_FORMS": "0",
-                "assignments-MAX_NUM_FORMS": "1000",
+                "enrollment_date": "01/01/2026",
+                "staffing-lead": str(specialist_a.pk),
+                "staffing-effective_date": timezone.localdate().isoformat(),
             },
         )
         assert response.status_code == 302
         person = Beneficiary.objects.get(beneficiary_code=f"{center_a.code}_B{number:03d}")
-        assert person.enrollments.get().episode_code == f"{person.beneficiary_code}-E01"
+        assert person.enrollments.get().episode_code is None
 
 
 @pytest.mark.django_db(transaction=True)

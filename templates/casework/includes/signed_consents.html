@@ -1,0 +1,8 @@
+{% load i18n %}
+{% if can_sign_consent %}
+<section class="section-block workspace-section" aria-labelledby="signed-consents-heading">
+  <div class="section-heading"><h2 id="signed-consents-heading">{% translate "Signed consents" %}</h2><a class="button button-secondary" href="{% url 'consent_sign' beneficiary.pk %}">{% translate "Sign consent" %}</a></div>
+  {% if consent_decisions_differ %}<p class="alert alert-warning">{% translate "Current recorded decisions differ from the latest signed consent. Earlier signed documents are preserved." %}</p>{% endif %}
+  {% if signed_consents %}<ul>{% for consent in signed_consents %}<li><a href="{% url 'consent_document' consent.pk %}">{{ consent.template_version }} · {{ consent.signed_at|date:'SHORT_DATETIME_FORMAT' }} · {{ consent.language }}</a> <a class="button button-quiet button-small" href="{% url 'consent_download' consent.pk %}">{% translate "Download signed consent (HTML)" %}</a></li>{% endfor %}</ul>{% else %}<p>{% translate "No signed consent recorded. Ordinary casework remains available." %}</p>{% endif %}
+</section>
+{% endif %}

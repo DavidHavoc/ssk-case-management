@@ -4,6 +4,13 @@ All domain records use UUID primary keys and created and updated timestamps unle
 
 ## Identity and centers
 
+The beneficiary code is the only operational case code, shared in displays across that
+person's enrollments. Migration `0015` preserves old `episode_code` values as nullable,
+non-editable legacy identifiers; new enrollments leave them unset. Enrollment date means
+`ServiceEnrollment.start_date`, independent of first delivered service and any person-level
+legacy registration date. See [the foundation](BENEFICIARY_ENROLLMENT_FOUNDATION.md) for the
+preservation and guarded rollback rules.
+
 | Entity | Important fields and relationships |
 |---|---|
 | User | Django username, email, password hash, required-password-change state, preferred language, Group roles |
@@ -15,6 +22,13 @@ All domain records use UUID primary keys and created and updated timestamps unle
 Constraints prevent duplicate specialist and center pairs and more than one primary center per specialist.
 
 ## Case records
+
+The person record stores optional `emergency_contact_name` and
+`emergency_contact_phone` in its restricted information. The phone uses the existing
+international-capable phone validator. Migration `0014` adds both fields with empty
+values for existing people. It preserves guardian values, beneficiary codes, and
+center counters. The guardian/parent or supporter wording retains the original
+`guardian_parent` field. No contact values are inferred from imported source evidence.
 
 Beneficiary codes are assigned automatically as `<CENTER-CODE>_B001`, with a separate
 persistent sequence for each center. Numbers have at least three digits and expand after
@@ -36,9 +50,11 @@ Take a restricted database backup before applying these migrations to the hosted
 | Beneficiary Code Sequence | One persistent counter per Center, serialized with a center row lock |
 | Service Definition | Stable code, service family, effective dates, overlap policy, active state |
 | Center Service Offering | Center, Service Definition, effective dates, enabled state |
-| Service Enrollment | Beneficiary, Service Definition, episode code, status, dates, prior enrollment, preserved legacy source values |
+| Service Enrollment | UUID primary key, Beneficiary, Service Definition, optional read-only legacy identifier, status, enrollment date (`start_date`), first service date, prior enrollment, preserved source values |
 | Enrollment Center Placement | Service Enrollment, Center, effective dates |
-| Enrollment Specialist Assignment | Service Enrollment, Specialist Profile, role, effective dates |
+| Beneficiary Staffing Period | Beneficiary, required lead, optional distinct helper, non-overlapping effective dates, confirmer, migration provenance; operational staffing source of truth |
+| Legacy Staffing Grant | Immutable snapshot of an already legitimate enrollment assignment, specialist, center, original placement, captured interval and deployment-day expiry (owner decision, 2026-10-09) |
+| Enrollment Specialist Assignment | Preserved enrollment-specific source and effective-dated role evidence; never an independently editable current team |
 | Enrollment State Event | Service Enrollment, lifecycle event, effective date, from and to states, actor, reason; transfer center history remains in placements |
 | Region and Municipality | Controlled Georgian geography with each Municipality assigned to one Region |
 | Diagnosis Definition and Beneficiary Diagnosis | Coded diagnosis catalog and effective-dated beneficiary classification with explicit specialist visibility |
@@ -124,3 +140,32 @@ Entries are ordered by activity date descending, record creation timestamp desce
 - Beneficiary plus date for case timelines
 - Parent type plus UUID for attachment lookup
 - Actor, Center, target, and timestamp for audit review
+
+## Optional beneficiary intake
+
+`BeneficiaryIntake` is an optional one-to-one record with 21 reported fields: 12 health,
+four social/support, four consent answers, and one initial care checklist. Five checklist groups
+store validated JSON lists of stable codes. Single-choice decisions store explicit text codes,
+with the empty string representing unanswered. Free text is preserved without trimming or
+translation. A schema-only migration, `0019_beneficiary_intake`, creates the intake and revision
+tables without filling existing beneficiary records or interpreting source evidence.
+
+`BeneficiaryIntakeRevision` retains actor, timestamps, and restricted before/after values for
+authorized field groups. It follows the existing casework correction evidence pattern, with
+append-only ordinary model saves/deletes. These values are excluded from audit metadata and
+routine report/list/export projections. Operational writes use the shared beneficiary row lock
+and recheck the persisted actor and enrollment scope. The intake checklist does not create
+coded diagnoses, formal plans, goals, enrollments, visits, or billable services.
+
+See [intake handoff](BENEFICIARY_INTAKE_HANDOFF.md) for the exact fields and limitations.
+
+## Signed company consent snapshots
+
+`SignedConsent` has UUID/timestamps, protected beneficiary and signing-center relations, protected
+staff recorder, UTC signing timestamp, exact language, document version, unique submission UUID,
+and a restricted JSON snapshot of wording, independent decisions, displayed beneficiary name/code,
+signer identity/capacity/relationship, and translated document labels. It has no mutable current
+consent flags. Its `signed_consent` private-attachment parent owns one normalized PNG and one stored
+HTML artifact. Conditional filename uniqueness prevents duplicate evidence files for a snapshot.
+Migration `0020` is additive; `0021` adds that conditional uniqueness; `0022` installs evidence
+guards and a reversal preflight. Existing records receive no fabricated signing evidence.

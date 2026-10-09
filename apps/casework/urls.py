@@ -1,8 +1,14 @@
 from django.urls import path
 
-from . import views
+from . import consent_views, views
 
 urlpatterns = [
+    path("beneficiaries/<uuid:pk>/consent/sign/", consent_views.consent_sign, name="consent_sign"),
+    path(
+        "beneficiaries/<uuid:pk>/consent/print/", consent_views.consent_print, name="consent_print"
+    ),
+    path("consents/<uuid:pk>/", consent_views.consent_document, name="consent_document"),
+    path("consents/<uuid:pk>/download/", consent_views.consent_download, name="consent_download"),
     path("my-beneficiaries/", views.specialist_workspace, name="specialist_workspace"),
     path("beneficiaries/", views.beneficiary_list, name="beneficiary_list"),
     path("beneficiaries/new/", views.beneficiary_create, name="beneficiary_create"),
@@ -11,6 +17,16 @@ urlpatterns = [
         "beneficiaries/<uuid:pk>/update/",
         views.beneficiary_update,
         name="beneficiary_update",
+    ),
+    path(
+        "beneficiaries/<uuid:pk>/intake/",
+        views.beneficiary_intake_update,
+        name="beneficiary_intake_update",
+    ),
+    path(
+        "beneficiaries/<uuid:pk>/staffing/",
+        views.beneficiary_staffing_update,
+        name="beneficiary_staffing_update",
     ),
     path("beneficiaries/<uuid:pk>/delete/", views.beneficiary_delete, name="beneficiary_delete"),
     path(

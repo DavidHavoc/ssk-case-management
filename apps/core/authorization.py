@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from django.core.exceptions import PermissionDenied
-from django.db.models import F, Prefetch, Q, QuerySet
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db.models import Exists, F, OuterRef, Prefetch, Q, QuerySet
 from django.http import Http404
 from django.utils import timezone
 
@@ -17,12 +17,17 @@ from apps.casework.models import (
     BeneficiaryDiagnosis,
     BeneficiarySocialStatus,
     EnrollmentServiceSchedule,
-    EnrollmentSpecialistAssignment,
     EnrollmentStateEvent,
     IndividualPlan,
     ServiceEnrollment,
     ServiceVisit,
     SpecialistMonthlyServiceSummary,
+)
+from apps.casework.staffing import (
+    eligible_specialists,
+    responsibility_expression,
+    responsibility_rows,
+    specialist_responsible,
 )
 from apps.centers.models import Center, SpecialistProfile, StaffProfile
 
@@ -45,7 +50,7 @@ def accessible_centers(user, *, active_only: bool = False) -> QuerySet[Center]:
         centers = centers.filter(is_active=True)
     if is_system_manager(user):
         return centers.order_by("name")
-    if not getattr(user, "is_authenticated", False):
+    if not getattr(user, "is_authenticated", False) or not getattr(user, "is_active", False):
         return centers.none()
     query = Q(pk__in=[])
     if is_coordinator(user):
@@ -54,6 +59,7 @@ def accessible_centers(user, *, active_only: bool = False) -> QuerySet[Center]:
         query |= Q(
             specialist_assignments__specialist__staff_profile__user=user,
             specialist_assignments__specialist__staff_profile__status=StaffProfile.Status.ACTIVE,
+            is_active=True,
         )
     return centers.filter(query).distinct().order_by("name")
 
@@ -62,7 +68,10 @@ def active_center_for_request(request, *, required: bool = True) -> Center | Non
     centers = accessible_centers(request.user, active_only=True)
     selected = request.session.get(ACTIVE_CENTER_SESSION_KEY)
     if selected:
-        center = centers.filter(pk=selected).first()
+        try:
+            center = get_authorized_object(centers, selected)
+        except Http404:
+            center = None
         if center:
             return center
         request.session.pop(ACTIVE_CENTER_SESSION_KEY, None)
@@ -161,14 +170,7 @@ def specialist_profile_for_user(user) -> SpecialistProfile | None:
 
 
 def specialists_for_center(center: Center) -> QuerySet[SpecialistProfile]:
-    return (
-        SpecialistProfile.objects.filter(
-            center_assignments__center=center,
-            staff_profile__status=StaffProfile.Status.ACTIVE,
-        )
-        .select_related("staff_profile", "staff_profile__user")
-        .distinct()
-    )
+    return eligible_specialists(center)
 
 
 def staff_contracts_for_user(user, center: Center | None = None) -> QuerySet[StaffProfile]:
@@ -230,12 +232,19 @@ def enrollments_for_user(
     if is_specialist(user):
         profile = specialist_profile_for_user(user)
         if profile:
-            assignment = Q(specialist_assignments__specialist=profile) & _effective_interval(
-                "specialist_assignments__", on_date
+            assignment = responsibility_expression(
+                profile.pk,
+                person_ref=OuterRef("beneficiary_id"),
+                enrollment_ref=OuterRef("pk"),
+                on_date=on_date,
             )
             return (
-                queryset.exclude(status__in=ServiceEnrollment.TERMINAL_STATUSES)
-                .filter(current_placement & assignment)
+                queryset.exclude(
+                    Q(status__in=ServiceEnrollment.TERMINAL_STATUSES)
+                    & (Q(end_date__isnull=True) | Q(end_date__lte=on_date))
+                )
+                .filter(current_placement)
+                .filter(assignment)
                 .distinct()
             )
     return queryset.none()
@@ -274,12 +283,19 @@ def assigned_enrollments_for_specialist(
     current_placement = Q(center_placements__center=center) & _effective_interval(
         "center_placements__", on_date
     )
-    assignment = Q(specialist_assignments__specialist=profile) & _effective_interval(
-        "specialist_assignments__", on_date
+    assignment = responsibility_expression(
+        profile.pk,
+        person_ref=OuterRef("beneficiary_id"),
+        enrollment_ref=OuterRef("pk"),
+        on_date=on_date,
     )
     return (
-        queryset.exclude(status__in=ServiceEnrollment.TERMINAL_STATUSES)
-        .filter(current_placement & assignment)
+        queryset.exclude(
+            Q(status__in=ServiceEnrollment.TERMINAL_STATUSES)
+            & (Q(end_date__isnull=True) | Q(end_date__lte=on_date))
+        )
+        .filter(current_placement)
+        .filter(assignment)
         .distinct()
     )
 
@@ -309,33 +325,13 @@ def assigned_beneficiaries_for_specialist(
     )
 
 
-def active_enrollment_assignments_for_user(
-    user,
-    center: Center | None = None,
-    *,
-    as_of=None,
-) -> QuerySet[EnrollmentSpecialistAssignment]:
-    """Return active assignments whose enrollments are already authorized for the user."""
+def active_enrollment_assignments_for_user(user, center=None, *, as_of=None):
     on_date = as_of or timezone.localdate()
-    authorized_enrollments = enrollments_for_user(user, center, as_of=on_date)
-    queryset = (
-        EnrollmentSpecialistAssignment.objects.select_related(
-            "enrollment__beneficiary",
-            "enrollment__service",
-            "specialist__staff_profile__user",
-        )
-        .filter(
-            enrollment__in=authorized_enrollments,
-            valid_from__lte=on_date,
-        )
-        .filter(Q(valid_to__isnull=True) | Q(valid_to__gt=on_date))
-    )
+    rows = responsibility_rows(enrollments_for_user(user, center, as_of=on_date), on_date)
     if is_specialist(user) and not (is_coordinator(user) or is_system_manager(user)):
         profile = specialist_profile_for_user(user)
-        if profile is None:
-            return queryset.none()
-        queryset = queryset.filter(specialist=profile)
-    return queryset.distinct()
+        return [row for row in rows if profile and row.specialist_id == profile.pk]
+    return rows
 
 
 def enrollment_events_for_user(
@@ -380,6 +376,7 @@ def case_records_for_user(model, user, center: Center | None = None):
     queryset = model.objects.select_related(
         "center",
         "beneficiary",
+        "enrollment__beneficiary",
         "enrollment__service",
         "specialist__staff_profile__user",
     )
@@ -422,13 +419,22 @@ def case_records_changeable_by_user(model, user, center: Center | None = None):
     date_field = _CASE_RECORD_DATE_FIELDS.get(model)
     if profile is None or date_field is None:
         return queryset.none()
-    prefix = "enrollment__specialist_assignments__"
-    assignment_at_record_date = (
-        Q(**{f"{prefix}specialist": profile})
-        & Q(**{f"{prefix}valid_from__lte": F(date_field)})
-        & (Q(**{f"{prefix}valid_to__isnull": True}) | Q(**{f"{prefix}valid_to__gt": F(date_field)}))
+    dated_responsibility = responsibility_expression(
+        profile.pk,
+        person_ref=OuterRef("beneficiary_id"),
+        enrollment_ref=OuterRef("enrollment_id"),
+        on_date=OuterRef(date_field),
+        historical=True,
     )
-    return queryset.filter(assignment_at_record_date).distinct()
+    # A current continuity reader cannot change records made at a different center.
+    from apps.casework.models import EnrollmentCenterPlacement
+
+    placement = EnrollmentCenterPlacement.objects.filter(
+        enrollment_id=OuterRef("enrollment_id"),
+        center=center,
+        valid_from__lte=OuterRef(date_field),
+    ).filter(Q(valid_to__isnull=True) | Q(valid_to__gt=OuterRef(date_field)))
+    return queryset.filter(center=center).filter(dated_responsibility, Exists(placement))
 
 
 def can_create_case_record(
@@ -462,14 +468,7 @@ def can_create_case_record(
         return False
     if not enrollments_for_user(user, center).filter(pk=enrollment.pk).exists():
         return False
-    return (
-        enrollment.specialist_assignments.filter(specialist=profile)
-        .filter(
-            Q(valid_to__isnull=True) | Q(valid_to__gt=on_date),
-            valid_from__lte=on_date,
-        )
-        .exists()
-    )
+    return specialist_responsible(enrollment, profile.pk, on_date)
 
 
 def can_change_case_record(user, center: Center, record) -> bool:
@@ -523,16 +522,21 @@ def schedules_for_user(user, center: Center | None = None, *, for_change: bool =
         return queryset.none()
     result = queryset.filter(enrollment__in=enrollments_for_user(user, center))
     if for_change:
-        prefix = "enrollment__specialist_assignments__"
-        assignment_at_schedule_month = (
-            Q(**{f"{prefix}specialist": profile})
-            & Q(**{f"{prefix}valid_from__lte": F("schedule_month")})
-            & (
-                Q(**{f"{prefix}valid_to__isnull": True})
-                | Q(**{f"{prefix}valid_to__gt": F("schedule_month")})
-            )
+        from apps.casework.models import EnrollmentCenterPlacement
+
+        responsibility = responsibility_expression(
+            profile.pk,
+            person_ref=OuterRef("enrollment__beneficiary_id"),
+            enrollment_ref=OuterRef("enrollment_id"),
+            on_date=OuterRef("schedule_month"),
+            historical=True,
         )
-        result = result.filter(assignment_at_schedule_month)
+        placement = EnrollmentCenterPlacement.objects.filter(
+            enrollment_id=OuterRef("enrollment_id"),
+            center=center,
+            valid_from__lte=OuterRef("schedule_month"),
+        ).filter(Q(valid_to__isnull=True) | Q(valid_to__gt=OuterRef("schedule_month")))
+        result = result.filter(responsibility, Exists(placement))
     return result.distinct()
 
 
@@ -648,5 +652,50 @@ def can_view_restricted_beneficiary_fields(
 def get_authorized_object(queryset, pk):
     try:
         return queryset.get(pk=pk)
-    except queryset.model.DoesNotExist as exc:
+    except (queryset.model.DoesNotExist, ValidationError, TypeError, ValueError) as exc:
         raise Http404 from exc
+
+
+def beneficiary_intake_capabilities(user, center, beneficiary=None):
+    """Separate reported health/social, consent, and existing care-planning scopes."""
+    from apps.casework.models import BeneficiaryStaffingPeriod
+    from apps.centers.models import StaffProfile
+
+    denied = {"health_social": False, "consent": False, "care": False}
+    if (
+        not getattr(user, "is_authenticated", False)
+        or not getattr(user, "is_active", False)
+        or center is None
+        or not center.is_active
+        or StaffProfile.objects.filter(user=user)
+        .exclude(status=StaffProfile.Status.ACTIVE)
+        .exists()
+        or not accessible_centers(user, active_only=True).filter(pk=center.pk).exists()
+    ):
+        return denied
+    manager = is_system_manager(user) or is_coordinator(user)
+    if beneficiary is None or beneficiary._state.adding:
+        return {name: manager for name in denied}
+    authorized = enrollments_for_user(user, center).filter(beneficiary_id=beneficiary.pk)
+    if not authorized.exists():
+        return denied
+    if manager:
+        return {name: True for name in denied}
+    profile = specialist_profile_for_user(user)
+    today = timezone.localdate()
+    confirmed = (
+        profile is not None
+        and BeneficiaryStaffingPeriod.objects.filter(
+            beneficiary_id=beneficiary.pk, valid_from__lte=today
+        )
+        .filter(Q(valid_to__isnull=True) | Q(valid_to__gt=today))
+        .filter(Q(lead=profile) | Q(helper=profile))
+        .exists()
+    )
+    # The expanded intake grant is for confirmed current leads/helpers. The legacy
+    # bridge continues to grant only its existing ordinary casework rights.
+    return {
+        "health_social": bool(confirmed),
+        "consent": False,
+        "care": any(can_create_case_record(user, center, row, today) for row in authorized),
+    }

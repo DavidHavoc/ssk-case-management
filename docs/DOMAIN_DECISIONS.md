@@ -615,37 +615,44 @@ Security and operational consequences: Concurrent plans may support multidiscipl
 
 Owner approval mandatory before implementation: Yes. Service Owner.
 
-### D-038: How many current primary specialists may an enrollment have?
+### D-038: One lead and an optional helper per beneficiary
 
-Status: Open, mandatory
+Status: Confirmed by the owner on 2026-10-08 in the staffing implementation request.
 
-Recommended default: Allow exactly one current Primary specialist when an Active enrollment requires specialist delivery, plus any approved number of current Secondary specialists. Services that legitimately use shared primary responsibility may configure a different rule.
+Exactly one Lead specialist and zero or one Helper specialist cover a beneficiary across all
+services. A required lead and an optional distinct helper are stored together in a dated
+`BeneficiaryStaffingPeriod`. Enrollment identity, placement, and lifecycle remain separate.
+Specialists need active accounts, active staff profiles, center membership, current placement,
+and dated responsibility for each service. Neither role gains manager rights or restricted
+beneficiary information. Managers and coordinators alone establish or replace the complete pair.
 
-Alternatives:
-
-1. Allow several Primary specialists without a limit.
-2. Do not distinguish Primary and Secondary.
-3. Assign one specialist to the person across every service.
-
-Security and operational consequences: Several primary assignees blur responsibility and alerts. No role distinction weakens case ownership. Person-wide assignment violates service isolation. Enforcing one primary requires non-overlap constraints and a transfer-of-responsibility workflow.
-
-Owner approval mandatory before implementation: Yes. Service Owner.
+Joint imported responsibility, differing service teams, unknown dates, and missing assignments
+remain evidence requiring manager review. The migration never chooses a lead from name order.
+Owner decision on 2026-10-09: legacy specialist access ends at deployment. Frozen snapshots
+preserve evidence with `expires_on = captured_on`; unresolved cases need an explicit confirmed
+pair before specialists can access them.
+Confirmed periods control future access; earlier evidence still validates historical authorship.
+Original source rows, person codes, and case relationships are preserved. See
+[the implementation handoff](BENEFICIARY_STAFFING_HANDOFF.md).
 
 ### D-039: Is the beneficiary code a person code or a service-enrollment code?
 
-Status: Open, mandatory
+Status: Confirmed by the owner on 2026-10-08 for local implementation
 
-Recommended default: Use one organization-wide person code on BeneficiaryIdentity and a separate immutable enrollment or case-episode code on each ServiceEnrollment. During migration, preserve the current beneficiary code as the person code or a legacy person-code alias when uniqueness and business meaning are confirmed. Never recycle either code.
+Approved rule: The existing automatic center-sequenced `Beneficiary.beneficiary_code` is the
+only operational case code. Display it for every enrollment of that person. Identify exact
+enrollments through their UUID primary keys and distinguish episodes using service, status,
+and enrollment date. Preserve old enrollment identifiers as read-only search aliases. New
+enrollments have no separate manually entered or generated case code. Existing person codes,
+previous-code aliases, and center numbering counters remain stable.
 
-Alternatives:
+Enrollment date means the start of that specific service enrollment, stored in
+`ServiceEnrollment.start_date`. First delivered service and person-level registration history
+remain separate. Unknown historical enrollment dates stay unset.
 
-1. Keep one person code only and identify enrollments by UUID.
-2. Treat the current code as the enrollment code and generate a new person code.
-3. Use center-specific beneficiary codes that may repeat across centers.
-
-Security and operational consequences: One code only is simple but may make service paperwork and reconciliation ambiguous. Reclassifying the current code can break external references. Repeating center codes complicates transfers, duplicate detection, and organization-wide reporting. Two codes require clear UI labels and migration crosswalks but preserve both identity and episode meaning.
-
-Owner approval mandatory before implementation: Yes. Service Owner and Data Governance Owner.
+Evidence: Owner's enrollment implementation request supplied on 2026-10-08. This authorizes
+local implementation and synthetic verification only; production deployment requires separate
+owner authorization.
 
 ## 3. Mandatory approval summary
 
@@ -664,7 +671,7 @@ The following decisions block implementation of their dependent behavior:
 | Timesheets and payroll boundary | D-026 through D-028 |
 | Migration, retention, and later phases | D-029 through D-031 |
 | Production security and reporting privacy | D-032 through D-034 |
-| Date semantics, assessment chains, plans, primary responsibility, and code meaning | D-035 through D-039 |
+| Date semantics, assessment chains, plans, primary responsibility, and code meaning | D-035 through D-037; D-038 and D-039 confirmed |
 
 D-025 may use the recommended default during implementation, with confirmation during prototype review.
 

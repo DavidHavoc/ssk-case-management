@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="{{ document.language }}">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="{{ csp }}">
+<title>{{ document.labels.title }} | {{ document.beneficiary.code }}</title>
+<style>
+@font-face{font-family:ConsentNoto;src:url(data:font/ttf;base64,{{ font_data }}) format('truetype');font-weight:100 900;font-display:block}
+*{box-sizing:border-box}body{font-family:ConsentNoto,sans-serif;color:#151515;background:#fff;margin:0 auto;padding:2rem;max-width:55rem;font-size:1rem;line-height:1.6;overflow-wrap:anywhere}h1{font-size:1.7rem}h2{font-size:1.25rem}dt{font-weight:600}dd{margin:0 0 1rem}dl{margin:1rem 0}.signature{max-width:100%;width:25rem;height:auto;border-bottom:1px solid #555}.paper-line{height:4rem;border-bottom:1px solid #555}pre{white-space:pre-wrap}footer{font-size:.75rem;margin-top:2rem}.unsigned{padding:1rem;border:1px solid #555}@media(max-width:40rem){body{padding:1rem}}@media print{body{max-width:none;padding:0;font-size:11pt}.signature,li,dl>div{break-inside:avoid}h2{break-after:avoid}.font-license{display:none}@page{size:A4;margin:16mm}}
+</style>
+</head>
+<body>
+<h1>{{ document.labels.title }}</h1>
+<dl>
+<div><dt>{{ document.labels.beneficiary }}</dt><dd>{{ document.beneficiary.name }}</dd></div>
+<div><dt>{{ document.labels.code }}</dt><dd>{{ document.beneficiary.code }}</dd></div>
+<div><dt>{{ document.labels.version }}</dt><dd>{{ document.template_version }}</dd></div>
+<div><dt>{{ document.labels.language }}</dt><dd>{{ document.language }}</dd></div>
+</dl>
+{% include "casework/includes/consent_wording.html" %}
+<p>{{ document.authority_notice }}</p>
+{% if document.execution %}
+<dl>
+<div><dt>{{ document.labels.signer }}</dt><dd>{{ document.execution.signer_name }}</dd></div>
+<div><dt>{{ document.labels.role }}</dt><dd>{{ document.execution.role_label }}</dd></div>
+{% if document.execution.relationship %}<div><dt>{{ document.labels.relationship }}</dt><dd>{{ document.execution.relationship }}</dd></div>{% endif %}
+<div><dt>{{ document.labels.timestamp }}</dt><dd>{{ document.execution.timestamp }}</dd></div>
+<div><dt>{{ document.labels.recorder }}</dt><dd>{{ document.execution.recorder }} ({{ document.execution.recorder_id }})</dd></div>
+</dl>
+<h2>{{ document.labels.signature }}</h2>
+<img class="signature" src="data:image/png;base64,{{ signature }}" alt="{{ document.labels.signature }}">
+{% else %}
+<p class="unsigned">{{ document.labels.unsigned }}</p><p>{{ document.labels.paper }}</p>
+<p>{{ document.labels.signer }}</p><div class="paper-line"></div>
+<p>{{ document.labels.role }}</p><div class="paper-line"></div>
+<p>{{ document.labels.relationship }}</p><div class="paper-line"></div>
+<p>{{ document.labels.timestamp }}</p><div class="paper-line"></div>
+<p>{{ document.labels.signature }}</p><div class="paper-line"></div>
+{% endif %}
+<footer>{{ document.labels.font_license }}<!-- Copyright 2022 The Noto Project Authors (https://github.com/notofonts/georgian). SIL Open Font License 1.1. --></footer>
+<details class="font-license"><summary>{{ document.labels.font_license }}</summary><pre>{{ font_license }}</pre></details>
+</body>
+</html>
