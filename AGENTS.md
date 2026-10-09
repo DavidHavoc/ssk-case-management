@@ -149,3 +149,32 @@ order and explicitly approved deploying the automatic center sequences to the li
 - Changed code, test, documentation, and translation files were made readable for deployment.
   Existing private configuration, backups, SSH credentials, sudo rules, and firewall settings
   were not changed. No source workbook or production export was transferred to this desktop.
+
+## Approved integrated company release deployment
+
+On 2026-10-09 the owner explicitly authorized deploying the completed company changes.
+The complete release is live; details are recorded in
+`docs/COMPANY_RELEASE_DEPLOYMENT_2026-10-09.md`.
+
+- Application commit `32ffd19192baa815f92a4f7851ad60d20365f521` was delivered through a code-only
+  Git bundle. No GitHub push occurred. Migrations 0014 through 0022 applied successfully.
+- The complete local synthetic PostgreSQL suite passed all 593 tests. Candidate-image targeted
+  regressions and all seven deployment tests passed after a missing disposable test fixture was
+  supplied. Ruff, Django deployment checks, catalog checks, and migration checks passed.
+- Restricted initial/final database and private-file backups remain under
+  `/home/sskadmin/ssk-backups/company-20261009/`. Both restored successfully in isolation and
+  reconciled all original rows. The previous image remains as `ssk-web:before-company-20261009`.
+- All 2,340 original rows across 60 tables remained unchanged, including all 176 beneficiaries,
+  imported evidence, codes/counters, enrollment histories, assignments, memberships and roles.
+  No production intake, consent, signature, clinical record, or test beneficiary was fabricated.
+- The owner's deployment-day legacy expiry policy is active. Migration 0017 confirmed 96 safe
+  teams and preserved 108 expired source snapshots. All 64 ongoing unresolved cases are visible
+  in manager review reports: two Gori home-care cases, 43 Gori early-intervention cases, and 19
+  Lagodekhi early-intervention cases. Managers must confirm the lead/helper pair before specialist work.
+- Public HTTPS verification passed 176 checks across both languages, authorization boundaries,
+  consent review/printable pages and hashed static assets. Existing mandatory first-password
+  changes remained enforced. Completed signing/download was verified with synthetic PostgreSQL
+  data; production has no signed documents and no signature was fabricated for verification.
+- Temporary restore/test resources and verification sessions were removed. Private-file modes,
+  credentials and infrastructure configuration stayed unchanged. No production exports were
+  copied to the desktop and `seed_demo_data` was not run on the hosted database.
