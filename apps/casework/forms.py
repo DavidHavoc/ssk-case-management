@@ -711,9 +711,15 @@ class EnrollmentServiceScheduleForm(AuthorizedCaseworkForm):
         return _validate_enrollment_has_assignment(self, cleaned, "schedule_month")
 
 
+class AssessmentEnrollmentChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, enrollment):
+        return f"{enrollment.beneficiary.full_name} | {enrollment}"
+
+
 class AssessmentForm(AuthorizedCaseworkForm):
     class Meta:
         model = Assessment
+        field_classes = {"enrollment": AssessmentEnrollmentChoiceField}
         exclude = (
             "center",
             "assessment_cycle_number",
@@ -736,7 +742,7 @@ class AssessmentForm(AuthorizedCaseworkForm):
         if self.instance.pk:
             enrollment_queryset = ServiceEnrollment.objects.filter(
                 Q(pk__in=enrollment_queryset) | Q(pk=self.instance.enrollment_id)
-            )
+            ).select_related("beneficiary", "service")
         self.fields["enrollment"].queryset = enrollment_queryset
         _apply_legacy_beneficiary_enrollment(self, enrollment_queryset)
         selected_enrollment_id = (
