@@ -1,6 +1,8 @@
 # Barthel assessment update, 2026-10-14
 
-Status: implemented and verified locally. This update has not been deployed or pushed to GitHub.
+Status: deployed on 2026-10-14 after owner approval. Application commit
+`82ba0c7c4c1ac7cf0b38aacf0eeb9eed6a4eaea5` is live. No GitHub push occurred.
+See [the deployment record](BARTHEL_ASSESSMENT_DEPLOYMENT_2026-10-14.md).
 
 ## Owner-confirmed behavior
 
@@ -30,4 +32,4 @@ The published template is available through the existing effective-date and serv
 - Browser checks verified the 55-point preview, Georgian and English wording, completed age and code, the creation-to-signing transition, and the drawn representative-signature completion path. Review and signature layouts were inspected at 320, 768, 1024, and 1440 pixels. Wide response tables scroll within their containers.
 - Focused tests cover all reachable Barthel scores, tampered choices/points, missing responses, required and expired reviews, changed content and authority, cross-center access, private file routes, escaping, paper signatures, duplicate submissions, storage rollback, database immutability, and fresh signatures for corrections.
 
-Local disposable databases, generated synthetic signatures, the preview server, and the PostgreSQL test container are removed after verification. The established production backup, restore, code-only delivery, and hosted verification procedure remains necessary for deployment.
+Local disposable databases, generated synthetic signatures, the preview server, and the PostgreSQL test container were removed after verification. The deployed candidate image also passed all 652 synthetic PostgreSQL tests. Initial and final production backups restored successfully in isolation, all 2,756 original rows across 65 tables were preserved, and all 161 public HTTPS checks passed. Recovery backups and the previous image remain restricted on the VPS; temporary deployment test resources were removed.

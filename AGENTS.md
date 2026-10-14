@@ -253,3 +253,38 @@ explicitly authorized deployment. Details are recorded in
   session, isolated restore/test database and volume, network, test image, and transferred
   bundle were removed. Private configuration, credentials, roles, sudo rules, and infrastructure
   settings stayed unchanged. No production export was copied to the desktop.
+
+## Barthel assessment deployment
+
+On 2026-10-14 the owner supplied the scale, confirmed five dependency/care-need bands and
+required beneficiary or representative signing, then explicitly authorized deployment.
+Details are recorded in `docs/BARTHEL_ASSESSMENT_DEPLOYMENT_2026-10-14.md`.
+
+- Application commit `82ba0c7c4c1ac7cf0b38aacf0eeb9eed6a4eaea5` was delivered through a code-only
+  Git bundle without a GitHub push. The running image is `ssk-web:barthel-20261014`, also tagged
+  `ssk-web:latest`. The preceding image remains as `ssk-web:before-barthel-20261014`.
+- Assessment creation shows named templates without version numbers and beneficiary age/code.
+  The built-in Georgian Barthel scale has ten required multiple-choice activities and automatic
+  score, functional dependency, and care-need results. Additional care needs are recorded
+  separately; the score does not automatically set home-care visit frequency or intensity.
+- New assessments require a beneficiary or representative signature before completion.
+  Signed documents/evidence are private and immutable, with fresh signing for corrections.
+  Existing assessments remain unchanged and unsigned. Migrations 0023 through 0025 applied
+  successfully, with no pending migrations.
+- Local and candidate-image synthetic PostgreSQL suites each passed all 652 tests. Local SQLite
+  verification passed 642 tests with ten PostgreSQL-only skips. Ruff lint/format, Django
+  system/deployment checks, migration checks, JavaScript syntax, and translation checks passed.
+- Candidate and running images each passed 145 bilingual assessment checks, 1,140 enrollment
+  option checks, 22 beneficiary-form checks, and 19 language/password-gate checks. All 161 public
+  HTTPS checks and both desktop health checks passed. The web container is healthy with zero restarts.
+- Restricted initial/final database and private-file backups remain under
+  `/home/sskadmin/ssk-private-releases/barthel-20261014/`. Checksums and archive catalogs passed,
+  and both databases restored successfully in isolation. Every original field of all 2,756 rows
+  across 65 tables was preserved. Original private files and their permissions match the final backup.
+- No production assessment, signature, beneficiary, account, or case record was fabricated or
+  edited for verification. Authorized reads generated normal audit events, and the temporary
+  verification session was removed. Isolated test/restore databases, volume, network, test image,
+  source export, and transferred bundle were removed. Private configuration/TLS contents and modes
+  were verified unchanged; credentials, roles, sudo rules, and infrastructure settings stayed unchanged.
+- Recovery must preserve casework created after deployment. Migration reversals refuse to discard
+  new assessment or signing evidence; do not restore the pre-release database over subsequent casework.
