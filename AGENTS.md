@@ -288,3 +288,25 @@ Details are recorded in `docs/BARTHEL_ASSESSMENT_DEPLOYMENT_2026-10-14.md`.
   were verified unchanged; credentials, roles, sudo rules, and infrastructure settings stayed unchanged.
 - Recovery must preserve casework created after deployment. Migration reversals refuse to discard
   new assessment or signing evidence; do not restore the pre-release database over subsequent casework.
+
+## Assessment schedule count removal
+
+On 2026-10-14 the owner requested removing “Service schedule count” from the deployed assessment
+flow. Details are recorded in `docs/ASSESSMENT_SCHEDULE_COUNT_REMOVAL_2026-10-14.md`.
+
+- Commit `1f8f925d32bbb1aeb8341cda45cb0803927fa38d` is deployed as
+  `ssk-web:schedule-removal-20261014`, also tagged `ssk-web:latest`. The previous image is retained
+  as `ssk-web:before-schedule-removal-20261014`. No GitHub push occurred.
+- The count is excluded from assessment forms and new review/printable documents. Stored values
+  and existing signed evidence remain preserved. There are no migrations or static-asset changes.
+- Local targeted tests passed 87 tests with one PostgreSQL-only skip; the candidate passed all
+  88 targeted synthetic PostgreSQL tests. Ruff, Django checks, and migration checks passed.
+  Candidate/live bilingual checks and all 161 public HTTPS checks passed, including field-removal
+  assertions. Both desktop health checks passed; the web container is healthy with zero restarts.
+- Restricted recovery artifacts remain under
+  `/home/sskadmin/ssk-private-releases/schedule-removal-20261014/`. The database backup restored
+  successfully in isolation. All 2,800 original rows across 66 tables and original private files
+  were preserved. No production case record or signature was fabricated for verification.
+- Temporary sessions, test/restore databases, container/volume, network, test image, source export,
+  and bundle were removed. Private configuration/TLS contents and modes were verified unchanged.
+  No production export was copied to the desktop; credentials, roles and infrastructure were unchanged.
