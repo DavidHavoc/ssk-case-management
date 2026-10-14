@@ -745,6 +745,7 @@ class AssessmentForm(AuthorizedCaseworkForm):
             "assessment_cycle_number",
             "beneficiary",
             "scoring_tool",
+            "service_schedule_count",
         )
         widgets = {
             "assessment_date": forms.DateInput(attrs={"type": "date"}),

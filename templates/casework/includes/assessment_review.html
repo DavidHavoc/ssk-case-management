@@ -25,6 +25,5 @@
   <div class="detail-item wide"><dt>{% translate "Progress summary" %}</dt><dd>{{ document.progress_summary|default:_('Not provided')|linebreaksbr }}</dd></div>
   <div class="detail-item wide"><dt>{% translate "Recommendations" %}</dt><dd>{{ document.recommendations|default:_('Not provided')|linebreaksbr }}</dd></div>
   <div class="detail-item wide"><dt>{% translate "Notes" %}</dt><dd>{{ document.notes|default:_('Not provided')|linebreaksbr }}</dd></div>
-  <div class="detail-item"><dt>{% translate "Service schedule count" %}</dt><dd>{{ document.service_schedule_count }}</dd></div>
   <div class="detail-item"><dt>{% translate "Next review" %}</dt><dd>{{ document.next_review_date|default:_('Not scheduled') }}</dd></div>
 </dl>
