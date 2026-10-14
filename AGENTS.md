@@ -224,3 +224,32 @@ saving, and explicitly requested deployment.
   by verification. Authenticated reads generated normal audit events. The temporary verification
   session, local synthetic PostgreSQL container/database, and transferred bundle were removed.
   Private configuration, credentials, sudo rules, and infrastructure settings stayed unchanged.
+
+## Assessment enrollment dropdown deployment
+
+On 2026-10-14 the owner requested names before codes when creating a new assessment and
+explicitly authorized deployment. Details are recorded in
+`docs/ASSESSMENT_ENROLLMENT_LABEL_DEPLOYMENT_2026-10-14.md`.
+
+- Application commit `4ed1938ccd7a4e9350114db9b6dbd6fc24edd656` was delivered through a code-only
+  Git bundle without a GitHub push. The running image is `ssk-web:assessment-label-20261014`,
+  also tagged `ssk-web:latest`. The preceding image remains as
+  `ssk-web:before-assessment-label-20261014`.
+- Assessment enrollment choices show name, beneficiary code, service, status, and enrollment
+  date in that order. Existing UUID selection, authorization, and localization are preserved.
+  There are no migrations. The deployed form file matches the application commit.
+- Local verification passed 603 tests with nine PostgreSQL-only skips, Ruff lint/format,
+  Django system/deployment checks, and migration checks. The candidate passed all 80 targeted
+  synthetic PostgreSQL tests. Candidate and running images each passed 26 bilingual assessment
+  checks, 22 beneficiary-form checks, and 19 language/password-gate checks.
+- The public verification suite passed 36 checks, including bilingual creation pages,
+  preselection, cross-center denial, anonymous redirects, and health. Both health endpoints
+  also passed from the desktop. The web container is healthy with zero restarts.
+- Restricted database and private-file backups remain under
+  `/home/sskadmin/ssk-private-releases/assessment-label-20261014/`. Checksums and the database
+  archive catalog passed, and the database restored successfully in isolation. Beneficiaries,
+  enrollments, counters, and the administrator login timestamp stayed unchanged during checks.
+- No production case or account record was fabricated or edited. The temporary verification
+  session, isolated restore/test database and volume, network, test image, and transferred
+  bundle were removed. Private configuration, credentials, roles, sudo rules, and infrastructure
+  settings stayed unchanged. No production export was copied to the desktop.
