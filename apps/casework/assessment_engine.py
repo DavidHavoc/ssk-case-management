@@ -16,6 +16,7 @@ from .models import (
     AssessmentResponsibleSpecialist,
     AssessmentTemplateField,
     AssessmentTemplateVersion,
+    Beneficiary,
 )
 
 
@@ -25,6 +26,8 @@ class CalculatedAssessmentResult:
     classification: str
     delayed_domain_count: int
     trace: dict[str, Any]
+    functional_dependency_level: str = ""
+    care_need_level: str = ""
 
 
 def _response_is_delayed(response: AssessmentResponse) -> bool:
@@ -135,6 +138,8 @@ def calculate_assessment(
     ):
         raise ValidationError(_("Calculated Barthel score does not match a classification band."))
     classification = matching_bands[0].label if matching_bands else ""
+    dependency = matching_bands[0].functional_dependency_level if matching_bands else ""
+    care_need = matching_bands[0].care_need_level if matching_bands else ""
     trace = {
         "instrument_code": template.instrument.code,
         "template_version": template.version,
@@ -142,10 +147,14 @@ def calculate_assessment(
         "included_values": [str(value) for value in numeric_values],
         "total_score": str(total),
         "classification": classification or None,
+        "functional_dependency_level": dependency or None,
+        "care_need_level": care_need or None,
         "delayed_domain_count": delayed_count,
         "responses": response_trace,
     }
-    return CalculatedAssessmentResult(total, classification, delayed_count, trace)
+    return CalculatedAssessmentResult(
+        total, classification, delayed_count, trace, dependency, care_need
+    )
 
 
 @transaction.atomic
@@ -179,6 +188,8 @@ def replace_draft_responses(
 
 @transaction.atomic
 def complete_assessment(assessment: Assessment) -> Assessment:
+    person_id = Assessment.objects.values_list("beneficiary_id", flat=True).get(pk=assessment.pk)
+    Beneficiary.objects.select_for_update().get(pk=person_id)
     locked = (
         Assessment.objects.select_for_update()
         .select_related("template_version__instrument")
@@ -202,10 +213,19 @@ def complete_assessment(assessment: Assessment) -> Assessment:
             specialist=locked.specialist,
         )
     result = calculate_assessment(locked)
+    if locked.signature_required:
+        from .assessment_signing import assessment_review
+        from .models import SignedAssessment
+
+        signed = SignedAssessment.objects.filter(assessment=locked).first()
+        if not signed or signed.snapshot["review"] != assessment_review(locked, signed.language):
+            raise ValidationError(_("Review and sign the assessment before completing it."))
     now = timezone.now()
     Assessment.objects.filter(pk=locked.pk).update(
         total_score=result.total_score,
         derived_classification=result.classification,
+        functional_dependency_level=result.functional_dependency_level,
+        care_need_level=result.care_need_level,
         delayed_domain_count=result.delayed_domain_count,
         scoring_rule_version=locked.template_version.version,
         calculation_trace=result.trace,
@@ -214,6 +234,15 @@ def complete_assessment(assessment: Assessment) -> Assessment:
         updated_at=now,
     )
     locked.refresh_from_db()
+    if locked.revision_of_id:
+        Assessment.objects.filter(
+            pk__in=[
+                locked.revision_of_id,
+                *locked.revision_of.corrections.values_list("pk", flat=True),
+            ]
+        ).exclude(pk=locked.pk).filter(status=Assessment.Status.COMPLETED).update(
+            status=Assessment.Status.SUPERSEDED, updated_at=now
+        )
     return locked
 
 
@@ -228,6 +257,8 @@ def correct_assessment(
     reason = reason.strip()
     if not reason:
         raise ValidationError({"reason": _("A correction reason is required.")})
+    person_id = Assessment.objects.values_list("beneficiary_id", flat=True).get(pk=assessment.pk)
+    Beneficiary.objects.select_for_update().get(pk=person_id)
     current = Assessment.objects.select_for_update().get(pk=assessment.pk)
     from apps.core.authorization import assessments_for_user
 
@@ -240,6 +271,11 @@ def correct_assessment(
     if current.status != Assessment.Status.COMPLETED:
         raise ValidationError(_("Only the current completed assessment can be corrected."))
     original = current.revision_of or current
+    if (
+        current.signature_required
+        and original.corrections.filter(status=Assessment.Status.DRAFT).exists()
+    ):
+        raise ValidationError(_("A correction is already awaiting review and signature."))
     latest_revision = (
         Assessment.objects.filter(revision_of=original).aggregate(value=Max("revision_number"))[
             "value"
@@ -264,6 +300,8 @@ def correct_assessment(
         recommendations=current.recommendations,
         next_review_date=current.next_review_date,
         notes=current.notes,
+        additional_care_needs=current.additional_care_needs,
+        signature_required=current.signature_required,
         revision_of=original,
         revision_number=latest_revision + 1,
         correction_reason=reason,
@@ -276,6 +314,8 @@ def correct_assessment(
             specialist=specialist,
         )
     replace_draft_responses(corrected, response_data)
+    if corrected.signature_required:
+        return corrected
     corrected = complete_assessment(corrected)
     Assessment.objects.filter(pk=current.pk).update(
         status=Assessment.Status.SUPERSEDED,

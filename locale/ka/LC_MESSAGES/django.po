@@ -5883,3 +5883,277 @@ msgstr "ხელახალი ჩარიცხვა უნდა ეხე
 #: apps/casework/services.py
 msgid "This enrollment cannot make the requested status transition."
 msgstr "ამ ჩარიცხვისთვის მოთხოვნილი სტატუსის ცვლილება შეუძლებელია."
+
+
+msgid "Total dependency"
+msgstr "სრული დამოკიდებულება"
+
+
+msgid "Severe dependency"
+msgstr "მძიმე დამოკიდებულება"
+
+
+msgid "Moderate dependency"
+msgstr "ზომიერი დამოკიდებულება"
+
+
+msgid "Slight dependency"
+msgstr "მსუბუქი დამოკიდებულება"
+
+
+msgid "Independent"
+msgstr "სრული დამოუკიდებლობა"
+
+
+msgid "Very high"
+msgstr "ძალიან მაღალი"
+
+
+msgid "High"
+msgstr "მაღალი"
+
+
+msgid "Moderate"
+msgstr "საშუალო"
+
+
+msgid "Low"
+msgstr "დაბალი"
+
+
+msgid "Minimal"
+msgstr "მინიმალური"
+
+
+msgid "Scored choice"
+msgstr "ქულით შეფასებული არჩევანი"
+
+
+msgid "Age unknown"
+msgstr "ასაკი უცნობია"
+
+
+msgid "Age at assessment"
+msgstr "ასაკი შეფასების დროს"
+
+
+msgid "Template"
+msgstr "შაბლონი"
+
+
+msgid "Barthel scale"
+msgstr "ბართელის სკალა"
+
+
+msgid "Barthel result"
+msgstr "ბართელის შეფასების შედეგი"
+
+
+msgid "Barthel Index"
+msgstr "ბართელის ინდექსი"
+
+
+msgid "Functional status"
+msgstr "ფუნქციური მდგომარეობა"
+
+
+msgid "Care need"
+msgstr "მოვლის საჭიროება"
+
+
+msgid "Additional care needs assessment"
+msgstr "მოვლის დამატებითი საჭიროებების შეფასება"
+
+
+msgid "Daily activities"
+msgstr "ყოველდღიური აქტივობები"
+
+
+msgid "Feeding"
+msgstr "კვება"
+
+
+msgid "Bathing"
+msgstr "დაბანა"
+
+
+msgid "Personal hygiene"
+msgstr "პირადი ჰიგიენა"
+
+
+msgid "Dressing and undressing"
+msgstr "ჩაცმა და გახდა"
+
+
+msgid "Bowel control"
+msgstr "კუჭის მოქმედება"
+
+
+msgid "Bladder control"
+msgstr "შარდვა"
+
+
+msgid "Toilet use"
+msgstr "საპირფარეშო"
+
+
+msgid "Bed and chair transfers"
+msgstr "საწოლსა და ეტლს შორის გადაადგილება"
+
+
+msgid "Walking or wheelchair mobility"
+msgstr "სიარული ან ეტლით გადაადგილება"
+
+
+msgid "Going up and down stairs"
+msgstr "კიბეზე ასვლა და ჩამოსვლა"
+
+
+msgid "Score"
+msgstr "ქულა"
+
+
+msgid "Review and sign assessment"
+msgstr "შეფასების გადახედვა და ხელმოწერა"
+
+
+msgid "Sign and complete assessment"
+msgstr "შეფასების ხელმოწერა და დასრულება"
+
+
+msgid "Save draft and sign later"
+msgstr "მონახაზის შენახვა და მოგვიანებით ხელმოწერა"
+
+
+msgid "Edit assessment before signing"
+msgstr "შეფასების შეცვლა ხელმოწერამდე"
+
+
+msgid "View signed assessment"
+msgstr "ხელმოწერილი შეფასების ნახვა"
+
+
+msgid "Signed assessment"
+msgstr "ხელმოწერილი შეფასება"
+
+
+msgid "Assessment for paper signing"
+msgstr "შეფასება ქაღალდზე ხელმოსაწერად"
+
+
+msgid "Date and signature"
+msgstr "თარიღი და ხელმოწერა"
+
+
+msgid "Download signature evidence"
+msgstr "ხელმოწერის მტკიცებულების ჩამოტვირთვა"
+
+
+msgid "Awaiting answers"
+msgstr "პასუხების მოლოდინში"
+
+
+msgid "Awaiting review and signature"
+msgstr "გადახედვისა და ხელმოწერის მოლოდინში"
+
+
+msgid "Signed paper assessment (PDF)"
+msgstr "ქაღალდზე ხელმოწერილი შეფასება (PDF)"
+
+
+msgid "Answer every activity to calculate the result."
+msgstr "შედეგის გამოსათვლელად უპასუხეთ ყველა აქტივობას."
+
+
+msgid "Choose an assessment template, complete its questions, then review and sign with the beneficiary or representative."
+msgstr "აირჩიეთ შეფასების შაბლონი, შეავსეთ კითხვები, შემდეგ ბენეფიციართან ან წარმომადგენელთან ერთად გადახედეთ და მოაწერეთ ხელი."
+
+
+msgid "The assessment remains a draft until the beneficiary or representative signs."
+msgstr "შეფასება რჩება მონახაზად, სანამ ბენეფიციარი ან წარმომადგენელი ხელს არ მოაწერს."
+
+
+msgid "The beneficiary or representative has reviewed this assessment and requests that their signature be saved."
+msgstr "ბენეფიციარმა ან წარმომადგენელმა გადახედა შეფასებას და ითხოვს მისი ხელმოწერის შენახვას."
+
+
+msgid "Alternatively, print this assessment, sign it on paper, and upload the signed PDF."
+msgstr "ალტერნატიულად, დაბეჭდეთ შეფასება, მოაწერეთ ხელი ქაღალდზე და ატვირთეთ ხელმოწერილი PDF."
+
+
+msgid "Use a mouse, finger, or stylus to draw inside the box, or upload a signed paper assessment. Review the answers and result before saving."
+msgstr "მაუსით, თითით ან სტილუსით მოაწერეთ ხელი ჩარჩოში, ან ატვირთეთ ქაღალდზე ხელმოწერილი შეფასება. შენახვამდე გადახედეთ პასუხებსა და შედეგს."
+
+
+msgid "Upload a signed paper assessment and confirm the review to complete without JavaScript."
+msgstr "JavaScript-ის გარეშე დასასრულებლად ატვირთეთ ქაღალდზე ხელმოწერილი შეფასება და დაადასტურეთ გადახედვა."
+
+
+msgid "Signed on paper. The uploaded PDF is retained with this assessment."
+msgstr "ხელმოწერილია ქაღალდზე. ატვირთული PDF ინახება ამ შეფასებასთან ერთად."
+
+
+msgid "Record needs such as medication, meal preparation, shopping, housework, and social support to inform the service plan."
+msgstr "მომსახურების გეგმისთვის აღწერეთ მედიკამენტების, საკვების მომზადების, საყიდლების, სახლის მოვლისა და სოციალური მხარდაჭერის საჭიროებები."
+
+
+msgid "Barthel measures basic activities of daily living. The score alone must not determine home-care visit frequency or service intensity. Even a score of 100 may coexist with needs for medication support, meal preparation, shopping, housework, or social support. Use the additional care needs assessment when planning services."
+msgstr "ბართელის სკალა ზომავს ყოველდღიური ცხოვრების ძირითად აქტივობებს. მხოლოდ ქულა არ უნდა განსაზღვრავდეს შინმოვლის ვიზიტების სიხშირეს ან მომსახურების ინტენსივობას. 100 ქულის შემთხვევაშიც ადამიანს შეიძლება სჭირდებოდეს დახმარება მედიკამენტებთან, საკვების მომზადებასთან, საყიდლებთან, სახლის მოვლასთან ან სოციალური მხარდაჭერა. მომსახურების დაგეგმვისას გამოიყენეთ მოვლის დამატებითი საჭიროებების შეფასებაც."
+
+
+msgid "The assessment review has changed or expired. Review it again and provide a fresh signature."
+msgstr "შეფასების გადახედვა შეიცვალა ან ვადა გაუვიდა. ხელახლა გადახედეთ და თავიდან მოაწერეთ ხელი."
+
+
+msgid "The signed assessment could not be stored. Please try again with a fresh signature."
+msgstr "ხელმოწერილი შეფასება ვერ შეინახა. სცადეთ ხელახლა ახალი ხელმოწერით."
+
+
+msgid "Review and sign the assessment before completing it."
+msgstr "დასრულებამდე გადახედეთ შეფასებას და მოაწერეთ ხელი."
+
+
+msgid "Signed assessments require a fresh signed correction."
+msgstr "ხელმოწერილი შეფასების შესწორებას ახალი ხელმოწერა სჭირდება."
+
+
+msgid "Draw a signature or upload a signed paper assessment."
+msgstr "მოაწერეთ ხელი ჩარჩოში ან ატვირთეთ ქაღალდზე ხელმოწერილი შეფასება."
+
+
+msgid "Upload the signed paper assessment as a PDF."
+msgstr "ქაღალდზე ხელმოწერილი შეფასება ატვირთეთ PDF ფორმატით."
+
+
+msgid "The score must match the selected choice."
+msgstr "ქულა უნდა შეესაბამებოდეს არჩეულ პასუხს."
+
+
+msgid "Scored choices cannot contain text values."
+msgstr "ქულით შეფასებული არჩევანი ვერ შეიცავს ტექსტურ მნიშვნელობას."
+
+
+msgid "Scored choices require unique values, bilingual labels, and valid scores."
+msgstr "ქულით შეფასებულ არჩევანს სჭირდება უნიკალური მნიშვნელობები, ორენოვანი აღწერა და სწორი ქულები."
+
+
+msgid "Set both dependency and care need levels together."
+msgstr "ერთად მიუთითეთ დამოკიდებულებისა და მოვლის საჭიროების დონეები."
+
+
+msgid "Signed assessment evidence cannot be changed."
+msgstr "ხელმოწერილი შეფასების მტკიცებულება ვერ შეიცვლება."
+
+
+msgid "Select a valid signed assessment evidence file."
+msgstr "აირჩიეთ ხელმოწერილი შეფასების მტკიცებულების სწორი ფაილი."
+
+
+msgid "Signed assessment center must match the assessment."
+msgstr "ხელმოწერილი შეფასების ცენტრი უნდა ემთხვეოდეს შეფასების ცენტრს."
+
+msgid "Download signed assessment"
+msgstr "ხელმოწერილი შეფასების ჩამოტვირთვა"
+
+msgid "A correction is already awaiting review and signature."
+msgstr "ერთი შესწორება უკვე ელოდება გადახედვასა და ხელმოწერას."

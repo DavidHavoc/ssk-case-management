@@ -654,6 +654,7 @@ def test_signing_schema_forward_reverse_preserves_original_rows(manager, center_
     base = ("casework", "0019_beneficiary_intake")
     leaf = ("casework", "0022_signed_consent_guards")
     executor = MigrationExecutor(connection)
+    leaves = executor.loader.graph.leaf_nodes()
     executor.migrate([base])
     old_apps = executor.loader.project_state([base]).apps
 
@@ -676,7 +677,7 @@ def test_signing_schema_forward_reverse_preserves_original_rows(manager, center_
         executor.migrate([leaf])
         assert rows() == original
     finally:
-        MigrationExecutor(connection).migrate([leaf])
+        MigrationExecutor(connection).migrate(leaves)
 
 
 @pytest.mark.django_db(transaction=True)
@@ -698,9 +699,14 @@ def test_schema_reversal_refuses_to_remove_completed_evidence(manager, center_a,
         },
     )
     original = artifact_bytes(record)
-    with pytest.raises(RuntimeError, match="Signed consent evidence exists"):
-        MigrationExecutor(connection).migrate([("casework", "0019_beneficiary_intake")])
-    assert (
-        SignedConsent.objects.filter(pk=record.pk).exists() and artifact_bytes(record) == original
-    )
-    assert PrivateAttachment.objects.filter(parent_id=record.pk).count() == 2
+    leaves = MigrationExecutor(connection).loader.graph.leaf_nodes()
+    try:
+        with pytest.raises(RuntimeError, match="Signed consent evidence exists"):
+            MigrationExecutor(connection).migrate([("casework", "0019_beneficiary_intake")])
+        assert (
+            SignedConsent.objects.filter(pk=record.pk).exists()
+            and artifact_bytes(record) == original
+        )
+        assert PrivateAttachment.objects.filter(parent_id=record.pk).count() == 2
+    finally:
+        MigrationExecutor(connection).migrate(leaves)

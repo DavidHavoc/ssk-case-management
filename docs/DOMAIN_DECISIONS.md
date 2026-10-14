@@ -249,19 +249,13 @@ Owner approval mandatory before implementation: Yes. Clinical or Technical Progr
 
 ### D-015: What are the approved Barthel scoring bands?
 
-Status: Open, mandatory
+Status: Resolved by the owner's explicit confirmation on 2026-10-14.
 
-Recommended default: Do not publish the source ranges as-is because they contain gaps and an ambiguous boundary. Use a provisional continuous configuration of 0-65, 66-75, 76-95, and 96-100 only after the clinical owner confirms that it reflects the intended instrument and labels.
+Approved inclusive ranges: 0-20 Total dependency / Very high care need; 21-60 Severe dependency / High; 61-90 Moderate dependency / Moderate; 91-99 Slight dependency / Low; 100 Independent / Minimal. These replace the incomplete category ranges in the supplied screenshots.
 
-Alternatives:
+The assessment stores Barthel score, functional dependency, and care need separately. All ten activities use scored choices and the server calculates the total. An additional care needs narrative supports subsequent service planning. The score, including 100, does not itself determine home-care intensity or eliminate other support needs.
 
-1. Reproduce the source ranges literally, including 70-75, 80-95, and greater than 95.
-2. Store the raw score only and do not compute a category.
-3. Adopt an externally referenced standard after a separate evidence review.
-
-Security and operational consequences: Literal ranges leave some values unclassified and may overlap policy meaning. Raw-only storage avoids an incorrect clinical label but cannot meet category reporting needs. External standards may not match SSK's intended local use. Incorrect scoring can affect service decisions and reports.
-
-Owner approval mandatory before implementation: Yes. Clinical or Technical Program Owner.
+The owner also confirmed a required beneficiary or representative signature before assessment completion. Existing assessments remain intact and unsigned. See `ASSESSMENT_ENGINE.md` for the signing and evidence controls.
 
 ### D-016: Are old AEPS and new AEPS separate instruments or versions, and what do their domain values mean?
 

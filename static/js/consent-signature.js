@@ -1,5 +1,5 @@
 (() => {
-  const form = document.querySelector('#consent-sign-form');
+  const form = document.querySelector('#consent-sign-form, #assessment-sign-form');
   const canvas = document.querySelector('#signature-pad');
   if (!form || !canvas) return;
   const ctx = canvas.getContext('2d');
@@ -8,9 +8,11 @@
   const confirmed = form.querySelector('[name="reviewed"]');
   const save = document.querySelector('#signature-save');
   const status = document.querySelector('#signature-status');
+  const paper = form.querySelector('[name="paper_signature"]');
   let activePointer = null;
   let drawn = false;
-  const update = () => { save.disabled = !drawn || !confirmed.checked || activePointer !== null; };
+  const hasSignature = () => drawn || Boolean(paper?.files.length);
+  const update = () => { save.disabled = !hasSignature() || !confirmed.checked || activePointer !== null; };
   const clear = () => {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -30,6 +32,7 @@
     if (activePointer !== null || (event.pointerType === 'mouse' && event.button !== 0)) return;
     event.preventDefault();
     activePointer = event.pointerId;
+    if (paper) paper.value = '';
     canvas.setPointerCapture(event.pointerId);
     ctx.strokeStyle = '#151515';
     ctx.lineWidth = 4;
@@ -60,17 +63,18 @@
   document.querySelector('#signature-clear').addEventListener('click', clear);
   document.querySelector('#signature-redraw').addEventListener('click', clear);
   confirmed.addEventListener('change', update);
+  paper?.addEventListener('change', clear);
   form.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && event.target.matches('input:not([type=checkbox])')) {
       event.preventDefault();
     }
   });
   form.addEventListener('submit', (event) => {
-    if (!drawn || !confirmed.checked || activePointer !== null || event.submitter !== save) {
+    if (!hasSignature() || !confirmed.checked || activePointer !== null || event.submitter !== save) {
       event.preventDefault();
       return;
     }
-    data.value = canvas.toDataURL('image/png');
+    data.value = drawn ? canvas.toDataURL('image/png') : '';
     save.disabled = true;
   });
   window.addEventListener('pageshow', clear);

@@ -285,6 +285,23 @@ def test_assessment_form_calculates_total_from_structured_response(
     )
     assert response.status_code == 302
     assessment = Assessment.objects.get()
+    assert assessment.status == Assessment.Status.DRAFT
+    assert response.url == reverse("assessment_sign", args=[assessment.pk])
+    from .test_consent_signing import png_value
+
+    review = client.get(response.url)
+    signed = client.post(
+        response.url,
+        {
+            "review_token": review.context["form"].initial["review_token"],
+            "signer_name": "Synthetic beneficiary",
+            "signer_role": "beneficiary",
+            "signature_data": png_value(),
+            "reviewed": "on",
+        },
+    )
+    assert signed.status_code == 302
+    assessment.refresh_from_db()
     assert assessment.status == Assessment.Status.COMPLETED
     assert assessment.total_score == 8
     assert assessment.responses.get().numeric_value == 8

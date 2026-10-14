@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import consent_views, views
+from . import assessment_signing_views, consent_views, views
 
 urlpatterns = [
     path("beneficiaries/<uuid:pk>/consent/sign/", consent_views.consent_sign, name="consent_sign"),
@@ -65,6 +65,31 @@ urlpatterns = [
     ),
     path("assessments/", views.assessment_list, name="assessment_list"),
     path("assessments/new/", views.assessment_create, name="assessment_create"),
+    path(
+        "assessments/<uuid:pk>/sign/",
+        assessment_signing_views.assessment_sign,
+        name="assessment_sign",
+    ),
+    path(
+        "assessments/<uuid:pk>/print/",
+        assessment_signing_views.assessment_print,
+        name="assessment_print",
+    ),
+    path(
+        "signed-assessments/<uuid:pk>/",
+        assessment_signing_views.assessment_document,
+        name="assessment_document",
+    ),
+    path(
+        "signed-assessments/<uuid:pk>/signature/",
+        assessment_signing_views.assessment_signature_download,
+        name="assessment_signature_download",
+    ),
+    path(
+        "signed-assessments/<uuid:pk>/download/",
+        assessment_signing_views.assessment_download,
+        name="assessment_download",
+    ),
     path("assessments/<uuid:pk>/", views.assessment_detail, name="assessment_detail"),
     path(
         "assessments/<uuid:pk>/update/",

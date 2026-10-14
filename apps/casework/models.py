@@ -2029,12 +2029,29 @@ class AssessmentTemplateSection(ValidatedModel):
         return super().delete(*args, **kwargs)
 
 
+class FunctionalDependencyLevel(models.TextChoices):
+    TOTAL = "total", _("Total dependency")
+    SEVERE = "severe", _("Severe dependency")
+    MODERATE = "moderate", _("Moderate dependency")
+    SLIGHT = "slight", _("Slight dependency")
+    INDEPENDENT = "independent", _("Independent")
+
+
+class CareNeedLevel(models.TextChoices):
+    VERY_HIGH = "very_high", _("Very high")
+    HIGH = "high", _("High")
+    MODERATE = "moderate", _("Moderate")
+    LOW = "low", _("Low")
+    MINIMAL = "minimal", _("Minimal")
+
+
 class AssessmentTemplateField(ValidatedModel):
     class ResponseType(models.TextChoices):
         NUMERIC_SCORE = "numeric", _("Numeric score")
         PERCENTAGE = "percentage", _("Percentage")
         ASSESSED_NOT_ASSESSED = "assessed_state", _("Assessed or not assessed")
         CHOICE = "choice", _("Choice")
+        SCORED_CHOICE = "scored_choice", _("Scored choice")
         TEXT = "text", _("Text")
         NOT_APPLICABLE = "not_applicable", _("Not applicable")
 
@@ -2091,6 +2108,9 @@ class AssessmentTemplateField(ValidatedModel):
     def template_version(self):
         return self.section.template_version
 
+    def choice_label(self, choice):
+        return choice["label_ka"] if get_language() == "ka" else choice["label"]
+
     def clean(self) -> None:
         self.code = self.code.strip().upper()
         self.label = self.label.strip()
@@ -2109,7 +2129,11 @@ class AssessmentTemplateField(ValidatedModel):
             .exists()
         ):
             errors["code"] = _("Field codes must be unique within a template version.")
-        numeric_types = {self.ResponseType.NUMERIC_SCORE, self.ResponseType.PERCENTAGE}
+        numeric_types = {
+            self.ResponseType.NUMERIC_SCORE,
+            self.ResponseType.PERCENTAGE,
+            self.ResponseType.SCORED_CHOICE,
+        }
         if self.response_type == self.ResponseType.PERCENTAGE:
             if self.minimum_value is None:
                 self.minimum_value = Decimal("0")
@@ -2134,6 +2158,38 @@ class AssessmentTemplateField(ValidatedModel):
                 errors["allowed_choices"] = _("Choice responses require a non-empty list.")
             elif len(set(choices)) != len(choices):
                 errors["allowed_choices"] = _("Choice response values must be unique.")
+        elif self.response_type == self.ResponseType.SCORED_CHOICE:
+            values = []
+            try:
+                if not isinstance(choices, list) or not choices:
+                    raise ValueError
+                for choice in choices:
+                    if not isinstance(choice, dict):
+                        raise ValueError
+                    value = choice["value"]
+                    if not isinstance(value, str) or not value.strip() or len(value) > 240:
+                        raise ValueError
+                    if any(
+                        not isinstance(choice.get(key), str) or not choice[key].strip()
+                        for key in ("label", "label_ka")
+                    ):
+                        raise ValueError
+                    score = Decimal(str(choice["score"]))
+                    if not score.is_finite() or score.as_tuple().exponent < -2:
+                        raise ValueError
+                    if self.minimum_value is None or self.maximum_value is None:
+                        raise ValueError
+                    if not self.minimum_value <= score <= self.maximum_value:
+                        raise ValueError
+                    if (score - self.minimum_value) % self.value_increment:
+                        raise ValueError
+                    values.append(value)
+                if len(values) != len(set(values)):
+                    raise ValueError
+            except (ValueError, TypeError, KeyError, InvalidOperation):
+                errors["allowed_choices"] = _(
+                    "Scored choices require unique values, bilingual labels, and valid scores."
+                )
         elif choices:
             errors["allowed_choices"] = _("Only choice responses may define choices.")
         if self.is_delayed_domain:
@@ -2166,6 +2222,10 @@ class AssessmentScoreBand(ValidatedModel):
     lower_bound = models.DecimalField(max_digits=10, decimal_places=2)
     upper_bound = models.DecimalField(max_digits=10, decimal_places=2)
     display_order = models.PositiveIntegerField(default=0)
+    functional_dependency_level = models.CharField(
+        max_length=16, choices=FunctionalDependencyLevel.choices, blank=True
+    )
+    care_need_level = models.CharField(max_length=16, choices=CareNeedLevel.choices, blank=True)
 
     class Meta:
         ordering = ["display_order", "lower_bound"]
@@ -2187,6 +2247,8 @@ class AssessmentScoreBand(ValidatedModel):
             errors["template_version"] = _("Published or used template versions are immutable.")
         if self.upper_bound < self.lower_bound:
             errors["upper_bound"] = _("Band upper bound cannot be below its lower bound.")
+        if bool(self.functional_dependency_level) != bool(self.care_need_level):
+            errors["care_need_level"] = _("Set both dependency and care need levels together.")
         if errors:
             raise ValidationError(errors)
 
@@ -2257,6 +2319,21 @@ class Assessment(DatedCaseworkModel):
         editable=False,
     )
     derived_classification = models.CharField(max_length=180, blank=True, editable=False)
+    functional_dependency_level = models.CharField(
+        max_length=16, choices=FunctionalDependencyLevel.choices, blank=True, editable=False
+    )
+    care_need_level = models.CharField(
+        max_length=16, choices=CareNeedLevel.choices, blank=True, editable=False
+    )
+    additional_care_needs = models.TextField(
+        blank=True,
+        verbose_name=_("Additional care needs assessment"),
+        help_text=_(
+            "Record needs such as medication, meal preparation, shopping, housework, "
+            "and social support to inform the service plan."
+        ),
+    )
+    signature_required = models.BooleanField(default=False, editable=False)
     delayed_domain_count = models.PositiveIntegerField(default=0, editable=False)
     scoring_rule_version = models.CharField(max_length=48, blank=True, editable=False)
     calculation_trace = models.JSONField(default=dict, blank=True, editable=False)
@@ -2579,13 +2656,32 @@ class Assessment(DatedCaseworkModel):
                     raise ValidationError(_("Completed assessment identity is immutable."))
                 self.total_score = current.total_score
                 self.derived_classification = current.derived_classification
+                self.functional_dependency_level = current.functional_dependency_level
+                self.care_need_level = current.care_need_level
                 self.delayed_domain_count = current.delayed_domain_count
                 self.scoring_rule_version = current.scoring_rule_version
                 self.calculation_trace = current.calculation_trace
                 self.calculated_at = current.calculated_at
+                self.signature_required = current.signature_required
+                if current.signature_required and any(
+                    getattr(current, field) != getattr(self, field)
+                    for field in (
+                        "progress_summary",
+                        "recommendations",
+                        "notes",
+                        "additional_care_needs",
+                        "service_schedule_count",
+                        "next_review_date",
+                    )
+                ):
+                    raise ValidationError(
+                        _("Signed assessments require a fresh signed correction.")
+                    )
         if self.status == self.Status.DRAFT:
             self.total_score = Decimal("0")
             self.derived_classification = ""
+            self.functional_dependency_level = ""
+            self.care_need_level = ""
             self.delayed_domain_count = 0
             self.scoring_rule_version = ""
             self.calculation_trace = {}
@@ -2651,6 +2747,16 @@ class AssessmentResponse(ValidatedModel):
 
     def __str__(self) -> str:
         return f"{self.assessment} | {self.template_field.code}"
+
+    @property
+    def choice_display(self):
+        field = self.template_field
+        if field.response_type == field.ResponseType.SCORED_CHOICE:
+            choice = next(
+                (item for item in field.allowed_choices if item["value"] == self.choice_value), None
+            )
+            return field.choice_label(choice) if choice else self.choice_value
+        return self.choice_value
 
     def clean(self) -> None:
         self.text_value = self.text_value.strip()
@@ -2724,6 +2830,19 @@ class AssessmentResponse(ValidatedModel):
                 errors["numeric_value"] = _(
                     "Numeric responses cannot contain text or choice values."
                 )
+        elif response_type == field.ResponseType.SCORED_CHOICE:
+            choice = next(
+                (item for item in field.allowed_choices if item["value"] == self.choice_value), None
+            )
+            if choice is None:
+                errors["choice_value"] = _("Select an allowed choice.")
+            else:
+                score = Decimal(str(choice["score"]))
+                if self.numeric_value is not None and self.numeric_value != score:
+                    errors["numeric_value"] = _("The score must match the selected choice.")
+                self.numeric_value = score
+            if self.text_value:
+                errors["choice_value"] = _("Scored choices cannot contain text values.")
         elif response_type == field.ResponseType.CHOICE:
             if self.choice_value not in field.allowed_choices:
                 errors["choice_value"] = _("Select an allowed choice.")
@@ -3520,6 +3639,7 @@ class AttachmentParentType(models.TextChoices):
     INDIVIDUAL_PLAN = "individual_plan", _("Individual Plan")
     STAFF_PROFILE = "staff_profile", _("Staff Profile")
     SIGNED_CONSENT = "signed_consent", _("Signed consent")
+    SIGNED_ASSESSMENT = "signed_assessment", _("Signed assessment")
 
 
 ATTACHMENT_CONTENT_TYPES = {
@@ -3574,7 +3694,12 @@ class PrivateAttachment(ValidatedModel):
                 fields=["parent_id", "original_filename"],
                 condition=Q(parent_type=AttachmentParentType.SIGNED_CONSENT),
                 name="unique_signed_consent_file",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["parent_id", "original_filename"],
+                condition=Q(parent_type=AttachmentParentType.SIGNED_ASSESSMENT),
+                name="unique_signed_assessment_file",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -3590,6 +3715,15 @@ class PrivateAttachment(ValidatedModel):
         return model.objects.filter(pk=self.parent_id).first()
 
     def clean(self) -> None:
+        if self.parent_type == AttachmentParentType.SIGNED_ASSESSMENT:
+            if not self._state.adding:
+                raise ValidationError(_("Signed assessment evidence cannot be changed."))
+            if (
+                self.original_filename
+                not in {"signature.png", "signed-assessment.txt", "signed-paper.pdf"}
+                or Path(self.file.name).suffix != Path(self.original_filename).suffix
+            ):
+                raise ValidationError(_("Select a valid signed assessment evidence file."))
         if self.parent_type == AttachmentParentType.SIGNED_CONSENT and not self._state.adding:
             raise ValidationError(_("Signed consent evidence cannot be changed."))
         if self.parent_type == AttachmentParentType.SIGNED_CONSENT and (
@@ -3675,6 +3809,34 @@ class SignedConsent(ValidatedModel):
 
     def delete(self, *args, **kwargs):
         raise TypeError("Signed consent evidence cannot be deleted.")
+
+
+class SignedAssessment(ValidatedModel):
+    assessment = models.OneToOneField(
+        Assessment, on_delete=models.PROTECT, related_name="signed_document"
+    )
+    center = models.ForeignKey(Center, on_delete=models.PROTECT)
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    signed_at = models.DateTimeField(default=timezone.now, editable=False)
+    language = models.CharField(max_length=2, choices=(("en", "English"), ("ka", "ქართული")))
+    submission_id = models.UUIDField(unique=True, editable=False)
+    snapshot = models.JSONField()
+
+    def clean(self):
+        if not self._state.adding:
+            raise ValidationError(_("Signed assessment evidence cannot be changed."))
+        if self.assessment_id and self.center_id != self.assessment.center_id:
+            raise ValidationError(_("Signed assessment center must match the assessment."))
+
+    def delete(self, *args, **kwargs):
+        raise TypeError("Signed assessment evidence cannot be deleted.")
+
+
+@receiver(pre_delete, sender=SignedAssessment)
+@receiver(pre_delete, sender=PrivateAttachment)
+def preserve_signed_assessment_evidence(sender, instance, **kwargs):
+    if sender is SignedAssessment or instance.parent_type == AttachmentParentType.SIGNED_ASSESSMENT:
+        raise TypeError("Signed assessment evidence cannot be deleted.")
 
 
 @receiver(pre_delete, sender=SignedConsent)

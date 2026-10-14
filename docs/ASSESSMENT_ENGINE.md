@@ -2,7 +2,7 @@
 
 ## Scope and evidence boundary
 
-The assessment engine implements the SSK structural requirements without copying or inferring proprietary assessment questions. The seeded Barthel and AEPS examples contain only identifiers, domain names, response structure, and provisional neutral scoring bands already present in the approved repository requirements. They remain drafts and cannot be selected for a new assessment until an authorized owner supplies and approves the missing clinical meaning.
+The assessment engine uses immutable templates. On 2026-10-14 the owner supplied the Georgian Barthel activities and confirmed the five functional dependency and care need bands. Migration 0024 installs the published `ssk-20261014-1` template, shown to staff as `ბართელის სკალა` or `Barthel scale`. The earlier Barthel structural draft and the AEPS drafts remain unpublished.
 
 ## Domain model
 
@@ -13,7 +13,7 @@ The assessment engine implements the SSK structural requirements without copying
 - `AssessmentResponse` stores a typed response and one of Assessed, Not Assessed, or Not Applicable.
 - `Assessment` stores the selected version, event-time enrollment and center, chain identity, primary and additional responsible specialists, notes, recommendations, next-review date, calculation trace, and derived result.
 
-Supported field response types are numeric score, percentage, assessed or not assessed, choice, text, and not applicable. Numeric and percentage fields may independently permit Not Assessed or Not Applicable. A response in either excluded state cannot carry a value.
+Supported field response types are numeric score, percentage, assessed or not assessed, choice, scored choice, text, and not applicable. Scored choices contain immutable bilingual descriptions and point values. The server validates the selected value and derives its points; a supplied numeric value must match. Numeric and percentage fields may independently permit Not Assessed or Not Applicable. A response in either excluded state cannot carry a value.
 
 ## Publication and immutability
 
@@ -44,7 +44,33 @@ Publication rejects:
 - an upper bound below its lower bound;
 - a first or last bound that does not cover the configured score range.
 
-The seeded structural draft uses an integer increment and neutral ranges 0 through 65, 66 through 75, 76 through 95, and 96 through 100. Both ends of every range are inclusive. Its labels are deliberately non-clinical, and the version remains Draft pending the owner approval identified by D-015. Tests verify every lower and upper boundary.
+The approved template has ten required activities: feeding, bathing, personal hygiene, dressing, bowel control, bladder control, toilet use, bed/chair transfers, mobility, and stairs. Each offers the supplied scored choices, including explicit zero-point answers. No answer is preselected. The maximum total is 100, and reachable totals are multiples of five.
+
+The owner confirmed these inclusive bands, superseding the incomplete screenshot categories:
+
+| Barthel score | Functional dependency | Care need |
+| --- | --- | --- |
+| 0 to 20 | Total | Very high |
+| 21 to 60 | Severe | High |
+| 61 to 90 | Moderate | Moderate |
+| 91 to 99 | Slight | Low |
+| 100 | Independent | Minimal |
+
+For example, 55/100 produces Severe dependency and High care need. The creation form previews the result after all ten answers; the server independently recalculates it. Both levels are saved as separate fields with the total and calculation trace. The old structural draft is retained unchanged.
+
+The form, signing review, detail page, and retained document explain that Barthel alone does not determine home-care visit frequency or intensity. An additional care needs narrative records medication, meal preparation, shopping, housework, and social support needs. The application does not infer visits, schedules, or a service plan from the score.
+
+## Creation and signature
+
+The template selector shows the template name. The version identifier is retained internally for reproducibility and is absent from the creation UI. Enrollment choices show the beneficiary name, code, service, status, enrollment date, and completed age. The review records age on the assessment date; an unavailable birth date is shown as Age unknown.
+
+New assessments created through the application save as drafts and continue to a review-and-sign page. A beneficiary or representative must review the responses, result, and narratives before signing. Staff recorder and signer are separate. Representatives must state their relationship. The same PNG validation and signature pad used for beneficiary consent are reused. A printable assessment and signed PDF upload provide a paper and keyboard alternative.
+
+Signed tokens bind the reviewed content to the assessment, recorder, center, language, and a one-hour expiry. Changed reviews need fresh signatures. Duplicate submissions retain the existing execution record. Completion checks the stored signature snapshot against the current assessment review before saving the derived result.
+
+`SignedAssessment` and its generated files are private and append-only, with model and database guards. Authorized assessment selectors control review, signing, printing, and downloads. Generated evidence is excluded from ordinary attachment upload/delete routes. File writes and completion share rollback cleanup. Stored HTML embeds the local Georgian font and the normalized drawing, escapes text, and uses a restrictive content security policy. Paper evidence is retained with its hash.
+
+Existing completed assessments remain unchanged and are not marked signed. A signed assessment's narratives and identity cannot be edited in place. An audited correction receives a new draft and requires a fresh signature before superseding the prior completed revision.
 
 ## AEPS and early-intervention structure
 
@@ -74,7 +100,7 @@ Records under the same template version are comparable. Different versions are c
 
 Responses remain editable while an assessment is Draft. Completion validates the whole response set, adds the primary specialist to the responsible-specialist set, calculates every result, and locks responses and assessment identity.
 
-A completed assessment cannot be hard-deleted. `correct_assessment` applies the existing center and enrollment assignment authorization policy and creates a new completed revision with a required reason and actor. The prior revision becomes Superseded but retains its responses and results. Routine updates may change narrative review details, but cannot change the completed identity, template, chain, or calculation.
+A completed assessment cannot be hard-deleted. `correct_assessment` applies the existing center and enrollment assignment authorization policy and requires a reason and actor. A signed correction remains a draft until its fresh signature is recorded; unsigned historical corrections retain the existing completion path. The prior revision becomes Superseded only when the correction completes and retains its responses and results. Routine updates to unsigned historical records may change narrative review details, but cannot change completed identity, template, chain, or calculation. Signed records require a new signed correction.
 
 ## Authorization
 

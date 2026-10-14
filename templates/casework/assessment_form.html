@@ -1,30 +1,31 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n static %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
 <header class="page-header">
   <div>
     <h1>{{ title }}</h1>
-    <p>{% translate "Assessments use a published, effective template. Repeated and final records require a compatible predecessor." %}</p>
+    <p>{% translate "Choose an assessment template, complete its questions, then review and sign with the beneficiary or representative." %}</p>
   </div>
 </header>
 
-{% if not form.instance.pk %}
+{% if form.is_creation %}
   <form method="get" class="filter-bar">
     <div class="form-group">
-      <label for="template-loader">{% translate "Template to load" %}</label>
+      <label for="template-loader">{% translate "Template" %}</label>
       <select class="form-select" id="template-loader" name="template_version" required>
         <option value="">{% translate "Select a published template" %}</option>
-        {% for template in form.fields.template_version.queryset %}
-          <option value="{{ template.pk }}"{% if selected_template.pk == template.pk %} selected{% endif %}>{{ template }}</option>
+        {% for template in form.available_templates %}
+          <option value="{{ template.pk }}"{% if selected_template.pk == template.pk %} selected{% endif %}>{% translate template.name %}</option>
         {% endfor %}
       </select>
     </div>
+    {% if form.instance.enrollment_id %}<input type="hidden" name="enrollment" value="{{ form.instance.enrollment_id }}">{% endif %}
     <button class="button button-secondary" type="submit">{% translate "Load response fields" %}</button>
   </form>
 {% endif %}
 
-<form method="post" novalidate>
+<form method="post" id="assessment-form" novalidate>
   {% csrf_token %}
   {% include "includes/form_error_summary.html" %}
   <section class="form-card">
@@ -36,7 +37,7 @@
     <div class="form-section-heading">
       <h2>{% translate "Template responses" %}</h2>
       {% if selected_template %}
-        <p>{{ selected_template.instrument.name }} {{ selected_template.version }}</p>
+        <p>{% translate selected_template.name %}</p>
       {% else %}
         <p>{% translate "Load a published template before entering responses." %}</p>
       {% endif %}
@@ -45,15 +46,19 @@
     {% if formset.non_form_errors %}<div class="alert alert-error" role="alert">{{ formset.non_form_errors }}</div>{% endif %}
     {% for response_form in formset %}
       {% ifchanged response_form.configured_field.section_id %}
-        <h3>{{ response_form.configured_field.section.name }}</h3>
+        <h3>{% translate response_form.configured_field.section.name %}</h3>
         {% if response_form.configured_field.section.description %}<p>{{ response_form.configured_field.section.description }}</p>{% endif %}
       {% endifchanged %}
       <div class="formset-card">
         {% include "includes/form_error_summary.html" with form=response_form %}
         {{ response_form.template_field }}
         <div class="form-grid">
-          <div class="form-group">{{ response_form.value.label_tag }}{{ response_form.value }}{% if response_form.value.help_text %}<small>{{ response_form.value.help_text }}</small>{% endif %}{{ response_form.value.errors }}</div>
-          <div class="form-group">{{ response_form.state.label_tag }}{{ response_form.state }}{{ response_form.state.errors }}</div>
+          {% if response_form.configured_field.response_type == 'scored_choice' %}
+            <fieldset class="assessment-question"><legend>{{ response_form.value.label }} <span aria-hidden="true">*</span></legend>{{ response_form.value }}{{ response_form.value.errors }}</fieldset>
+          {% else %}
+            <div class="form-group">{{ response_form.value.label_tag }}{{ response_form.value }}{% if response_form.value.help_text %}<small>{{ response_form.value.help_text }}</small>{% endif %}{{ response_form.value.errors }}</div>
+          {% endif %}
+          {% if response_form.state.is_hidden %}{{ response_form.state }}{% else %}<div class="form-group">{{ response_form.state.label_tag }}{{ response_form.state }}{{ response_form.state.errors }}</div>{% endif %}
           <div class="form-group">{{ response_form.notes.label_tag }}{{ response_form.notes }}{{ response_form.notes.errors }}</div>
         </div>
       </div>
@@ -61,8 +66,22 @@
       <div class="empty-state"><p>{% translate "No response fields are loaded." %}</p></div>
     {% endfor %}
   </section>
+  {% if preview_config.fields %}
+    <section class="form-card" aria-labelledby="barthel-result-heading">
+      <h2 id="barthel-result-heading">{% translate "Barthel result" %}</h2>
+      <p id="barthel-progress" data-incomplete="{% translate 'Answer every activity to calculate the result.' %}" role="status"></p>
+      <dl class="detail-grid" id="barthel-preview" aria-live="polite">
+        <div class="detail-item"><dt>{% translate "Barthel Index" %}</dt><dd id="barthel-score" data-awaiting="{% translate 'Awaiting answers' %}">{% translate "Awaiting answers" %}</dd></div>
+        <div class="detail-item"><dt>{% translate "Functional status" %}</dt><dd id="barthel-dependency"></dd></div>
+        <div class="detail-item"><dt>{% translate "Care need" %}</dt><dd id="barthel-care-need"></dd></div>
+      </dl>
+      <p class="help-text">{{ care_notice }}</p>
+    </section>
+    {{ preview_config|json_script:"barthel-preview-config" }}
+    <script src="{% static 'js/assessment-form.js' %}" defer></script>
+  {% endif %}
   <div class="form-actions form-actions-sticky">
-    <button class="button button-primary" type="submit">{% translate "Save assessment" %}</button>
+    <button class="button button-primary" type="submit">{% if form.instance.signature_required and form.instance.status == 'draft' %}{% translate "Review and sign assessment" %}{% else %}{% translate "Save assessment" %}{% endif %}</button>
     <a class="button button-quiet" href="{% url 'assessment_list' %}">{% translate "Cancel" %}</a>
   </div>
 </form>

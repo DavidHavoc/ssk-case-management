@@ -35,10 +35,12 @@ from apps.core.authorization import (
 from apps.core.decorators import active_center_required
 
 from .assessment_engine import (
+    calculate_assessment,
     comparison_for_assessment,
     complete_assessment,
     replace_draft_responses,
 )
+from .assessment_signing import CARE_NOTICE
 from .consent_signing import signed_consent_status
 from .forms import (
     AssessmentForm,
@@ -66,7 +68,9 @@ from .models import (
     AttachmentParentType,
     Beneficiary,
     BeneficiaryWorkbookImport,
+    CareNeedLevel,
     CenterServiceOffering,
+    FunctionalDependencyLevel,
     IndividualPlan,
     IndividualPlanGoal,
     PrivateAttachment,
@@ -1250,15 +1254,17 @@ def assessment_detail(request, pk):
             "assessment": assessment,
             "attachments": attachments,
             "attachment_parent_type": AttachmentParentType.ASSESSMENT,
-            "can_change_parent": assessments_for_user(
-                request.user, request.ssk_center, for_change=True
+            "can_change_parent": not (
+                assessment.signature_required and assessment.status != Assessment.Status.DRAFT
             )
+            and assessments_for_user(request.user, request.ssk_center, for_change=True)
             .filter(pk=assessment.pk)
             .exists(),
             "can_delete": (
                 is_system_manager(request.user) and assessment.status == Assessment.Status.DRAFT
             ),
             "comparison": comparison_for_assessment(assessment),
+            "care_notice": CARE_NOTICE,
         },
     )
 
@@ -1285,6 +1291,8 @@ def assessment_update(request, pk):
 
 def _assessment_form(request, instance=None, initial_enrollment=None):
     assessment = instance or Assessment(center=request.ssk_center)
+    if not instance:
+        assessment.signature_required = True
     if initial_enrollment is not None:
         assessment.enrollment = initial_enrollment
         assessment.beneficiary = initial_enrollment.beneficiary
@@ -1306,7 +1314,7 @@ def _assessment_form(request, instance=None, initial_enrollment=None):
     selected_template_id = (
         request.POST.get("template_version")
         if request.method == "POST"
-        else assessment.template_version_id
+        else assessment.template_version_id or form.initial.get("template_version")
     )
     try:
         selected_template = (
@@ -1326,7 +1334,9 @@ def _assessment_form(request, instance=None, initial_enrollment=None):
                 assessment = form.save()
                 if assessment.status == Assessment.Status.DRAFT:
                     replace_draft_responses(assessment, formset.response_payloads)
-                    assessment = complete_assessment(assessment)
+                    calculate_assessment(assessment)
+                    if not assessment.signature_required:
+                        assessment = complete_assessment(assessment)
                 record_event(
                     actor=request.user,
                     event_type=(
@@ -1343,8 +1353,38 @@ def _assessment_form(request, instance=None, initial_enrollment=None):
         except ValidationError as exc:
             form.add_error(None, exc)
         else:
+            if assessment.status == Assessment.Status.DRAFT and assessment.signature_required:
+                return redirect("assessment_sign", pk=assessment.pk)
             messages.success(request, _("Assessment saved."))
             return redirect("assessment_detail", pk=assessment.pk)
+    preview_config = None
+    if selected_template and selected_template.instrument.code == "BARTHEL":
+        preview_config = {
+            "fields": [
+                {
+                    "name": response_form["value"].html_name,
+                    "scores": {
+                        item["value"]: item["score"]
+                        for item in response_form.configured_field.allowed_choices
+                    },
+                }
+                for response_form in formset
+                if response_form.configured_field.response_type == "scored_choice"
+            ],
+            "bands": [
+                {
+                    "lower": str(band.lower_bound),
+                    "upper": str(band.upper_bound),
+                    "dependency": str(
+                        dict(FunctionalDependencyLevel.choices).get(
+                            band.functional_dependency_level, band.label
+                        )
+                    ),
+                    "care_need": str(dict(CareNeedLevel.choices).get(band.care_need_level, "")),
+                }
+                for band in selected_template.score_bands.all()
+            ],
+        }
     return render(
         request,
         "casework/assessment_form.html",
@@ -1352,6 +1392,8 @@ def _assessment_form(request, instance=None, initial_enrollment=None):
             "form": form,
             "formset": formset,
             "selected_template": selected_template,
+            "preview_config": preview_config,
+            "care_notice": CARE_NOTICE,
             "title": _("Update assessment") if instance else _("New assessment"),
         },
     )

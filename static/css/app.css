@@ -379,3 +379,11 @@ td a { font-weight: 680; }
 .consent-wording .detail-item.wide { grid-column: auto; }
 .consent-wording dt { font-size: .95rem; letter-spacing: normal; text-transform: none; }
 .consent-sign-form button:disabled { opacity: .55; cursor: default; }
+
+.assessment-question { grid-column: 1 / -1; min-width: 0; margin: 0; padding: 0; border: 0; }
+.assessment-question legend { font-weight: 600; margin-bottom: .75rem; }
+.assessment-question div.form-check-input { width: auto; height: auto; }
+.assessment-question label { display: flex; align-items: flex-start; gap: .75rem; padding: .75rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: .5rem; cursor: pointer; }
+.assessment-question label:has(input:checked) { background: var(--color-brand-soft); border-color: var(--color-ink); }
+.assessment-question input { flex: 0 0 auto; margin-top: .25rem; width: 1.25rem; height: 1.25rem; }
+.assessment-details .detail-item.wide { grid-column: 1 / -1; }

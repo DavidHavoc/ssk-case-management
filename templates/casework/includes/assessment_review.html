@@ -1,0 +1,30 @@
+{% load i18n %}
+<dl class="detail-grid assessment-details">
+  <div class="detail-item"><dt>{% translate "Beneficiary" %}</dt><dd>{{ document.beneficiary.name }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Beneficiary code" %}</dt><dd>{{ document.beneficiary.code }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Age at assessment" %}</dt><dd>{{ document.age }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Assessment date" %}</dt><dd>{{ document.date }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Assessment type" %}</dt><dd>{{ document.type }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Template" %}</dt><dd>{{ document.template }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Service" %}</dt><dd>{{ document.service }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Responsible specialists" %}</dt><dd>{% for id, name in document.responsible_specialists.items %}{{ name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd></div>
+  <div class="detail-item"><dt>{% if document.barthel %}{% translate "Barthel Index" %}{% else %}{% translate "Calculated total" %}{% endif %}</dt><dd>{{ document.result.score|floatformat:"-2" }}{% if document.barthel %}/100{% endif %}</dd></div>
+  {% if document.result.dependency %}
+    <div class="detail-item"><dt>{% translate "Functional status" %}</dt><dd>{{ document.result.dependency_label }}</dd></div>
+    <div class="detail-item"><dt>{% translate "Care need" %}</dt><dd>{{ document.result.care_need_label }}</dd></div>
+  {% elif document.result.classification %}<div class="detail-item"><dt>{% translate "Derived classification" %}</dt><dd>{{ document.result.classification }}</dd></div>{% endif %}
+</dl>
+{% if document.barthel %}<p class="help-text">{{ document.care_notice }}</p>{% endif %}
+<h2>{% translate "Responses" %}</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>{% translate "Activity" %}</th><th>{% translate "Response" %}</th><th>{% translate "Score" %}</th><th>{% translate "Notes" %}</th></tr></thead>
+  <tbody>{% for response in document.responses %}<tr><th scope="row">{{ response.label }}</th><td>{{ response.answer|default:response.state_label }}</td><td>{{ response.score }}</td><td>{{ response.notes|linebreaksbr }}</td></tr>{% endfor %}</tbody>
+</table></div>
+<dl class="detail-grid assessment-details">
+  <div class="detail-item wide"><dt>{% translate "Additional care needs assessment" %}</dt><dd>{{ document.additional_care_needs|default:_('Not provided')|linebreaksbr }}</dd></div>
+  <div class="detail-item wide"><dt>{% translate "Progress summary" %}</dt><dd>{{ document.progress_summary|default:_('Not provided')|linebreaksbr }}</dd></div>
+  <div class="detail-item wide"><dt>{% translate "Recommendations" %}</dt><dd>{{ document.recommendations|default:_('Not provided')|linebreaksbr }}</dd></div>
+  <div class="detail-item wide"><dt>{% translate "Notes" %}</dt><dd>{{ document.notes|default:_('Not provided')|linebreaksbr }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Service schedule count" %}</dt><dd>{{ document.service_schedule_count }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Next review" %}</dt><dd>{{ document.next_review_date|default:_('Not scheduled') }}</dd></div>
+</dl>

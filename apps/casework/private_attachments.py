@@ -115,6 +115,12 @@ def _consent_parent_adapter(parent_type: str, parent_id, user, center, action: s
     return authorized_signed_consent(parent_id, user, center)
 
 
+def _signed_assessment_parent_adapter(parent_type: str, parent_id, user, center, action: str):
+    from .assessment_signing import authorized_signed_assessment
+
+    return authorized_signed_assessment(parent_id, user, center, for_change=action == "change")
+
+
 def _case_center(parent):
     return parent.center
 
@@ -124,6 +130,13 @@ def _staff_center(parent):
 
 
 _ATTACHMENT_PARENT_POLICIES = {
+    AttachmentParentType.SIGNED_ASSESSMENT: _AttachmentParentPolicy(
+        parent_type=AttachmentParentType.SIGNED_ASSESSMENT,
+        model_label="casework.SignedAssessment",
+        detail_route="assessment_document",
+        authorization_adapter=_signed_assessment_parent_adapter,
+        center_adapter=_case_center,
+    ),
     AttachmentParentType.SIGNED_CONSENT: _AttachmentParentPolicy(
         parent_type=AttachmentParentType.SIGNED_CONSENT,
         model_label="casework.SignedConsent",
@@ -405,7 +418,10 @@ class _AttachmentUploader:
                     center=attachment.center,
                     action="change",
                 )
-                if attachment.parent_type == AttachmentParentType.SIGNED_CONSENT:
+                if attachment.parent_type in {
+                    AttachmentParentType.SIGNED_CONSENT,
+                    AttachmentParentType.SIGNED_ASSESSMENT,
+                }:
                     # Reserve the randomized path before writing so even a storage error
                     # after writing bytes can be cleaned up. Normal uploads retain their flow.
                     attachment.full_clean()
@@ -754,6 +770,14 @@ def signed_consent_attachments(actor, center) -> _AttachmentWorkflow:
         actor=actor,
         center=center,
         allowed_parent_types=frozenset({AttachmentParentType.SIGNED_CONSENT}),
+    )
+
+
+def signed_assessment_attachments(actor, center) -> _AttachmentWorkflow:
+    return _AttachmentWorkflow(
+        actor=actor,
+        center=center,
+        allowed_parent_types=frozenset({AttachmentParentType.SIGNED_ASSESSMENT}),
     )
 
 

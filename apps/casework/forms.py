@@ -6,6 +6,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.forms import BaseFormSet, BaseInlineFormSet, formset_factory, inlineformset_factory
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.utils.translation import gettext_lazy as _
 
@@ -713,13 +714,32 @@ class EnrollmentServiceScheduleForm(AuthorizedCaseworkForm):
 
 class AssessmentEnrollmentChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, enrollment):
-        return f"{enrollment.beneficiary.full_name} | {enrollment}"
+        person = enrollment.beneficiary
+        age = person.age_on(getattr(self, "reference_date", timezone.localdate()))
+        age_label = (
+            _("%(years)s years, %(months)s months") % {"years": age.years, "months": age.months}
+            if age
+            else _("Age unknown")
+        )
+        return f"{person.full_name} | {enrollment} | {age_label}"
+
+
+class AssessmentTemplateChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, template):
+        return _(template.name)
 
 
 class AssessmentForm(AuthorizedCaseworkForm):
+    @property
+    def is_creation(self):
+        return self.instance._state.adding
+
     class Meta:
         model = Assessment
-        field_classes = {"enrollment": AssessmentEnrollmentChoiceField}
+        field_classes = {
+            "enrollment": AssessmentEnrollmentChoiceField,
+            "template_version": AssessmentTemplateChoiceField,
+        }
         exclude = (
             "center",
             "assessment_cycle_number",
@@ -732,6 +752,8 @@ class AssessmentForm(AuthorizedCaseworkForm):
             "progress_summary": forms.Textarea(attrs={"rows": 3}),
             "recommendations": forms.Textarea(attrs={"rows": 4}),
             "notes": forms.Textarea(attrs={"rows": 4}),
+            "additional_care_needs": forms.Textarea(attrs={"rows": 4}),
+            "template_version": forms.HiddenInput,
         }
 
     def __init__(self, *args, user, center, **kwargs):
@@ -739,7 +761,7 @@ class AssessmentForm(AuthorizedCaseworkForm):
         self.center = center
         super().__init__(*args, **kwargs)
         enrollment_queryset = enrollments_for_user(user, center)
-        if self.instance.pk:
+        if not self.is_creation:
             enrollment_queryset = ServiceEnrollment.objects.filter(
                 Q(pk__in=enrollment_queryset) | Q(pk=self.instance.enrollment_id)
             ).select_related("beneficiary", "service")
@@ -752,6 +774,14 @@ class AssessmentForm(AuthorizedCaseworkForm):
         )
         selected_enrollment = enrollment_queryset.filter(pk=selected_enrollment_id).first()
         assessment_date = _record_business_date(self, "assessment_date")
+        if assessment_date is None and not self.is_bound:
+            initial_date = self.initial.get("assessment_date")
+            if isinstance(initial_date, date):
+                assessment_date = initial_date
+            elif initial_date:
+                assessment_date = parse_date(str(initial_date))
+        self.fields["enrollment"].reference_date = assessment_date or timezone.localdate()
+        self.fields["template_version"].label = _("Template")
         template_queryset = AssessmentTemplateVersion.objects.filter(
             status=AssessmentTemplateVersion.Status.PUBLISHED,
             instrument__is_active=True,
@@ -766,11 +796,24 @@ class AssessmentForm(AuthorizedCaseworkForm):
                 Q(effective_from__isnull=True) | Q(effective_from__lte=assessment_date),
                 Q(effective_to__isnull=True) | Q(effective_to__gt=assessment_date),
             )
-        if self.instance.pk:
+        if not self.is_creation:
             template_queryset = AssessmentTemplateVersion.objects.filter(
                 Q(pk__in=template_queryset) | Q(pk=self.instance.template_version_id)
             ).select_related("instrument")
         self.fields["template_version"].queryset = template_queryset.distinct()
+        self.available_templates = list(self.fields["template_version"].queryset)
+        if not self.is_bound and not self.instance.template_version_id:
+            selected_id = self.initial.get("template_version")
+            if not selected_id:
+                default = next(
+                    (
+                        item
+                        for item in self.available_templates
+                        if item.instrument.code == "BARTHEL"
+                    ),
+                    self.available_templates[0] if self.available_templates else None,
+                )
+                self.initial["template_version"] = getattr(default, "pk", None)
         selected_template_id = (
             self.data.get("template_version")
             if self.is_bound
@@ -803,7 +846,9 @@ class AssessmentForm(AuthorizedCaseworkForm):
                 center=center,
                 enrollment=selected_enrollment,
                 business_date=assessment_date,
-                existing_specialist_id=(self.instance.specialist_id if self.instance.pk else None),
+                existing_specialist_id=(
+                    self.instance.specialist_id if not self.is_creation else None
+                ),
             )
         else:
             profile = specialist_profile_for_user(user)
@@ -811,14 +856,16 @@ class AssessmentForm(AuthorizedCaseworkForm):
                 center=center,
                 enrollment=selected_enrollment,
                 business_date=assessment_date,
-                existing_specialist_id=(self.instance.specialist_id if self.instance.pk else None),
+                existing_specialist_id=(
+                    self.instance.specialist_id if not self.is_creation else None
+                ),
             ).filter(
                 pk__in={
                     getattr(profile, "pk", None),
-                    self.instance.specialist_id if self.instance.pk else None,
+                    self.instance.specialist_id if not self.is_creation else None,
                 }
             )
-            if profile and not self.instance.pk:
+            if profile and self.is_creation:
                 self.initial["specialist"] = profile
         self.fields["specialist"].queryset = specialist_queryset
         self.fields["responsible_specialists"].queryset = specialist_queryset
@@ -834,6 +881,9 @@ class AssessmentForm(AuthorizedCaseworkForm):
                 "responsible_specialists",
             ):
                 self.fields[field_name].disabled = True
+            if self.instance.signature_required:
+                for field in self.fields.values():
+                    field.disabled = True
 
     def clean(self):
         return _validate_actor_assignment(self, super().clean(), "assessment_date")
@@ -857,7 +907,7 @@ class AssessmentResponseEntryForm(StyledForm):
         self.fields["template_field"].queryset = AssessmentTemplateField.objects.filter(
             pk=template_field.pk
         )
-        self.fields["value"].label = template_field.label
+        self.fields["value"].label = _(template_field.label)
         self.fields["value"].help_text = template_field.help_text
         response_type = template_field.response_type
         if response_type in {
@@ -869,7 +919,7 @@ class AssessmentResponseEntryForm(StyledForm):
                 min_value=template_field.minimum_value,
                 max_value=template_field.maximum_value,
                 step_size=template_field.value_increment,
-                label=template_field.label,
+                label=_(template_field.label),
                 help_text=template_field.help_text,
             )
         elif response_type == AssessmentTemplateField.ResponseType.CHOICE:
@@ -878,6 +928,17 @@ class AssessmentResponseEntryForm(StyledForm):
                 choices=[("", _("Select"))]
                 + [(choice, choice) for choice in template_field.allowed_choices],
                 label=template_field.label,
+                help_text=template_field.help_text,
+            )
+        elif response_type == AssessmentTemplateField.ResponseType.SCORED_CHOICE:
+            self.fields["value"] = forms.ChoiceField(
+                required=True,
+                choices=[
+                    (choice["value"], f"{choice['score']} · {template_field.choice_label(choice)}")
+                    for choice in template_field.allowed_choices
+                ],
+                widget=forms.RadioSelect,
+                label=_(template_field.label),
                 help_text=template_field.help_text,
             )
         elif response_type in {
@@ -908,12 +969,17 @@ class AssessmentResponseEntryForm(StyledForm):
         ):
             state_choices.append((AssessmentResponse.State.NOT_APPLICABLE, _("Not applicable")))
         self.fields["state"].choices = state_choices
+        if len(state_choices) == 1:
+            self.fields["state"].widget = forms.HiddenInput()
+            self.initial["state"] = state_choices[0][0]
         if response_type == AssessmentTemplateField.ResponseType.NOT_APPLICABLE:
             self.initial["state"] = AssessmentResponse.State.NOT_APPLICABLE
             self.fields["state"].disabled = True
         if assessment and assessment.status != Assessment.Status.DRAFT:
             for field in self.fields.values():
                 field.disabled = True
+        self._bound_fields_cache.clear()
+        self.apply_styles()
 
     def clean(self):
         cleaned = super().clean()
@@ -932,7 +998,10 @@ class AssessmentResponseEntryForm(StyledForm):
             AssessmentTemplateField.ResponseType.PERCENTAGE,
         }:
             response.numeric_value = value
-        elif template_field.response_type == AssessmentTemplateField.ResponseType.CHOICE:
+        elif template_field.response_type in {
+            AssessmentTemplateField.ResponseType.CHOICE,
+            AssessmentTemplateField.ResponseType.SCORED_CHOICE,
+        }:
             response.choice_value = value or ""
         elif template_field.response_type == AssessmentTemplateField.ResponseType.TEXT:
             response.text_value = value or ""
@@ -1001,10 +1070,10 @@ class BaseAssessmentResponseFormSet(BaseFormSet):
                 if response:
                     state = response.state
                     notes = response.notes
-                    if response.numeric_value is not None:
-                        value = response.numeric_value
-                    elif response.choice_value:
+                    if response.choice_value:
                         value = response.choice_value
+                    elif response.numeric_value is not None:
+                        value = response.numeric_value
                     else:
                         value = response.text_value
                 elif (
