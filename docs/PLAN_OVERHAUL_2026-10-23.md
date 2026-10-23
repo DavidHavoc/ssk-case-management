@@ -14,12 +14,20 @@ help arranging a safe environment, and Other. The remaining activities follow th
 Georgian DOCX template. At least one activity is required; Other needs a description.
 
 Beneficiary choices start with the name, followed by code and enrollment information.
+The picker also shows the latest authorized completed Barthel score available today,
+including zero. If only a historical intake index is available, it is explicitly labeled
+as a recorded intake value. Draft and future assessments do not supply picker scores.
+Scores are fetched with the authorized enrollment query rather than a query per option.
 Choosing a beneficiary loads an authorized Barthel preview and the assigned specialists.
 The preview and plan review show the latest completed, non-superseded Barthel assessment
 on or before the plan date, its score, dependency, care need, additional care needs, and
 the existing five-band scale. Missing assessments remain explicitly unrecorded. The
 separate historical intake index is labeled on the beneficiary page. The plan list and
 beneficiary plan table include Barthel results and signature state.
+
+Each care category has a bold row-group label and a dark outline around its activities.
+The same grouping appears in plan review and newly generated printable or signed copies.
+Existing stored signed documents remain unchanged.
 
 Plans save as drafts. The beneficiary or representative must review and sign before
 activation. The workflow reuses the consent signature validation and pad, private

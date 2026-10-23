@@ -390,8 +390,14 @@ td a { font-weight: 680; }
 
 /* Keep activity selection and notes readable inside the existing scroll region. */
 .plan-activity-table { min-width: 52rem; table-layout: fixed; }
-.plan-activity-table th:first-child { width: 8%; }
-.plan-activity-table th:nth-child(2) { width: 20%; }
-.plan-activity-table th:nth-child(3) { width: 32%; }
-.plan-activity-table th:nth-child(4) { width: 40%; }
+.plan-activity-table thead th:first-child { width: 8%; }
+.plan-activity-table thead th:nth-child(2) { width: 20%; }
+.plan-activity-table thead th:nth-child(3) { width: 32%; }
+.plan-activity-table thead th:nth-child(4) { width: 40%; }
 .plan-activity-table textarea { min-width: 0; width: 100%; }
+.plan-care-category > tr:first-child > * { border-top: 2px solid var(--color-charcoal); }
+.plan-care-category > tr:last-child > td,
+.plan-care-category > tr > th[scope="rowgroup"] { border-bottom: 2px solid var(--color-charcoal); }
+.plan-care-category > tr > .plan-category-edge { border-left: 2px solid var(--color-charcoal); }
+.plan-care-category > tr > :last-child { border-right: 2px solid var(--color-charcoal); }
+.plan-care-category > tr > th[scope="rowgroup"] { position: static; background: var(--color-surface-muted); color: var(--color-ink); font-size: .88rem; letter-spacing: normal; text-transform: none; }

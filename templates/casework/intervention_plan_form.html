@@ -8,9 +8,11 @@
   <section class="form-card"><div class="form-section-heading"><h2>{% translate "Plan period details" %}</h2></div><div class="form-grid">{% include "includes/form_fields.html" with fields=form.period_fields %}</div><button class="button button-secondary" type="submit" name="preview" value="1" formnovalidate>{% translate "Show beneficiary details" %}</button></section>
   <section class="form-card" aria-labelledby="plan-barthel-heading"><h2 id="plan-barthel-heading">{% translate "Barthel index" %}</h2>{% include "casework/includes/plan_barthel.html" %}<p id="plan-preview-error" role="alert" hidden>{% translate "Beneficiary details could not be loaded. Use Show beneficiary details to refresh." %}</p></section>
   <section class="section-block" aria-labelledby="plan-activities-heading"><div class="section-heading"><div><h2 id="plan-activities-heading">{% translate "Care activities" %}</h2><p>{% translate "Select the activities for this plan. Describe any Other activity in Notes." %}</p></div></div>
-    <div class="table-wrap" tabindex="0" role="region" aria-labelledby="plan-activities-heading"><table class="plan-activity-table"><thead><tr><th scope="col">{% translate "Select" %}</th><th scope="col">{% translate "Category" %}</th><th scope="col">{% translate "Activity" %}</th><th scope="col">{% translate "Notes" %}</th></tr></thead><tbody>
-    {% for row in form.activity_rows %}<tr><td><label for="{{ row.selected.id_for_label }}"><span class="visually-hidden">{{ row.selected.label }}</span>{{ row.selected }}</label>{{ row.selected.errors }}</td><td>{{ row.category }}</td><td>{{ row.activity }}</td><td>{{ row.note_field }}{{ row.note_field.errors }}</td></tr>{% endfor %}
-    </tbody></table></div>
+    <div class="table-wrap" tabindex="0" role="region" aria-labelledby="plan-activities-heading"><table class="plan-activity-table"><thead><tr><th scope="col">{% translate "Select" %}</th><th scope="col">{% translate "Category" %}</th><th scope="col">{% translate "Activity" %}</th><th scope="col">{% translate "Notes" %}</th></tr></thead>
+    {% regroup form.activity_rows by category as categories %}
+    {% for category in categories %}<tbody class="plan-care-category">
+    {% for row in category.list %}<tr><td class="plan-category-edge"><label for="{{ row.selected.id_for_label }}"><span class="visually-hidden">{{ row.selected.label }}</span>{{ row.selected }}</label>{{ row.selected.errors }}</td>{% if forloop.first %}<th scope="rowgroup" rowspan="{{ category.list|length }}">{{ category.grouper }}</th>{% endif %}<td>{{ row.activity }}</td><td>{{ row.note_field }}{{ row.note_field.errors }}</td></tr>{% endfor %}
+    </tbody>{% endfor %}</table></div>
   </section>
   <div class="form-actions form-actions-sticky"><button class="button button-primary" type="submit">{% translate "Save plan" %}</button><a class="button button-quiet" href="{% url 'plan_list' %}">{% translate "Cancel" %}</a></div>
 </form>

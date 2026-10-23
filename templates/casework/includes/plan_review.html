@@ -16,6 +16,7 @@
 <h3 id="care-activities-heading">{% translate "Selected care activities" %}</h3>
 <div class="table-wrap" tabindex="0" role="region" aria-labelledby="care-activities-heading"><table>
   <thead><tr><th scope="col">{% translate "Category" %}</th><th scope="col">{% translate "Activity" %}</th><th scope="col">{% translate "Notes" %}</th></tr></thead>
-  <tbody>{% for row in document.activities %}<tr><td>{{ row.category }}</td><td>{{ row.activity }}</td><td>{{ row.notes|default:_('No notes')|linebreaksbr }}</td></tr>{% endfor %}</tbody>
+  {% regroup document.activities by category as categories %}
+  {% for category in categories %}<tbody class="plan-care-category">{% for row in category.list %}<tr>{% if forloop.first %}<th class="plan-category-edge" scope="rowgroup" rowspan="{{ category.list|length }}">{{ category.grouper }}</th>{% endif %}<td>{{ row.activity }}</td><td>{{ row.notes|default:_('No notes')|linebreaksbr }}</td></tr>{% endfor %}</tbody>{% endfor %}
 </table></div>
 {% if document.notes %}<h3>{% translate "Notes" %}</h3><p>{{ document.notes|linebreaksbr }}</p>{% endif %}

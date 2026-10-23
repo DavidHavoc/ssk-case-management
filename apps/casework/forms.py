@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 from django import forms
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.db.models import OuterRef, Q, Subquery
 from django.forms import BaseFormSet, BaseInlineFormSet, formset_factory, inlineformset_factory
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -729,6 +729,19 @@ class AssessmentTemplateChoiceField(forms.ModelChoiceField):
         return _(template.name)
 
 
+class PlanEnrollmentChoiceField(AssessmentEnrollmentChoiceField):
+    def label_from_instance(self, enrollment):
+        label = super().label_from_instance(enrollment)
+        score = getattr(enrollment, "plan_barthel_score", None)
+        score_label = _("Barthel index")
+        if score is None:
+            score = enrollment.beneficiary.barthel_index
+            score_label = _("Recorded intake Barthel index")
+        if score is not None:
+            label += f" | {score_label}: {score.normalize():f}/100"
+        return label
+
+
 class AssessmentForm(AuthorizedCaseworkForm):
     @property
     def is_creation(self):
@@ -1253,7 +1266,7 @@ class InterventionPlanForm(IndividualPlanForm):
             "notes",
         )
         exclude = None
-        field_classes = {"enrollment": AssessmentEnrollmentChoiceField}
+        field_classes = {"enrollment": PlanEnrollmentChoiceField}
         labels = {
             "plan_kind": _("Plan kind"),
             "enrollment": _("Beneficiary and enrollment"),
@@ -1264,6 +1277,20 @@ class InterventionPlanForm(IndividualPlanForm):
         if instance and instance._state.adding:
             instance.workflow_version = 2
         super().__init__(*args, user=user, center=center, **kwargs)
+        latest_barthel = (
+            assessments_for_user(user, center)
+            .filter(
+                beneficiary_id=OuterRef("beneficiary_id"),
+                scoring_tool=Assessment.ScoringTool.BARTHEL,
+                status=Assessment.Status.COMPLETED,
+                assessment_date__lte=timezone.localdate(),
+            )
+            .order_by("-assessment_date", "-created_at")
+            .values("total_score")[:1]
+        )
+        self.fields["enrollment"].queryset = self.fields["enrollment"].queryset.annotate(
+            plan_barthel_score=Subquery(latest_barthel)
+        )
         self.fields["status"].help_text = _("Save a draft, then sign the plan to activate it.")
         self.fields["review_frequency"].choices = [
             ("", "---------"),

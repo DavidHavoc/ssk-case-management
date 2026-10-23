@@ -6,6 +6,7 @@
 <style>
 @font-face{font-family:PlanNoto;src:url(data:font/ttf;base64,{{ font_data }}) format('truetype');font-weight:100 900;font-display:block}
 *{box-sizing:border-box}body{font-family:PlanNoto,sans-serif;color:#151515;background:#fff;margin:0 auto;padding:2rem;max-width:60rem;line-height:1.6;overflow-wrap:anywhere}h1{font-size:1.7rem}h2{font-size:1.25rem}dt{font-weight:600}dd{margin:0 0 1rem}table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{border:1px solid #bbb;text-align:left;padding:.5rem}img{max-width:100%;width:25rem;height:auto}dl{margin:1rem 0}.paper-line{height:4rem;border-bottom:1px solid #555}@media(max-width:40rem){body{padding:1rem}.table-wrap{overflow-x:auto}}@media print{body{max-width:none;padding:0;font-size:11pt}tr,dl>div{break-inside:avoid}h2{break-after:avoid}@page{size:A4;margin:16mm}}
+.plan-care-category>tr:first-child>*{border-top:2px solid #242424}.plan-care-category>tr:last-child>td,.plan-care-category th[scope=rowgroup]{border-bottom:2px solid #242424}.plan-care-category .plan-category-edge{border-left:2px solid #242424}.plan-care-category>tr>:last-child{border-right:2px solid #242424}.plan-care-category th[scope=rowgroup]{background:#efeee9;vertical-align:top}
 </style></head><body>
 <h1>{% if execution %}{% translate "Signed plan" %}{% else %}{% translate "Plan for paper signing" %}{% endif %}</h1>
 {% include "casework/includes/plan_review.html" %}

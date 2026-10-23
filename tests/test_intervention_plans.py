@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
@@ -9,6 +10,8 @@ from django.http import Http404
 from django.urls import reverse
 from django.utils import translation
 
+from apps.casework.assessment_signing import finalize_assessment
+from apps.casework.forms import InterventionPlanForm
 from apps.casework.models import IndividualPlan, PrivateAttachment, SignedPlan
 from apps.casework.plan_schema import activity_catalog, validate_interventions
 from apps.casework.plan_signing import finalize_plan, issue_plan_token, plan_review
@@ -134,6 +137,66 @@ def test_plan_form_name_first_and_only_requested_review_choices(
     assert {"status", "plan_start_date", "plan_end_date", "review_due_date"} <= form.fields.keys()
     assert not form.fields["plan_start_date"].disabled
     assert "plan_type" not in form.fields
+
+
+@pytest.mark.parametrize("score", [0, 55])
+def test_plan_picker_prefers_completed_barthel_and_includes_zero(
+    coordinator_a, center_a, beneficiary_a, specialist_a, django_assert_num_queries, score
+):
+    beneficiary_a.barthel_index = Decimal("40")
+    beneficiary_a.save(update_fields=["barthel_index"])
+    assessment = barthel_draft(beneficiary_a, specialist_a, score)
+    finalize_assessment(
+        assessment=assessment,
+        actor=coordinator_a,
+        center=center_a,
+        language="en",
+        data=assessment_values(assessment, coordinator_a),
+    )
+    form = InterventionPlanForm(user=coordinator_a, center=center_a)
+    field = form.fields["enrollment"]
+    enrollment = field.queryset.get(beneficiary=beneficiary_a)
+    with django_assert_num_queries(0):
+        label = field.label_from_instance(enrollment)
+    assert label.endswith(f" | Barthel index: {score}/100")
+    assert "Recorded intake" not in label
+
+
+def test_plan_picker_marks_intake_value_and_omits_unavailable_scores(
+    coordinator_a, center_a, beneficiary_a, specialist_a
+):
+    assessment = barthel_draft(beneficiary_a, specialist_a, 55)
+
+    def label():
+        field = InterventionPlanForm(user=coordinator_a, center=center_a).fields["enrollment"]
+        return field.label_from_instance(field.queryset.get(beneficiary=beneficiary_a))
+
+    assert "Barthel" not in label()  # A draft assessment is not an available result.
+    beneficiary_a.barthel_index = Decimal("0")
+    beneficiary_a.save(update_fields=["barthel_index"])
+    assert label().endswith(" | Recorded intake Barthel index: 0/100")
+    finalize_assessment(
+        assessment=assessment,
+        actor=coordinator_a,
+        center=center_a,
+        language="en",
+        data=assessment_values(assessment, coordinator_a),
+    )
+    with patch("apps.casework.forms.timezone.localdate", return_value=date(2026, 1, 14)):
+        assert label().endswith(" | Recorded intake Barthel index: 0/100")
+
+
+def test_plan_picker_does_not_include_other_centers_barthel(
+    coordinator_a, center_a, beneficiary_a, beneficiary_b
+):
+    beneficiary_b.barthel_index = Decimal("95")
+    beneficiary_b.save(update_fields=["barthel_index"])
+    field = InterventionPlanForm(user=coordinator_a, center=center_a).fields["enrollment"]
+    choices = list(field.choices)
+    assert any(beneficiary_a.full_name in label for _, label in choices)
+    assert all(
+        beneficiary_b.full_name not in label and "95/100" not in label for _, label in choices
+    )
 
 
 @pytest.mark.parametrize(
