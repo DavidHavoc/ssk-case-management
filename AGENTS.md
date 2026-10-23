@@ -352,3 +352,25 @@ GitHub push. Details are recorded in `docs/PLAN_OVERHAUL_DEPLOYMENT_2026-10-23.m
   bundle were removed. No production export or source document was copied to the desktop.
   Recovery must preserve subsequent plan/signing evidence; migrations refuse to discard it.
   Do not restore a pre-release database over later casework.
+
+## Plan picker and category outline follow-up
+
+On 2026-10-23 the owner's follow-up to the authorized plan release was deployed.
+See `docs/PLAN_PICKER_DEPLOYMENT_2026-10-23.md` for verification and recovery details.
+
+- Application commit `81cdaa9c921bceead079d8696e6e204cf877e9dd` runs as
+  `ssk-web:plan-picker-20261023`, also tagged latest. The prior image remains as
+  `ssk-web:before-plan-picker-20261023`. There are no migrations or dependency changes.
+- Plan enrollment choices include the authorized completed Barthel score when available,
+  with zero preserved and intake-only values explicitly labeled. Each care category has
+  one bold row-group label and a dark outline in forms and new review/printable documents.
+- Local verification passed 669 tests with ten PostgreSQL-only skips. The candidate passed
+  all 121 focused PostgreSQL tests. Ruff, Django system/deployment and migration checks passed.
+  Public checks passed 294 plan checks and 760 options, plus 161 assessment checks and 1,140
+  options. The container is healthy with zero restarts, and runtime hashes match the commit.
+- The restricted backup restored successfully in isolation and preserved all 2,884 original
+  rows across 67 tables. Recovery artifacts remain under
+  `/home/sskadmin/ssk-private-releases/plan-picker-20261023/`. Existing private files and
+  configuration/TLS contents and modes were unchanged. No production casework was fabricated.
+  Temporary verification sessions and test resources were removed. No production export was
+  copied to the desktop. GitHub main and the release branch received an atomic fast-forward push.
