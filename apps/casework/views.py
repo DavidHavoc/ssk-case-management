@@ -308,6 +308,21 @@ def beneficiary_detail(request, pk):
     authorized_plans = plans_for_user(request.user, request.ssk_center).filter(
         enrollment=selected_enrollment
     )
+    from .assessment_signing import CARE_NOTICE
+    from .plan_workflow import barthel_bands, barthel_summary
+
+    workspace_plans = list(
+        authorized_plans.select_related("signed_document").prefetch_related("goals")[:10]
+    )
+    for item in workspace_plans:
+        signed = getattr(item, "signed_document", None)
+        item.display_barthel = (
+            signed.snapshot["review"].get("barthel")
+            if signed
+            else barthel_summary(
+                request.user, request.ssk_center, beneficiary, item.plan_start_date
+            )
+        )
     workspace_summary = build_enrollment_workspace_rows(
         [selected_enrollment],
         visits=authorized_visits,
@@ -368,7 +383,12 @@ def beneficiary_detail(request, pk):
             "workspace_visits": authorized_visits[:10],
             "workspace_schedules": authorized_schedules[:10],
             "workspace_assessments": authorized_assessments[:10],
-            "workspace_plans": authorized_plans.prefetch_related("goals")[:10],
+            "workspace_plans": workspace_plans,
+            "barthel": barthel_summary(
+                request.user, request.ssk_center, beneficiary, timezone.localdate()
+            ),
+            "barthel_bands": barthel_bands(),
+            "care_notice": CARE_NOTICE,
             "workspace_documents": workspace_documents,
             "attachment_parent_type": AttachmentParentType.BENEFICIARY,
             "can_delete": is_system_manager(request.user),
@@ -943,6 +963,11 @@ def enrollment_reenroll(request, pk):
 
 def _case_list(request, *, model, selector, template_name, choices):
     queryset = selector(request.user, request.ssk_center)
+    kind = request.GET.get("kind", "")
+    if model is IndividualPlan:
+        queryset = queryset.select_related("signed_document")
+        if kind in IndividualPlan.Kind.values:
+            queryset = queryset.filter(plan_kind=kind)
     enrollment_id = request.GET.get("enrollment", "")
     enrollment = None
     if enrollment_id:
@@ -963,6 +988,18 @@ def _case_list(request, *, model, selector, template_name, choices):
     if status:
         queryset = queryset.filter(**{choices[0]: status})
     page_obj = _page(request, queryset)
+    if model is IndividualPlan:
+        from .plan_workflow import barthel_summary
+
+        for plan in page_obj:
+            signed = getattr(plan, "signed_document", None)
+            plan.display_barthel = (
+                signed.snapshot["review"].get("barthel")
+                if signed
+                else barthel_summary(
+                    request.user, request.ssk_center, plan.beneficiary, plan.plan_start_date
+                )
+            )
     return render(
         request,
         template_name,
@@ -972,6 +1009,8 @@ def _case_list(request, *, model, selector, template_name, choices):
             "selected_status": status,
             "selected_enrollment": enrollment,
             "status_choices": choices[1],
+            "plan_kind_choices": IndividualPlan.Kind.choices,
+            "selected_kind": kind,
             "can_create": _has_effective_active_enrollment(request.user, request.ssk_center),
             "can_manage_enrollments": _can_manage_restricted(request.user),
         },
@@ -1422,6 +1461,31 @@ def plan_detail(request, pk):
         AttachmentParentType.INDIVIDUAL_PLAN, plan.pk
     )
     _audit_read(request, plan, "IndividualPlan")
+    if plan.workflow_version == 2:
+        from .plan_signing import plan_review
+
+        signed = getattr(plan, "signed_document", None)
+        editable = (
+            plans_for_user(request.user, request.ssk_center, for_change=True)
+            .filter(pk=plan.pk)
+            .exists()
+        )
+        return render(
+            request,
+            "casework/intervention_plan_detail.html",
+            {
+                "plan": plan,
+                "signed": signed,
+                "document": signed.snapshot["review"]
+                if signed
+                else plan_review(plan, request.LANGUAGE_CODE, request.user, request.ssk_center),
+                "can_change_parent": editable and not signed,
+                "can_update_status": editable and bool(signed),
+                "can_delete": is_system_manager(request.user) and not signed,
+                "attachments": attachments,
+                "attachment_parent_type": AttachmentParentType.INDIVIDUAL_PLAN,
+            },
+        )
     goals = plan.goals.select_related(
         "category",
         "responsible_specialist__staff_profile__user",
@@ -1510,6 +1574,8 @@ def plan_goal_create(request, plan_pk):
         "IndividualPlan",
         event_type=AuditEvent.EventType.UPDATE,
     )
+    if plan.workflow_version == 2:
+        raise Http404
     form = IndividualPlanGoalForm(
         request.POST or None,
         user=request.user,
@@ -1695,6 +1761,10 @@ def plan_review_create(request, plan_pk):
 
 
 def _plan_form(request, instance=None, initial_enrollment=None):
+    if instance is None or instance.workflow_version == 2:
+        from .plan_workflow import intervention_plan_form
+
+        return intervention_plan_form(request, instance, initial_enrollment)
     plan = instance or IndividualPlan(center=request.ssk_center)
     if initial_enrollment is not None:
         plan.enrollment = initial_enrollment

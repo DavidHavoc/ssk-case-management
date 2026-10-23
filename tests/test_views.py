@@ -38,7 +38,7 @@ def test_sensitive_detail_read_creates_audit_event(client, coordinator_a, center
     ).exists()
 
 
-def test_active_plan_requires_goal_in_form_workflow(
+def test_new_plan_requires_care_activity_in_form_workflow(
     client, coordinator_a, center_a, specialist_a, beneficiary_a
 ):
     client.force_login(coordinator_a)
@@ -59,7 +59,7 @@ def test_active_plan_requires_goal_in_form_workflow(
         },
     )
     assert response.status_code == 200
-    assert "At least one goal is required" in response.content.decode()
+    assert "Select at least one care activity" in response.content.decode()
     assert IndividualPlan.objects.count() == 0
 
 

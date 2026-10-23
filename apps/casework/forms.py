@@ -1176,7 +1176,7 @@ class IndividualPlanForm(AuthorizedCaseworkForm):
         self.center = center
         super().__init__(*args, **kwargs)
         enrollment_queryset = enrollments_for_user(user, center)
-        if self.instance.pk:
+        if not self.instance._state.adding:
             enrollment_queryset = ServiceEnrollment.objects.filter(
                 Q(pk__in=enrollment_queryset) | Q(pk=self.instance.enrollment_id)
             )
@@ -1187,13 +1187,18 @@ class IndividualPlanForm(AuthorizedCaseworkForm):
             if self.is_bound
             else self.instance.enrollment_id or self.initial.get("enrollment")
         )
-        selected_enrollment = enrollment_queryset.filter(pk=selected_enrollment_id).first()
+        try:
+            selected_enrollment = enrollment_queryset.filter(pk=selected_enrollment_id).first()
+        except (ValidationError, ValueError, TypeError):
+            selected_enrollment = None
         if is_system_manager(user) or is_coordinator(user):
             self.fields["specialist"].queryset = _specialists_for_record(
                 center=center,
                 enrollment=selected_enrollment,
                 business_date=_record_business_date(self, "plan_start_date"),
-                existing_specialist_id=(self.instance.specialist_id if self.instance.pk else None),
+                existing_specialist_id=(
+                    self.instance.specialist_id if not self.instance._state.adding else None
+                ),
             )
         else:
             profile = specialist_profile_for_user(user)
@@ -1201,18 +1206,134 @@ class IndividualPlanForm(AuthorizedCaseworkForm):
                 center=center,
                 enrollment=selected_enrollment,
                 business_date=_record_business_date(self, "plan_start_date"),
-                existing_specialist_id=(self.instance.specialist_id if self.instance.pk else None),
+                existing_specialist_id=(
+                    self.instance.specialist_id if not self.instance._state.adding else None
+                ),
             ).filter(
                 pk__in={
                     getattr(profile, "pk", None),
-                    self.instance.specialist_id if self.instance.pk else None,
+                    self.instance.specialist_id if not self.instance._state.adding else None,
                 }
             )
-            if profile and not self.instance.pk:
+            if profile and self.instance._state.adding:
                 self.initial["specialist"] = profile
 
     def clean(self):
         return _validate_actor_assignment(self, super().clean(), "plan_start_date")
+
+
+class SignedPlanStatusForm(AuthorizedCaseworkForm):
+    class Meta:
+        model = IndividualPlan
+        fields = ("status",)
+
+    def __init__(self, *args, user, center, **kwargs):
+        self.user, self.center = user, center
+        super().__init__(*args, **kwargs)
+        from .services import PLAN_STATUS_TRANSITIONS
+
+        allowed = PLAN_STATUS_TRANSITIONS.get(self.instance.status, set()) | {self.instance.status}
+        self.fields["status"].choices = [
+            (value, label) for value, label in IndividualPlan.Status.choices if value in allowed
+        ]
+
+
+class InterventionPlanForm(IndividualPlanForm):
+    class Meta(IndividualPlanForm.Meta):
+        fields = (
+            "plan_kind",
+            "enrollment",
+            "specialist",
+            "status",
+            "plan_start_date",
+            "plan_end_date",
+            "review_frequency",
+            "review_due_date",
+            "previous_plan",
+            "notes",
+        )
+        exclude = None
+        field_classes = {"enrollment": AssessmentEnrollmentChoiceField}
+        labels = {
+            "plan_kind": _("Plan kind"),
+            "enrollment": _("Beneficiary and enrollment"),
+        }
+
+    def __init__(self, *args, user, center, **kwargs):
+        instance = kwargs.get("instance")
+        if instance and instance._state.adding:
+            instance.workflow_version = 2
+        super().__init__(*args, user=user, center=center, **kwargs)
+        self.fields["status"].help_text = _("Save a draft, then sign the plan to activate it.")
+        self.fields["review_frequency"].choices = [
+            ("", "---------"),
+            *[
+                (value, label)
+                for value, label in IndividualPlan.ReviewFrequency.choices
+                if value != IndividualPlan.ReviewFrequency.WEEKLY
+            ],
+        ]
+        if not self.instance._state.adding:
+            self.fields["enrollment"].disabled = True
+            self.fields["plan_kind"].disabled = True
+        enrollment_id = (
+            self.data.get("enrollment")
+            if self.is_bound
+            else self.instance.enrollment_id or self.initial.get("enrollment")
+        )
+        kind = self.data.get("plan_kind") if self.is_bound else self.instance.plan_kind
+        try:
+            previous = (
+                plans_for_user(user, center)
+                .filter(
+                    enrollment_id=enrollment_id,
+                    plan_kind=kind,
+                )
+                .exclude(pk=self.instance.pk)
+            )
+        except (ValidationError, ValueError, TypeError):
+            previous = IndividualPlan.objects.none()
+        self.fields["previous_plan"].queryset = previous
+        self.period_fields = [self[name] for name in self.Meta.fields]
+        from .plan_schema import activity_catalog
+
+        selected = {row["code"]: row["notes"] for row in self.instance.interventions}
+        self.activity_rows = []
+        for row in activity_catalog():
+            key = row["code"].replace(".", "_")
+            self.fields[f"select_{key}"] = forms.BooleanField(
+                required=False,
+                label=f"{row['category']}: {row['activity']}",
+                initial=row["code"] in selected,
+            )
+            self.fields[f"notes_{key}"] = forms.CharField(
+                required=False,
+                max_length=2000,
+                label=_("Notes"),
+                initial=selected.get(row["code"], ""),
+                widget=forms.Textarea(
+                    attrs={
+                        "rows": 2,
+                        "class": "form-control",
+                        "aria-label": f"{_('Notes')}: {row['category']}, {row['activity']}",
+                    }
+                ),
+            )
+            self.activity_rows.append(
+                {**row, "selected": self[f"select_{key}"], "note_field": self[f"notes_{key}"]}
+            )
+
+    def clean(self):
+        cleaned = super().clean()
+        from .plan_schema import validate_interventions
+
+        rows = []
+        for row in self.activity_rows:
+            if cleaned.get(row["selected"].name):
+                rows.append({"code": row["code"], "notes": cleaned.get(row["note_field"].name, "")})
+        validate_interventions(rows)
+        self.instance.interventions = rows
+        return cleaned
 
 
 class IndividualPlanGoalForm(AuthorizedCaseworkForm):

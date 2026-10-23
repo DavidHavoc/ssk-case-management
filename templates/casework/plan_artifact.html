@@ -1,0 +1,20 @@
+{% load i18n %}<!doctype html>
+<html lang="{{ document.language }}"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="{{ csp }}">
+<title>{% translate "Signed plan" %} | {{ document.beneficiary.code }}</title>
+<style>
+@font-face{font-family:PlanNoto;src:url(data:font/ttf;base64,{{ font_data }}) format('truetype');font-weight:100 900;font-display:block}
+*{box-sizing:border-box}body{font-family:PlanNoto,sans-serif;color:#151515;background:#fff;margin:0 auto;padding:2rem;max-width:60rem;line-height:1.6;overflow-wrap:anywhere}h1{font-size:1.7rem}h2{font-size:1.25rem}dt{font-weight:600}dd{margin:0 0 1rem}table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{border:1px solid #bbb;text-align:left;padding:.5rem}img{max-width:100%;width:25rem;height:auto}dl{margin:1rem 0}.paper-line{height:4rem;border-bottom:1px solid #555}@media(max-width:40rem){body{padding:1rem}.table-wrap{overflow-x:auto}}@media print{body{max-width:none;padding:0;font-size:11pt}tr,dl>div{break-inside:avoid}h2{break-after:avoid}@page{size:A4;margin:16mm}}
+</style></head><body>
+<h1>{% if execution %}{% translate "Signed plan" %}{% else %}{% translate "Plan for paper signing" %}{% endif %}</h1>
+{% include "casework/includes/plan_review.html" %}
+<h2>{% translate "Signer and signature" %}</h2>
+{% if execution %}
+<dl><div><dt>{% translate "Signer full name" %}</dt><dd>{{ execution.signer_name }}</dd></div><div><dt>{% translate "Signer role" %}</dt><dd>{{ execution.role_label }}</dd></div>{% if execution.relationship %}<div><dt>{% translate "Stated relationship to the beneficiary" %}</dt><dd>{{ execution.relationship }}</dd></div>{% endif %}<div><dt>{% translate "Signed at (UTC)" %}</dt><dd>{{ execution.timestamp }}</dd></div><div><dt>{% translate "Recorded by staff" %}</dt><dd>{{ execution.recorder }}</dd></div></dl>
+{% if signature %}<img src="data:image/png;base64,{{ signature }}" alt="{% translate 'Handwritten signature' %}">{% else %}<p>{% translate "Signed on paper. The uploaded PDF is retained with this plan." %}</p><p>SHA-256: {{ execution.paper_sha256 }}</p>{% endif %}
+{% else %}
+<p>{% translate "Unsigned printable copy. Printing does not create a signed record." %}</p>
+<p>{% translate "Signer full name" %}</p><div class="paper-line"></div><p>{% translate "Signer role" %} / {% translate "Stated relationship to the beneficiary" %}</p><div class="paper-line"></div><p>{% translate "Date and signature" %}</p><div class="paper-line"></div>
+{% endif %}
+</body></html>

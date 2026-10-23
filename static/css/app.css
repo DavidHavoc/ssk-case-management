@@ -387,3 +387,11 @@ td a { font-weight: 680; }
 .assessment-question label:has(input:checked) { background: var(--color-brand-soft); border-color: var(--color-ink); }
 .assessment-question input { flex: 0 0 auto; margin-top: .25rem; width: 1.25rem; height: 1.25rem; }
 .assessment-details .detail-item.wide { grid-column: 1 / -1; }
+
+/* Keep activity selection and notes readable inside the existing scroll region. */
+.plan-activity-table { min-width: 52rem; table-layout: fixed; }
+.plan-activity-table th:first-child { width: 8%; }
+.plan-activity-table th:nth-child(2) { width: 20%; }
+.plan-activity-table th:nth-child(3) { width: 32%; }
+.plan-activity-table th:nth-child(4) { width: 40%; }
+.plan-activity-table textarea { min-width: 0; width: 100%; }

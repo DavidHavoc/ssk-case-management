@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import assessment_signing_views, consent_views, views
+from . import assessment_signing_views, consent_views, plan_signing_views, plan_workflow, views
 
 urlpatterns = [
     path("beneficiaries/<uuid:pk>/consent/sign/", consent_views.consent_sign, name="consent_sign"),
@@ -99,6 +99,22 @@ urlpatterns = [
     path("assessments/<uuid:pk>/delete/", views.assessment_delete, name="assessment_delete"),
     path("plans/", views.plan_list, name="plan_list"),
     path("plans/new/", views.plan_create, name="plan_create"),
+    path(
+        "plans/beneficiary-preview/",
+        plan_workflow.plan_beneficiary_preview,
+        name="plan_beneficiary_preview",
+    ),
+    path("plans/<uuid:pk>/sign/", plan_signing_views.plan_sign, name="plan_sign"),
+    path("plans/<uuid:pk>/print/", plan_signing_views.plan_print, name="plan_print"),
+    path("signed-plans/<uuid:pk>/", plan_signing_views.plan_document, name="plan_document"),
+    path(
+        "signed-plans/<uuid:pk>/download/", plan_signing_views.plan_download, name="plan_download"
+    ),
+    path(
+        "signed-plans/<uuid:pk>/signature/",
+        plan_signing_views.plan_signature_download,
+        name="plan_signature_download",
+    ),
     path(
         "plans/<uuid:plan_pk>/goals/new/",
         views.plan_goal_create,

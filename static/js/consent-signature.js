@@ -1,5 +1,5 @@
 (() => {
-  const form = document.querySelector('#consent-sign-form, #assessment-sign-form');
+  const form = document.querySelector('#consent-sign-form, #assessment-sign-form, #plan-sign-form');
   const canvas = document.querySelector('#signature-pad');
   if (!form || !canvas) return;
   const ctx = canvas.getContext('2d');

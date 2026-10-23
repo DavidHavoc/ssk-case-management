@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% translate "Review and sign plan" %}{% endblock %}
+{% block content %}
+<header class="page-header"><div><p class="eyebrow">{{ document.beneficiary.code }}</p><h1>{% translate "Review and sign plan" %}</h1><p>{% translate "The plan remains a draft until the beneficiary or representative signs." %}</p></div><a class="button button-secondary" href="{% url 'plan_print' plan.pk %}" target="_blank" rel="noopener">{% translate "Printable alternative" %}</a></header>
+<section class="section-block">{% include "casework/includes/plan_review.html" %}<a href="{% url 'plan_update' plan.pk %}">{% translate "Edit plan before signing" %}</a></section>
+<form method="post" enctype="multipart/form-data" class="consent-sign-form section-block" id="plan-sign-form">
+  {% csrf_token %}
+  {{ form.review_token }}{{ form.signature_data }}
+  {% include "includes/form_error_summary.html" %}
+  <h2>{% translate "Signer and signature" %}</h2>
+  <p>{% translate "The signer role and relationship are stated information. They do not verify identity or legal authority." %}</p>
+  <div class="form-grid">{% for field in form.visible_fields %}{% if field.name != 'reviewed' %}<div class="form-group"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<p class="help-text" id="{{ field.id_for_label }}-help">{{ field.help_text }}</p>{% endif %}{{ field.errors }}</div>{% endif %}{% endfor %}</div>
+  <p id="signature-instructions">{% translate "Use a mouse, finger, or stylus to draw inside the box, or upload a signed paper plan. Review the selected activities before saving." %}</p>
+  <canvas id="signature-pad" class="signature-pad" width="1000" height="360" role="img" aria-label="{% translate 'Handwritten signature pad' %}" aria-describedby="signature-instructions"></canvas>
+  <p id="signature-status" role="status" data-empty="{% translate 'No signature drawn.' %}" data-drawn="{% translate 'Signature drawn. Review before saving.' %}">{% translate "No signature drawn." %}</p>
+  <div class="actions"><button type="button" class="button button-secondary" id="signature-clear">{% translate "Clear signature" %}</button><button type="button" class="button button-quiet" id="signature-redraw">{% translate "Redraw signature" %}</button></div>
+  <p class="signature-confirmation">{{ form.reviewed }} <label for="{{ form.reviewed.id_for_label }}">{{ form.reviewed.label }}</label>{{ form.reviewed.errors }}</p>
+  <div class="form-actions"><button type="submit" class="button button-primary" id="signature-save" disabled>{% translate "Sign and activate plan" %}</button><a class="button button-quiet" href="{% url 'plan_detail' plan.pk %}">{% translate "Save draft and sign later" %}</a></div>
+  <noscript><p>{% translate "Upload a signed paper plan and confirm the review to complete without JavaScript." %}</p><button type="submit" class="button button-primary">{% translate "Sign and activate plan" %}</button></noscript>
+</form>
+<script src="{% static 'js/consent-signature.js' %}" defer></script>
+{% endblock %}

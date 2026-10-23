@@ -1,0 +1,13 @@
+{% load i18n %}
+<div id="plan-barthel-summary" aria-live="polite">
+  <p data-barthel-empty {% if barthel %}hidden{% endif %}>{% translate "No completed Barthel assessment recorded for this beneficiary on or before the plan date." %}</p>
+  <div data-barthel-result {% if not barthel %}hidden{% endif %}>
+    <div class="table-wrap" tabindex="0"><table><caption>{% translate "Latest completed Barthel assessment" %}</caption><thead><tr><th scope="col">{% translate "Date" %}</th><th scope="col">{% translate "Barthel index" %}</th><th scope="col">{% translate "Functional dependency" %}</th><th scope="col">{% translate "Care need" %}</th></tr></thead><tbody><tr><td data-barthel-date>{{ barthel.date }}</td><td><span data-barthel-score>{{ barthel.score }}</span> / 100</td><td data-barthel-dependency>{{ barthel.dependency }}</td><td data-barthel-need>{{ barthel.care_need }}</td></tr></tbody></table></div>
+    <p data-barthel-additional>{{ barthel.additional_care_needs }}</p>
+    {% if barthel.assessment_id %}<a href="{% url 'assessment_detail' barthel.assessment_id %}" data-barthel-link>{% translate "View assessment" %}</a>{% endif %}
+  </div>
+</div>
+<details class="section-block" open><summary>{% translate "Barthel scale" %}</summary>
+  <div class="table-wrap" tabindex="0"><table><thead><tr><th scope="col">{% translate "Score" %}</th><th scope="col">{% translate "Functional dependency" %}</th><th scope="col">{% translate "Care need" %}</th></tr></thead><tbody>{% for band in barthel_bands %}<tr><td>{{ band.range }}</td><td>{{ band.dependency }}</td><td>{{ band.care_need }}</td></tr>{% endfor %}</tbody></table></div>
+</details>
+<p class="help-text">{{ care_notice }}</p>

@@ -6157,3 +6157,170 @@ msgstr "ხელმოწერილი შეფასების ჩამ�
 
 msgid "A correction is already awaiting review and signature."
 msgstr "ერთი შესწორება უკვე ელოდება გადახედვასა და ხელმოწერას."
+
+# Individual and early intervention plan workflow
+
+msgid "Plan kind"
+msgstr "გეგმის სახეობა"
+
+msgid "Every six months"
+msgstr "ექვს თვეში ერთხელ"
+
+msgid "Save a draft, then sign the plan to activate it."
+msgstr "შეინახეთ მონახაზი, შემდეგ გააქტიურებისთვის მოაწერეთ ხელი გეგმას."
+
+msgid "Early intervention plan"
+msgstr "ადრეული ინტერვენციის გეგმა"
+
+msgid "The beneficiary or representative must sign the plan."
+msgstr "გეგმას ხელი უნდა მოაწეროს ბენეფიციარმა ან წარმომადგენელმა."
+
+msgid "Signed plans cannot be edited. Create a new plan period."
+msgstr "ხელმოწერილი გეგმის შეცვლა დაუშვებელია. შექმენით გეგმის ახალი პერიოდი."
+
+msgid "Previous plan must have the same plan kind."
+msgstr "წინა გეგმა იმავე სახეობის უნდა იყოს."
+
+msgid "Signed plan"
+msgstr "ხელმოწერილი გეგმა"
+
+msgid "Signed plan evidence cannot be changed."
+msgstr "ხელმოწერილი გეგმის მტკიცებულების შეცვლა დაუშვებელია."
+
+msgid "Select a valid signed plan evidence file."
+msgstr "აირჩიეთ ხელმოწერილი გეგმის მტკიცებულების სწორი ფაილი."
+
+msgid "Signed plan center must match the plan."
+msgstr "ხელმოწერილი გეგმის ცენტრი უნდა ემთხვეოდეს გეგმის ცენტრს."
+
+msgid "Select at least one care activity."
+msgstr "აირჩიეთ მინიმუმ ერთი მოვლის საქმიანობა."
+
+msgid "Select valid care activities and notes."
+msgstr "აირჩიეთ დასაშვები მოვლის საქმიანობები და შენიშვნები."
+
+msgid "Describe the selected Other activity in Notes."
+msgstr "არჩეული სხვა საქმიანობა აღწერეთ შენიშვნებში."
+
+msgid "The beneficiary or representative has reviewed this plan and requests that their signature be saved."
+msgstr "ბენეფიციარმა ან წარმომადგენელმა გადახედა გეგმას და ითხოვს მისი ხელმოწერის შენახვას."
+
+msgid "Signed paper plan (PDF)"
+msgstr "ქაღალდზე ხელმოწერილი გეგმა (PDF)"
+
+msgid "Alternatively, print this plan, sign it on paper, and upload the signed PDF."
+msgstr "ალტერნატიულად, დაბეჭდეთ გეგმა, მოაწერეთ ხელი ქაღალდზე და ატვირთეთ ხელმოწერილი PDF."
+
+msgid "Upload the signed paper plan as a PDF."
+msgstr "ქაღალდზე ხელმოწერილი გეგმა ატვირთეთ PDF ფორმატით."
+
+msgid "Draw a signature or upload a signed paper plan."
+msgstr "მოაწერეთ ხელი ჩარჩოში ან ატვირთეთ ქაღალდზე ხელმოწერილი გეგმა."
+
+msgid "The plan review has changed or expired. Review it again and provide a fresh signature."
+msgstr "გეგმის გადახედვა შეიცვალა ან ვადა გაუვიდა. ხელახლა გადახედეთ და თავიდან მოაწერეთ ხელი."
+
+msgid "The signed plan could not be stored. Please try again with a fresh signature."
+msgstr "ხელმოწერილი გეგმის შენახვა ვერ მოხერხდა. გთხოვთ, ხელახლა მოაწეროთ ხელი და სცადოთ შენახვა."
+
+msgid "Update plan"
+msgstr "გეგმის განახლება"
+
+msgid "Barthel index"
+msgstr "ბართელის ინდექსი"
+
+msgid "Care activities"
+msgstr "მოვლის საქმიანობები"
+
+msgid "Signature"
+msgstr "ხელმოწერა"
+
+msgid "Awaiting signature"
+msgstr "ხელმოწერის მოლოდინში"
+
+msgid "Legacy plan"
+msgstr "წინა ფორმატის გეგმა"
+
+msgid "Signed plans"
+msgstr "ხელმოწერილი გეგმები"
+
+msgid "Download signed plan (HTML)"
+msgstr "ხელმოწერილი გეგმის ჩამოტვირთვა (HTML)"
+
+msgid "No completed Barthel assessment recorded for this beneficiary on or before the plan date."
+msgstr "ამ ბენეფიციარისთვის გეგმის თარიღის ჩათვლით ბართელის დასრულებული შეფასება არ არის ჩაწერილი."
+
+msgid "Latest completed Barthel assessment"
+msgstr "ბართელის ბოლო დასრულებული შეფასება"
+
+msgid "Functional dependency"
+msgstr "ფუნქციური დამოკიდებულება"
+
+msgid "View assessment"
+msgstr "შეფასების ნახვა"
+
+msgid "Selected care activities"
+msgstr "არჩეული მოვლის საქმიანობები"
+
+msgid "Review and sign plan"
+msgstr "გეგმის გადახედვა და ხელმოწერა"
+
+msgid "View signed plan"
+msgstr "ხელმოწერილი გეგმის ნახვა"
+
+msgid "This plan remains a draft until the beneficiary or representative signs."
+msgstr "გეგმა რჩება მონახაზად, სანამ ბენეფიციარი ან წარმომადგენელი ხელს არ მოაწერს."
+
+msgid "Choose at least one care activity, save the draft, then review and sign with the beneficiary or representative."
+msgstr "აირჩიეთ მინიმუმ ერთი მოვლის საქმიანობა, შეინახეთ მონახაზი, შემდეგ ბენეფიციართან ან წარმომადგენელთან ერთად გადახედეთ და მოაწერეთ ხელი."
+
+msgid "Show beneficiary details"
+msgstr "ბენეფიციარის მონაცემების ჩვენება"
+
+msgid "Save plan"
+msgstr "გეგმის შენახვა"
+
+msgid "Plan for paper signing"
+msgstr "გეგმა ქაღალდზე ხელმოსაწერად"
+
+msgid "Signed on paper. The uploaded PDF is retained with this plan."
+msgstr "ხელმოწერილია ქაღალდზე. ატვირთული PDF ინახება ამ გეგმასთან ერთად."
+
+msgid "New early intervention plan"
+msgstr "ადრეული ინტერვენციის ახალი გეგმა"
+
+msgid "All plan kinds"
+msgstr "ყველა სახეობის გეგმა"
+
+msgid "The plan remains a draft until the beneficiary or representative signs."
+msgstr "გეგმა რჩება მონახაზად, სანამ ბენეფიციარი ან წარმომადგენელი ხელს არ მოაწერს."
+
+msgid "Edit plan before signing"
+msgstr "გეგმის შეცვლა ხელმოწერამდე"
+
+msgid "Use a mouse, finger, or stylus to draw inside the box, or upload a signed paper plan. Review the selected activities before saving."
+msgstr "მაუსით, თითით ან სტილუსით მოაწერეთ ხელი ჩარჩოში, ან ატვირთეთ ქაღალდზე ხელმოწერილი გეგმა. შენახვამდე გადახედეთ არჩეულ საქმიანობებს."
+
+msgid "Sign and activate plan"
+msgstr "გეგმის ხელმოწერა და გააქტიურება"
+
+msgid "Upload a signed paper plan and confirm the review to complete without JavaScript."
+msgstr "JavaScript-ის გარეშე დასასრულებლად ატვირთეთ ქაღალდზე ხელმოწერილი გეგმა და დაადასტურეთ გადახედვა."
+
+msgid "Plan periods, selected care activities, Barthel index, and signatures."
+msgstr "გეგმის პერიოდები, არჩეული მოვლის საქმიანობები, ბართელის ინდექსი და ხელმოწერები."
+
+msgid "Recorded intake Barthel index"
+msgstr "მიღებისას ჩაწერილი ბართელის ინდექსი"
+
+msgid "Beneficiary details could not be loaded. Use Show beneficiary details to refresh."
+msgstr "ბენეფიციარის მონაცემები ვერ ჩაიტვირთა. განახლებისთვის გამოიყენეთ ბენეფიციარის მონაცემების ჩვენება."
+
+msgid "Select the activities for this plan. Describe any Other activity in Notes."
+msgstr "აირჩიეთ ამ გეგმის საქმიანობები. სხვა საქმიანობა აღწერეთ შენიშვნებში."
+
+msgid "Care activities, Barthel index, and signed plans."
+msgstr "მოვლის საქმიანობები, ბართელის ინდექსი და ხელმოწერილი გეგმები."
+
+msgid "Update plan status"
+msgstr "გეგმის სტატუსის განახლება"

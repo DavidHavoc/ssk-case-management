@@ -3072,6 +3072,15 @@ class GoalCategory(EffectiveDatedCatalogModel):
 class IndividualPlan(DatedCaseworkModel):
     authorization_date_field = "plan_start_date"
 
+    class Kind(models.TextChoices):
+        INDIVIDUAL = "individual", _("Individual plan")
+        EARLY_INTERVENTION = "early_intervention", _("Early intervention plan")
+
+    plan_kind = models.CharField(max_length=24, choices=Kind.choices, default=Kind.INDIVIDUAL)
+    # Existing plans retain their goals and history. The new web form opts into version 2.
+    workflow_version = models.PositiveSmallIntegerField(default=1, editable=False)
+    interventions = models.JSONField(default=list, blank=True, editable=False)
+
     class Status(models.TextChoices):
         DRAFT = "draft", _("Draft")
         ACTIVE = "active", _("Active")
@@ -3083,6 +3092,7 @@ class IndividualPlan(DatedCaseworkModel):
         WEEKLY = "weekly", _("Weekly")
         MONTHLY = "monthly", _("Monthly")
         QUARTERLY = "quarterly", _("Quarterly")
+        SIX_MONTHLY = "six_monthly", _("Every six months")
 
     enrollment = models.ForeignKey(
         ServiceEnrollment,
@@ -3125,13 +3135,13 @@ class IndividualPlan(DatedCaseworkModel):
                 name="individual_plan_dates_ordered",
             ),
             models.UniqueConstraint(
-                fields=["enrollment", "version_number"],
-                name="unique_plan_version_per_enrollment",
+                fields=["enrollment", "plan_kind", "version_number"],
+                name="unique_plan_version_per_kind",
             ),
             models.UniqueConstraint(
-                fields=["enrollment"],
+                fields=["enrollment", "plan_kind"],
                 condition=Q(status="active"),
-                name="one_active_plan_per_enrollment",
+                name="one_active_plan_per_kind",
             ),
         ]
 
@@ -3140,6 +3150,23 @@ class IndividualPlan(DatedCaseworkModel):
 
     def clean(self) -> None:
         self.notes = self.notes.strip()
+        if self.workflow_version == 2:
+            from .plan_schema import validate_interventions
+
+            validate_interventions(self.interventions)
+            if self.status in {self.Status.ACTIVE, self.Status.COMPLETED}:
+                if not SignedPlan.objects.filter(plan_id=self.pk).exists():
+                    raise ValidationError(
+                        _("The beneficiary or representative must sign the plan.")
+                    )
+        if self.pk and SignedPlan.objects.filter(plan_id=self.pk).exists():
+            original = IndividualPlan.objects.get(pk=self.pk)
+            if any(
+                getattr(self, field.attname) != getattr(original, field.attname)
+                for field in self._meta.concrete_fields
+                if field.name not in {"status", "updated_at"}
+            ):
+                raise ValidationError(_("Signed plans cannot be edited. Create a new plan period."))
         if not self.enrollment_id:
             inferred = _infer_single_enrollment(self.beneficiary_id)
             if inferred:
@@ -3213,6 +3240,10 @@ class IndividualPlan(DatedCaseworkModel):
                 raise ValidationError(
                     {"previous_plan": _("Previous plan must belong to the same enrollment.")}
                 )
+            if self.plan_kind != self.previous_plan.plan_kind:
+                raise ValidationError(
+                    {"previous_plan": _("Previous plan must have the same plan kind.")}
+                )
         if self.pk:
             previous_status = (
                 IndividualPlan.objects.filter(pk=self.pk).values_list("status", flat=True).first()
@@ -3242,7 +3273,9 @@ class IndividualPlan(DatedCaseworkModel):
             self.enrollment = _infer_single_enrollment(self.beneficiary_id)
         if self._state.adding and not self.version_number and self.enrollment_id:
             latest_version = (
-                IndividualPlan.objects.filter(enrollment_id=self.enrollment_id)
+                IndividualPlan.objects.filter(
+                    enrollment_id=self.enrollment_id, plan_kind=self.plan_kind
+                )
                 .order_by("-version_number")
                 .values_list("version_number", flat=True)
                 .first()
@@ -3640,6 +3673,7 @@ class AttachmentParentType(models.TextChoices):
     STAFF_PROFILE = "staff_profile", _("Staff Profile")
     SIGNED_CONSENT = "signed_consent", _("Signed consent")
     SIGNED_ASSESSMENT = "signed_assessment", _("Signed assessment")
+    SIGNED_PLAN = "signed_plan", _("Signed plan")
 
 
 ATTACHMENT_CONTENT_TYPES = {
@@ -3700,6 +3734,11 @@ class PrivateAttachment(ValidatedModel):
                 condition=Q(parent_type=AttachmentParentType.SIGNED_ASSESSMENT),
                 name="unique_signed_assessment_file",
             ),
+            models.UniqueConstraint(
+                fields=["parent_id", "original_filename"],
+                condition=Q(parent_type=AttachmentParentType.SIGNED_PLAN),
+                name="unique_signed_plan_file",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -3715,6 +3754,15 @@ class PrivateAttachment(ValidatedModel):
         return model.objects.filter(pk=self.parent_id).first()
 
     def clean(self) -> None:
+        if self.parent_type == AttachmentParentType.SIGNED_PLAN:
+            if not self._state.adding:
+                raise ValidationError(_("Signed plan evidence cannot be changed."))
+            if (
+                self.original_filename
+                not in {"signature.png", "signed-plan.txt", "signed-paper.pdf"}
+                or Path(self.file.name).suffix != Path(self.original_filename).suffix
+            ):
+                raise ValidationError(_("Select a valid signed plan evidence file."))
         if self.parent_type == AttachmentParentType.SIGNED_ASSESSMENT:
             if not self._state.adding:
                 raise ValidationError(_("Signed assessment evidence cannot be changed."))
@@ -3830,6 +3878,34 @@ class SignedAssessment(ValidatedModel):
 
     def delete(self, *args, **kwargs):
         raise TypeError("Signed assessment evidence cannot be deleted.")
+
+
+class SignedPlan(ValidatedModel):
+    plan = models.OneToOneField(
+        IndividualPlan, on_delete=models.PROTECT, related_name="signed_document"
+    )
+    center = models.ForeignKey(Center, on_delete=models.PROTECT)
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    signed_at = models.DateTimeField(default=timezone.now, editable=False)
+    language = models.CharField(max_length=2, choices=(("en", "English"), ("ka", "ქართული")))
+    submission_id = models.UUIDField(unique=True, editable=False)
+    snapshot = models.JSONField()
+
+    def clean(self):
+        if not self._state.adding:
+            raise ValidationError(_("Signed plan evidence cannot be changed."))
+        if self.plan_id and self.center_id != self.plan.center_id:
+            raise ValidationError(_("Signed plan center must match the plan."))
+
+    def delete(self, *args, **kwargs):
+        raise TypeError("Signed plan evidence cannot be deleted.")
+
+
+@receiver(pre_delete, sender=SignedPlan)
+@receiver(pre_delete, sender=PrivateAttachment)
+def preserve_signed_plan_evidence(sender, instance, **kwargs):
+    if sender is SignedPlan or instance.parent_type == AttachmentParentType.SIGNED_PLAN:
+        raise TypeError("Signed plan evidence cannot be deleted.")
 
 
 @receiver(pre_delete, sender=SignedAssessment)

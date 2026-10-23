@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ plan.get_plan_kind_display }}{% endblock %}
+{% block content %}
+<header class="page-header"><div><div class="eyebrow">{{ plan.get_status_display }} · {% translate "Version" %} {{ plan.version_number }}</div><h1>{{ plan.get_plan_kind_display }}</h1><p><a href="{% url 'beneficiary_detail' plan.beneficiary_id %}?enrollment={{ plan.enrollment_id }}">{{ plan.beneficiary.full_name }}</a> · {{ plan.beneficiary.beneficiary_code }}</p></div><div class="actions">
+{% if can_change_parent %}<a class="button button-primary" href="{% url 'plan_sign' plan.pk %}">{% translate "Review and sign plan" %}</a><a class="button button-secondary" href="{% url 'plan_update' plan.pk %}">{% translate "Edit" %}</a>{% endif %}
+{% if can_update_status %}<a class="button button-secondary" href="{% url 'plan_update' plan.pk %}">{% translate "Update plan status" %}</a>{% endif %}
+{% if signed %}<a class="button button-secondary" href="{% url 'plan_document' signed.pk %}">{% translate "View signed plan" %}</a><a class="button button-secondary" href="{% url 'plan_download' signed.pk %}">{% translate "Download signed plan (HTML)" %}</a>{% else %}<a class="button button-secondary" href="{% url 'plan_print' plan.pk %}" target="_blank" rel="noopener">{% translate "Printable alternative" %}</a>{% endif %}
+{% if can_delete %}<a class="button button-danger" href="{% url 'plan_delete' plan.pk %}">{% translate "Delete" %}</a>{% endif %}<a class="button button-quiet" href="{% url 'plan_list' %}">{% translate "Back to list" %}</a></div></header>
+{% if signed %}<p class="alert alert-success">{% translate "Signed plan" %} · {{ signed.signed_at|date:'SHORT_DATETIME_FORMAT' }} · {{ signed.snapshot.execution.signer_name }}</p>{% else %}<p class="alert alert-warning">{% translate "This plan remains a draft until the beneficiary or representative signs." %}</p>{% endif %}
+{% if plan.previous_plan_id %}<p>{% translate "Previous period" %}: <a href="{% url 'plan_detail' plan.previous_plan_id %}">{% translate "Version" %} {{ plan.previous_plan.version_number }}</a></p>{% endif %}
+<section class="form-card">{% include "casework/includes/plan_review.html" %}</section>
+{% include "includes/attachments.html" with object_id=plan.pk %}
+{% endblock %}

@@ -121,6 +121,12 @@ def _signed_assessment_parent_adapter(parent_type: str, parent_id, user, center,
     return authorized_signed_assessment(parent_id, user, center, for_change=action == "change")
 
 
+def _signed_plan_parent_adapter(parent_type: str, parent_id, user, center, action: str):
+    from .plan_signing import authorized_signed_plan
+
+    return authorized_signed_plan(parent_id, user, center, for_change=action == "change")
+
+
 def _case_center(parent):
     return parent.center
 
@@ -130,6 +136,13 @@ def _staff_center(parent):
 
 
 _ATTACHMENT_PARENT_POLICIES = {
+    AttachmentParentType.SIGNED_PLAN: _AttachmentParentPolicy(
+        parent_type=AttachmentParentType.SIGNED_PLAN,
+        model_label="casework.SignedPlan",
+        detail_route="plan_document",
+        authorization_adapter=_signed_plan_parent_adapter,
+        center_adapter=_case_center,
+    ),
     AttachmentParentType.SIGNED_ASSESSMENT: _AttachmentParentPolicy(
         parent_type=AttachmentParentType.SIGNED_ASSESSMENT,
         model_label="casework.SignedAssessment",
@@ -421,6 +434,7 @@ class _AttachmentUploader:
                 if attachment.parent_type in {
                     AttachmentParentType.SIGNED_CONSENT,
                     AttachmentParentType.SIGNED_ASSESSMENT,
+                    AttachmentParentType.SIGNED_PLAN,
                 }:
                     # Reserve the randomized path before writing so even a storage error
                     # after writing bytes can be cleaned up. Normal uploads retain their flow.
@@ -778,6 +792,14 @@ def signed_assessment_attachments(actor, center) -> _AttachmentWorkflow:
         actor=actor,
         center=center,
         allowed_parent_types=frozenset({AttachmentParentType.SIGNED_ASSESSMENT}),
+    )
+
+
+def signed_plan_attachments(actor, center) -> _AttachmentWorkflow:
+    return _AttachmentWorkflow(
+        actor=actor,
+        center=center,
+        allowed_parent_types=frozenset({AttachmentParentType.SIGNED_PLAN}),
     )
 
 

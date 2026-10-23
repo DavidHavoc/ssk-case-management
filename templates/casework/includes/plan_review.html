@@ -1,0 +1,21 @@
+{% load i18n %}
+<h2>{{ document.kind }}</h2>
+<dl class="detail-grid">
+  <div class="detail-item"><dt>{% translate "Beneficiary" %}</dt><dd>{{ document.beneficiary.name }} · {{ document.beneficiary.code }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Service" %}</dt><dd>{{ document.service }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Center" %}</dt><dd>{{ document.center }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Responsible specialist" %}</dt><dd>{{ document.specialist }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Start date" %}</dt><dd>{{ document.date }}</dd></div>
+  <div class="detail-item"><dt>{% translate "End date" %}</dt><dd>{{ document.end_date|default:_('Open') }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Review frequency" %}</dt><dd>{{ document.review_frequency|default:_('Not set') }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Review due date" %}</dt><dd>{{ document.review_due_date|default:_('Not set') }}</dd></div>
+  <div class="detail-item"><dt>{% translate "Plan version" %}</dt><dd>{{ document.version }}</dd></div>
+</dl>
+<h3>{% translate "Barthel index" %}</h3>
+{% include "casework/includes/plan_barthel.html" with barthel=document.barthel barthel_bands=document.barthel_bands care_notice=document.care_notice %}
+<h3 id="care-activities-heading">{% translate "Selected care activities" %}</h3>
+<div class="table-wrap" tabindex="0" role="region" aria-labelledby="care-activities-heading"><table>
+  <thead><tr><th scope="col">{% translate "Category" %}</th><th scope="col">{% translate "Activity" %}</th><th scope="col">{% translate "Notes" %}</th></tr></thead>
+  <tbody>{% for row in document.activities %}<tr><td>{{ row.category }}</td><td>{{ row.activity }}</td><td>{{ row.notes|default:_('No notes')|linebreaksbr }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% if document.notes %}<h3>{% translate "Notes" %}</h3><p>{{ document.notes|linebreaksbr }}</p>{% endif %}

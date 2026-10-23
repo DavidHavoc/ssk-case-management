@@ -71,19 +71,26 @@ def save_plan_period(
 ) -> IndividualPlan:
     Beneficiary.objects.select_for_update().get(pk=plan.enrollment.beneficiary_id)
     ServiceEnrollment.objects.select_for_update().get(pk=plan.enrollment_id)
-    if plan.status in {IndividualPlan.Status.ACTIVE, IndividualPlan.Status.COMPLETED}:
+    if plan.workflow_version == 1 and plan.status in {
+        IndividualPlan.Status.ACTIVE,
+        IndividualPlan.Status.COMPLETED,
+    }:
         stored_goals_exist = plan.pk and IndividualPlanGoal.objects.filter(plan=plan).exists()
         if not has_valid_goals and not stored_goals_exist:
             raise ValueError("An active or completed plan requires at least one valid goal.")
     prior_active = (
         IndividualPlan.objects.select_for_update()
-        .filter(enrollment_id=plan.enrollment_id, status=IndividualPlan.Status.ACTIVE)
+        .filter(
+            enrollment_id=plan.enrollment_id,
+            plan_kind=plan.plan_kind,
+            status=IndividualPlan.Status.ACTIVE,
+        )
         .exclude(pk=plan.pk)
         .order_by("-version_number", "-created_at")
         .first()
     )
     if plan.status == IndividualPlan.Status.ACTIVE and prior_active:
-        if not plan.previous_plan_id:
+        if not plan.previous_plan_id and plan.workflow_version == 1:
             plan.previous_plan = prior_active
         IndividualPlan.objects.filter(pk=prior_active.pk).update(
             status=IndividualPlan.Status.SUPERSEDED,
