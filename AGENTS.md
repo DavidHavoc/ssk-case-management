@@ -310,3 +310,45 @@ flow. Details are recorded in `docs/ASSESSMENT_SCHEDULE_COUNT_REMOVAL_2026-10-14
 - Temporary sessions, test/restore databases, container/volume, network, test image, source export,
   and bundle were removed. Private configuration/TLS contents and modes were verified unchanged.
   No production export was copied to the desktop; credentials, roles and infrastructure were unchanged.
+
+
+## Plan overhaul deployment
+
+On 2026-10-23 the owner requested separate Individual and Early intervention plan kinds,
+using the same care-activity logic for now, and explicitly authorized deployment and a
+GitHub push. Details are recorded in `docs/PLAN_OVERHAUL_DEPLOYMENT_2026-10-23.md`.
+
+- Application commit `dc3480753470cac2e66e0d480f35bcce9ed30f18` is deployed as
+  `ssk-web:plans-20261023`, also tagged `ssk-web:latest`. The previous image remains as
+  `ssk-web:before-plans-20261023`. GitHub main and `codex/plan-overhaul-20261023` received
+  the release through an atomic fast-forward push; the VPS received a code-only bundle.
+- New plans use the supplied activity table with at least one selected row, including the
+  owner's four Technical choices. Beneficiary choices show names first. Barthel results and
+  the existing five-band scale appear in plan review and beneficiary pages, and scores appear
+  in plan tables. Missing assessments remain unrecorded. Dates and statuses are retained;
+  new review choices are monthly, quarterly, and every six months.
+- New plans remain drafts until the beneficiary or representative signs through the existing
+  consent signature controls or signed-paper PDF alternative. Signed content/files are private
+  and immutable, with separate status transitions. Each plan kind has independent active
+  periods and version numbers. Existing plans, goals, and history are preserved.
+- Migrations 0026 and 0027 applied successfully. The complete candidate-image synthetic
+  PostgreSQL suite passed all 675 tests without skips. Local SQLite verification passed
+  662 tests with ten PostgreSQL-only skips, and the final targeted run passed all 43 tests.
+  Ruff, Django system/deployment checks, migration checks, translations and JavaScript passed.
+- Initial and final restricted database backups restored successfully in isolation. Migration
+  application, reversal and reapplication were rehearsed on the isolated initial restore.
+  All 2,810 original rows across 66 tables were preserved. Expected additions to original system
+  tables were two migration rows, one content type, four permissions, and normal audit reads.
+- Candidate/live runtime checks passed 234 bilingual plan checks and 760 enrollment options.
+  Public HTTPS passed 262 plan checks and 760 options, plus 161 assessment checks and 1,140
+  assessment options. Both desktop health checks passed. The web container is healthy with
+  zero restarts, and all tracked runtime hashes match the application commit.
+- Recovery artifacts remain under `/home/sskadmin/ssk-private-releases/plans-20261023/` with
+  directory mode 700 and files mode 600. Backups, original private files, private configuration,
+  Nginx configuration, and TLS contents/modes were verified. Credentials, roles, SSH, sudo and
+  firewall settings were unchanged. No production casework or signature was fabricated for
+  verification, and temporary verification sessions were deleted.
+- Temporary test/restore databases, container/volume, network, test image, source export and
+  bundle were removed. No production export or source document was copied to the desktop.
+  Recovery must preserve subsequent plan/signing evidence; migrations refuse to discard it.
+  Do not restore a pre-release database over later casework.

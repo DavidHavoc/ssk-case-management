@@ -1,6 +1,7 @@
 # Individual and early intervention plan overhaul
 
-Implemented locally on 2026-10-23. Deployment has not been performed.
+Implemented and deployed on 2026-10-23 after the owner explicitly authorized deployment
+and a GitHub push. See `PLAN_OVERHAUL_DEPLOYMENT_2026-10-23.md` for the release evidence.
 
 New plans use a selectable care-activity table in place of the measurable-goal editor.
 The Individual and Early intervention choices currently share this flow. Their active
@@ -32,8 +33,9 @@ a new plan period and signature.
 
 Existing plans retain their goals, reviews, assignments, dates, and stored review
 frequencies. They are not converted into fabricated activity selections or signatures.
-No production record, source document, private configuration, or infrastructure was
-changed. Browser checks used an isolated temporary SQLite database with synthetic people.
+Implementation and browser checks used an isolated temporary SQLite database with synthetic
+people. Deployment later preserved all existing production rows and private files, as
+recorded in the deployment report.
 
 Migrations 0026 and 0027 add the plan fields, per-kind constraints, signed plan evidence,
 and database guards. Existing rows retain workflow version 1; the new form creates version
@@ -50,8 +52,8 @@ Verification:
 - Browser verification covered English and Georgian creation, both plan kinds, live Barthel
   loading, the supplied Technical activity, saved tables, review, handwritten signing,
   activation, and signed-plan status controls.
-- PostgreSQL execution remains pending. The local Docker daemon was unavailable and the
-  installed Docker application did not start. The new PostgreSQL guard branch therefore
-  needs verification in a disposable PostgreSQL environment before deployment.
+- The actual candidate image passed all 675 tests on an isolated PostgreSQL database on
+  the VPS. Both backup restores, migration application, rollback rehearsal, and original-row
+  reconciliation passed before the production release.
 
 The original DOCX remains in Downloads. No real beneficiary data was used in local tests.
